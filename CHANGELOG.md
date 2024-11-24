@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Fork Changes
+### Added
+- RClone mount refreshing via editable client setting.
+- Slight delays to avoid spamming RD.
+- A quick and dirty fix for RdName including a file type extension, such as MKV and RDT-Client using the extension in the directory path causing issues, eg. with ARR apps, unless it's removed.
+- Added missing TorBox information to readme.
+- Added links to every provider's API keys to readme.
+### Changed
+- Modified list sorting.
+- Multiple changes to default setting values including some regex in default settings to exclude certain files from being downloaded.
+- Some error handling changes.
+- Instead of downloading ALL files when no files are available to download due to regex, the client now downloads NO files.
+- Changed how archives such as .zip and .rar are handled when using the Symlink downloader.
+- Changes to various links.
+- Some refrences to Real-Debrid being used when other providers are available.
+- TorBox Icon instead of Real-Debrid Icon
+- Change branding from RDT-Client to DebridClient.
+### Removed
+- Refrences to Real-Debrid when using TorBox.
+- GHCR in build workflow.
+- Removed some junk from changelog.
+
 ## [2.0.89] - 2024-11-24
 ### Changed
 - Disabled selecting of files as Real-Debrid was the only provider that supported that.
@@ -686,26 +708,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Small bug fixes
 
-### Changed
-- test
-
-### Removed
-- nothing
-
 ## [1.0.0] - 2020-04-11
 ### Added
 - First release
 - Add unraring progress and default auto download / auto remove options.
 
-[Unreleased]: https://github.com/rogerfar/rdt-client/compare/1.5.5...HEAD
-[1.5.5]: https://github.com/rogerfar/rdt-client/releases/tag/1.5.5
-[1.5.4]: https://github.com/rogerfar/rdt-client/releases/tag/1.5.4
-[1.5.3]: https://github.com/rogerfar/rdt-client/releases/tag/1.5.3
-[1.5.2]: https://github.com/rogerfar/rdt-client/releases/tag/1.5.2
-[1.5.1]: https://github.com/rogerfar/rdt-client/releases/tag/1.5.1
-[1.5.0]: https://github.com/rogerfar/rdt-client/releases/tag/1.5
-[1.4.0]: https://github.com/rogerfar/rdt-client/releases/tag/1.4
-[1.3.0]: https://github.com/rogerfar/rdt-client/releases/tag/1.3
-[1.2.0]: https://github.com/rogerfar/rdt-client/releases/tag/1.2
-[1.1.0]: https://github.com/rogerfar/rdt-client/releases/tag/1.1
-[1.0.0]: https://github.com/rogerfar/rdt-client/releases/tag/v1.0

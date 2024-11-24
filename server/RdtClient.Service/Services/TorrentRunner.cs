@@ -70,10 +70,21 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
     {
         if (String.IsNullOrWhiteSpace(Settings.Get.Provider.ApiKey))
         {
-            Log($"No RealDebridApiKey set in settings");
+            Log($"No Debrid Api Key set in settings");
             return;
         }
-            
+
+        if (Settings.Get.DownloadClient.Client == Data.Enums.DownloadClient.Symlink)
+        {
+            var rcloneMountPath = Settings.Get.DownloadClient.RcloneMountPath;
+
+            if (!Directory.Exists(rcloneMountPath))
+            {
+                Log($"Rclone mount path ({rcloneMountPath}) was not found!");
+                return;
+            }
+        }
+
         var settingDownloadLimit = Settings.Get.General.DownloadLimit;
         if (settingDownloadLimit < 1)
         {
@@ -382,6 +393,8 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
 
                     if (ActiveDownloadClients.TryAdd(download.DownloadId, downloadClient))
                     {
+                    	// Small delay not to spam the hell out of debrid service api...
+                    	await Task.Delay(100);
                         Log($"Starting download", download, torrent);
 
                         try
@@ -501,9 +514,9 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                     Log($"Torrent reported an error: {torrent.RdStatusRaw}", torrent);
                     Log($"Torrent retry count {torrent.RetryCount}/{torrent.TorrentRetryAttempts}", torrent);
 
-                    Log($"Received RealDebrid error: {torrent.RdStatusRaw}, not processing further", torrent);
+                    Log($"Received error: {torrent.RdStatusRaw}, not processing further", torrent);
 
-                    await torrents.UpdateComplete(torrent.TorrentId, $"Received RealDebrid error: {torrent.RdStatusRaw}.", DateTimeOffset.UtcNow, true);
+                    await torrents.UpdateComplete(torrent.TorrentId, $"Received error: {torrent.RdStatusRaw}.", DateTimeOffset.UtcNow, true);
 
                     continue;
                 }

@@ -36,7 +36,7 @@ public class UpdateChecker(ILogger<UpdateChecker> logger) : BackgroundService
             {
                 var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.UserAgent.Add(new("RdtClient", CurrentVersion));
-                var response = await httpClient.GetStringAsync($"https://api.github.com/repos/rogerfar/rdt-client/tags?per_page=1", stoppingToken);
+                var response = await httpClient.GetStringAsync($"https://api.github.com/repos/mentalblank/rdt-client/tags?per_page=1", stoppingToken);
 
                 var gitHubReleases = JsonConvert.DeserializeObject<List<GitHubReleasesResponse>>(response);
 

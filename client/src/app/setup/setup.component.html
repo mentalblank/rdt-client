@@ -6,7 +6,7 @@
           <img src="assets/logo.png" />
           <div class="box" *ngIf="step === 1">
             <div class="notification is-primary">
-              Welcome to Real-Debrid Client. Please create your account by entering a username and password.
+              Welcome to Debrid Client. Please create your account by entering a username and password.
             </div>
             <form (ngSubmit)="setup()">
               <div class="field">
@@ -40,15 +40,15 @@
 
           <div class="box" *ngIf="step === 2">
             <div class="notification is-primary">
-              To be able to use the Real-Debrid Client you need a premium subscription to download torrents.
+              To be able to use Debrid Client you need a premium subscription to download torrents.
               <br /><br />
               Not premium yet? You have the choice of 4 providers:
               <br />
-              <a href="https://real-debrid.com/?id=1348683" target="_blank" rel="noopener"
+              <a href="https://real-debrid.com/" target="_blank" rel="noopener"
                 >Use this link to sign up to Real-Debrid.</a
               >
               <br />
-              <a href="https://alldebrid.com/?uid=2v91l&lang=en" target="_blank" rel="noopener"
+              <a href="https://alldebrid.com/" target="_blank" rel="noopener"
                 >Use this link to sign up to AllDebrid.</a
               >
               <br />
@@ -117,9 +117,9 @@
 
           <div class="box" *ngIf="step === 3">
             <div class="notification is-primary">
-              You are now connected to Real-Debrid! To setup Radarr or Sonarr, please following the instructions here:
-              <a href="https://github.com/rogerfar/rdt-client/" target="_blank" rel="noopener"
-                >https://github.com/rogerfar/rdt-client/</a
+              You are now connected! To setup Radarr or Sonarr, please following the instructions here:
+              <a href="https://github.com/mentalblank/rdt-client/" target="_blank" rel="noopener"
+                >https://github.com/mentalblank/rdt-client/</a
               >.
             </div>
             <div class="field">

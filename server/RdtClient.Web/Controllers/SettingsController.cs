@@ -68,7 +68,7 @@ public class SettingsController(Settings settings, Torrents torrents) : Controll
 
         var testFile = $"{path}/test.txt";
 
-        await System.IO.File.WriteAllTextAsync(testFile, "RealDebridClient Test File, you can remove this file.");
+        await System.IO.File.WriteAllTextAsync(testFile, "DebridClient Test File, you can remove this file.");
             
         await FileHelper.Delete(testFile);
 

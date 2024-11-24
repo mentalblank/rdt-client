@@ -72,7 +72,7 @@
         <ng-container [ngSwitch]="torrent.downloadAction">
           <ng-container *ngSwitchCase="0">Download all files above a certain size</ng-container>
           <ng-container *ngSwitchCase="1"
-            >Download all available files on Real-Debrid above a certain size</ng-container
+            >Download all available files on provider above a certain size</ng-container
           >
           <ng-container *ngSwitchCase="2">Pick files I want to download</ng-container>
         </ng-container>
@@ -81,8 +81,8 @@
         <label class="label">Finished action</label>
         <ng-container [ngSwitch]="torrent.finishedAction">
           <ng-container *ngSwitchCase="0">Do nothing</ng-container>
-          <ng-container *ngSwitchCase="1">Remove torrent from Real-Debrid and Real-Debrid Client</ng-container>
-          <ng-container *ngSwitchCase="2">Remove torrent from Real-Debrid</ng-container>
+          <ng-container *ngSwitchCase="1">Remove torrent from provider and client</ng-container>
+          <ng-container *ngSwitchCase="2">Remove torrent from provider</ng-container>
           <ng-container *ngSwitchCase="3">Remove torrent from client</ng-container>
         </ng-container>
       </div>
@@ -130,31 +130,31 @@
     </div>
     <div fxFlex>
       <div class="field">
-        <label class="label">Real-Debrid ID</label>
+        <label class="label">Torrent ID</label>
         {{ torrent.rdId }}
       </div>
       <div class="field">
-        <label class="label">Real-Debrid Name</label>
+        <label class="label">Torrent Name</label>
         {{ torrent.rdName }}
       </div>
       <div class="field">
-        <label class="label">Real-Debrid Size</label>
+        <label class="label">Torrent Size</label>
         {{ torrent.rdSize | filesize }}
       </div>
       <div class="field">
-        <label class="label">Real-Debrid Host</label>
+        <label class="label">Torrent Host</label>
         {{ torrent.rdHost }}
       </div>
       <div class="field">
-        <label class="label">Real-Debrid Split</label>
+        <label class="label">Torrent Split</label>
         {{ torrent.rdSplit }}
       </div>
       <div class="field">
-        <label class="label">Real-Debrid Progress</label>
+        <label class="label">Torrent Progress</label>
         {{ torrent.rdProgress || 0 }}%
       </div>
       <div class="field">
-        <label class="label">Real-Debrid Status</label>
+        <label class="label">Torrent Status</label>
         <ng-container [ngSwitch]="torrent.rdStatus">
           <ng-container *ngSwitchCase="0">Processing</ng-container>
           <ng-container *ngSwitchCase="1">Waiting For File Selection</ng-container>
@@ -165,19 +165,19 @@
         ({{ torrent.rdStatusRaw }})
       </div>
       <div class="field">
-        <label class="label">Real-Debrid Added</label>
+        <label class="label">Torrent Added</label>
         {{ torrent.rdAdded | date: "fullDate" }} {{ torrent.rdAdded | date: "mediumTime" }}
       </div>
       <div class="field">
-        <label class="label">Real-Debrid Ended</label>
+        <label class="label">Torrent Ended</label>
         {{ torrent.rdEnded | date: "fullDate" }} {{ torrent.rdEnded | date: "mediumTime" }}
       </div>
       <div class="field">
-        <label class="label">Real-Debrid Speed</label>
+        <label class="label">Torrent Speed</label>
         {{ torrent.rdSpeed || 0 }}
       </div>
       <div class="field">
-        <label class="label">Real-Debrid Seeders</label>
+        <label class="label">Torrent Seeders</label>
         {{ torrent.rdSeeders || "0" }}
       </div>
     </div>
@@ -264,13 +264,13 @@
                       {{ download.error }}
                     </div>
                     <div class="field">
-                      <label class="label">Real-Debrid Unrestricted Link</label>
+                      <label class="label">Torrent Unrestricted Link</label>
                       <a href="{{ download.link }}" target="_blank" *ngIf="download.link">
                         {{ download.link | decodeURI }}</a
                       >
                     </div>
                     <div class="field">
-                      <label class="label">Real-Debrid Link</label>
+                      <label class="label">Torrent Link</label>
                       {{ download.path }}
                     </div>
                     <div class="field">
@@ -388,7 +388,7 @@
         </div>
       </div>
       <div class="notification is-primary">
-        Deleting a torrent from Real-Debrid will automatically delete it here too.
+        Deleting a torrent from debrid provider will automatically delete it here too.
       </div>
       <div class="notification is-danger is-light" *ngIf="deleteError?.length > 0">
         Error deleting torrent: {{ deleteError }}
@@ -421,7 +421,7 @@
       <p>Are you sure you want to retry this torrent?</p>
       <p>
         This action will delete all the torrent data + all local downloads. Then it will re-add the original magnet link
-        or torrent file to Real-Debrid.
+        or torrent file to debrid provider.
       </p>
       <div class="notification is-danger is-light" *ngIf="retryError?.length > 0">
         Error retrying torrent: {{ retryError }}
@@ -452,7 +452,7 @@
     </header>
     <section class="modal-card-body">
       <p>Are you sure you want to retry this download?</p>
-      <p>This action will remove the local download and re-download the file from Real-Debrid.</p>
+      <p>This action will remove the local download and re-download the file from provider.</p>
       <div class="notification is-danger is-light" *ngIf="downloadRetryError?.length > 0">
         Error retrying download: {{ downloadRetryError }}
       </div>
@@ -515,7 +515,7 @@
         </div>
         <p class="help">
           When a torrent is finished downloading on the provider, perform this action. Use this setting if you only want
-          to add files to Real-Debrid but not download them to the host.
+          to add files to debrid provider but not download them to the host.
         </p>
       </div>
       <div class="field">

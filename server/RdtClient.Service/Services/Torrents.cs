@@ -310,7 +310,7 @@ public class Torrents(
 
         if (deleteRdTorrent && torrent.RdId != null)
         {
-            Log($"Deleting RealDebrid Torrent", torrent);
+            Log($"Deleting Torrent", torrent);
 
             try
             {

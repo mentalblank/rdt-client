@@ -126,17 +126,17 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
     public async Task<String> AddMagnet(String magnetLink)
     {
         var result = await GetClient().Torrents.AddMagnetAsync(magnetLink);
-
+		var resultId = result?.Id?.ToString() ?? throw new($"Unable to add magnet link. Invalid response ID: {result?.Id}");
         return result.Id;
     }
 
     public async Task<String> AddFile(Byte[] bytes)
     {
         var result = await GetClient().Torrents.AddFileAsync(bytes);
-
+		var resultId = result?.Id?.ToString() ?? throw new($"Unable to add magnet link. Invalid response ID: {result?.Id}");
         return result.Id;
     }
-
+    
     public Task<IList<TorrentClientAvailableFile>> GetAvailableFiles(String hash)
     {
         return Task.FromResult<IList<TorrentClientAvailableFile>>([]);
@@ -144,6 +144,7 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
 
     public async Task SelectFiles(Data.Models.Data.Torrent torrent)
     {
+
         IList<TorrentClientFile> files;
 
         Log("Seleting files", torrent);
@@ -159,6 +160,13 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
             files = [.. torrent.Files];
         }
 
+        if (files.Count == 0)
+        {
+            Log($"Filtered all files out! Downloading ALL files instead!", torrent);
+
+            files = torrent.Files;
+        }
+        
         Log($"Selecting {files.Count}/{torrent.Files.Count} files", torrent);
 
         if (torrent.DownloadAction != TorrentDownloadAction.DownloadManual && torrent.DownloadMinSize > 0)
@@ -220,23 +228,24 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
 
         if (files.Count == 0)
         {
-            Log($"Filtered all files out! Downloading ALL files instead!", torrent);
+            Log($"Filtered all files out! Downloading NO files!", torrent);
+            throw new($"No Files Available to Download");
+            files = null;
+        } else {
 
-            files = torrent.Files;
-        }
+			var fileIds = files.Select(m => m.Id.ToString()).ToArray();
 
-        var fileIds = files.Select(m => m.Id.ToString()).ToArray();
+			Log($"Selecting files:");
 
-        Log($"Selecting files:");
+			foreach (var file in files)
+			{
+				Log($"{file.Id}: {file.Path} ({file.Bytes}b)");
+			}
 
-        foreach (var file in files)
-        {
-            Log($"{file.Id}: {file.Path} ({file.Bytes}b)");
-        }
+			Log("", torrent);
 
-        Log("", torrent);
-
-        await GetClient().Torrents.SelectFilesAsync(torrent.RdId!, [.. fileIds]);
+			await GetClient().Torrents.SelectFilesAsync(torrent.RdId!, [.. fileIds]);
+		}
     }
 
     public async Task Delete(String torrentId)
@@ -279,6 +288,11 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
             {
                 torrent.RdName = torrentClientTorrent.OriginalFilename;
             }
+            //If RdName includes a file type extension, such as MKV, RDT-Client uses the extension in the directory path and this causes issues, eg. with ARR apps, unless it's removed.
+            var extensionsToRemove = new[] { ".mkv", ".mp4", ".avi", ".m2ts", ".mov", ".wmv", ".asf", ".mpegts", ".ts", ".3gpp", ".flv", ".mpeg", ".wtv", ".webm", ".m4v", ".3gp", ".vob", ".ogv", ".rm", ".rmvb", ".divx", ".xvid", ".f4v", ".mts", ".mxf" };
+            var lastDotIndex = torrent.RdName.LastIndexOf('.');
+            var nameWithoutExtension = (lastDotIndex != -1 && extensionsToRemove.Contains(torrent.RdName.Substring(lastDotIndex))) ? torrent.RdName.Substring(0, lastDotIndex) : torrent.RdName;
+            torrent.RdName = nameWithoutExtension;
 
             if (torrentClientTorrent.Bytes > 0)
             {

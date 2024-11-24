@@ -1,22 +1,22 @@
-# Real-Debrid Torrent Client
+# Debrid Torrent Client
 
-This is a web interface to manage your torrents on Real-Debrid, AllDebrid or Premiumize. It supports the following features:
+This is a web interface to manage your torrents on Real-Debrid, AllDebrid, Premiumize, or Torbox. It supports the following features:
 
 - Add new torrents through magnets or files
-- Download all files from Real-Debrid, AllDebrid or Premiumize to your local machine automatically
+- Download all files from Real-Debrid, AllDebrid, Premiumize, or Torbox to your local machine automatically
 - Unpack all files when finished downloading
 - Implements a fake qBittorrent API so you can hook up other applications like Sonarr, Radarr or Couchpotato.
 - Built with Angular 15 and .NET 9
 
-**You will need a Premium service at Real-Debrid, AllDebrid or Premiumize!**
+**You will need a Premium service at Real-Debrid, AllDebrid, Premiumize, or TorBox!**
 
-[Click here to sign up for Real-Debrid.](https://real-debrid.com/?id=1348683)
+[Click here to sign up for Real-Debrid.](https://real-debrid.com/)
 
-[Click here to sign up for AllDebrid.](https://alldebrid.com/?uid=2v91l)
+[Click here to sign up for AllDebrid.](https://alldebrid.com/)
 
 [Click here to sign up for Premiumize.](https://www.premiumize.me/)
 
-<sub>(referal links so I can get a few free premium days)</sub>
+[Click here to sign up for TorBox.](https://torbox.app/)
 
 ## Docker Setup
 
@@ -54,7 +54,7 @@ Instead of running in Docker you can install it as a service in Linux.
 
     ```sudo apt-get update && sudo apt-get install -y dotnet-sdk-9.0```  
 
-2. Get latest archive from [releases](https://github.com/rogerfar/rdt-client/releases):  
+2. Get latest archive from [releases](https://github.com/mentalblank/rdt-client/releases):  
 ```wget <zip_url>```
 3. Extract to path of your choice (~/rtdc in this example):  
 ```unzip RealDebridClient.zip -d ~/rdtc && cd ~/rdtc```
@@ -96,12 +96,16 @@ If you use Proxmox for your homelab, you can run rdt-client in a linux container
 
 ### First Login
 
-1. Browse to [http://127.0.0.1:6500](http://127.0.0.1:6500) (or the path of your server).
-1. The very first credentials you enter in will be remembered for future logins.
-1. Click on `Settings` on the top and enter your Real-Debrid API key (found here: [https://real-debrid.com/apitoken](https://real-debrid.com/apitoken).
-1. If you are using docker then the `Download path` setting needs to be the same as in your docker file mapping. By default this is `/data/downloads`. If you are using Windows, this is a path on your host.
-1. Same goes for `Mapped path`, but this is the destination path from your docker mapping. This is a path on your host. For Windows, this will most likely be the same as the `Download path`.
-1. Save your settings.
+1. Browse to [http://127.0.0.1:6500](http://127.0.0.1:6500) (or the path of your server).  
+2. The very first credentials you enter in will be remembered for future logins.  
+3. Click on `Settings` on the top and enter your provider's API key.
+    - Real-Debrid: [https://real-debrid.com/apitoken](https://real-debrid.com/apitoken).
+    - AllDebrid: [https://alldebrid.com/apikeys](https://alldebrid.com/apikeys).
+    - Premiumize: [https://www.premiumize.me/account](https://www.premiumize.me/account).
+    - TorBox: [https://torbox.app/settings](https://torbox.app/settings). 
+4. If you are using Docker, then the `Download path` setting needs to be the same as in your Docker file mapping. By default, this is `/data/downloads`. If you are using Windows, this is a path on your host.  
+5. Same goes for `Mapped path`, but this is the destination path from your Docker mapping. This is a path on your host. For Windows, this will most likely be the same as the `Download path`.  
+6. Save your settings.
 
 ### Download Clients
 
@@ -160,12 +164,12 @@ Suggested configuration:
 
 ### Connecting Sonarr/Radarr
 
-RdtClient emulates the qBittorrent web protocol and allow applications to use those APIs. This way you can use Sonarr and Radarr to download directly from RealDebrid.
+RdtClient emulates the qBittorrent web protocol and allow applications to use those APIs. This way you can use Sonarr and Radarr to download directly from debrid providers.
 
 1. Login to Sonarr or Radarr and click `Settings`.
 1. Go to the `Download Client` tab and click the plus to add.
 1. Click `qBittorrent` in the list.
-1. Enter the IP or hostname of the RealDebridClient in the `Host` field.
+1. Enter the IP or hostname of DebridClient in the `Host` field.
 1. Enter the 6500 in the `Port` field.
 1. Enter your Username/Password you setup above in the Username/Password field.
 1. Set the category to `sonarr` for Sonarr or `radarr` for Radarr.

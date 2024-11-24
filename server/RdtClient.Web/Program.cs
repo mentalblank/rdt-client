@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Hosting.WindowsServices;
@@ -59,7 +60,7 @@ Serilog.Debugging.SelfLog.Enable(msg =>
     Debug.WriteLine(msg);
 });
 
-Log.Information("Starting RealDebridClient host");
+Log.Information("Starting DebridClient host");
 
 builder.Services.AddControllers();
 
@@ -134,6 +135,8 @@ builder.Host.UseWindowsService();
 
 RdtClient.Data.DiConfig.Config(builder.Services, appSettings);
 builder.Services.RegisterRdtServices();
+
+ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
 try
 {
