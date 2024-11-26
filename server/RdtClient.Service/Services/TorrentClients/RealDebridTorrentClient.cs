@@ -335,9 +335,9 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
         }
         catch (Exception ex)
         {
-            if (ex.Message == "Resource not found")
+            if (!string.IsNullOrEmpty(ex.Message))
             {
-                torrent.RdStatusRaw = "deleted";
+                torrent.RdStatusRaw = ex.Message;
             }
             else
             {

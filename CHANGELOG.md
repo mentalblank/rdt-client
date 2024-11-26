@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Instead of downloading ALL files when no files are available to download due to regex, the client now downloads NO files.
 - Changed how archives such as .zip and .rar are handled when using the Symlink downloader.
 - Changes to various links.
+- Log error codes and messages such as "Infringing File" in debug log and return as failed.
 - Some refrences to Real-Debrid being used when other providers are available.
 - TorBox Icon instead of Real-Debrid Icon
 - Change branding from RDT-Client to DebridClient.

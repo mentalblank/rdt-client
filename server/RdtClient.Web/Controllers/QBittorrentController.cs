@@ -323,28 +323,25 @@ public class QBittorrentController(ILogger<QBittorrentController> logger, QBitto
         foreach (var url in urls)
         {
             try{
-            if (url.StartsWith("magnet"))
-            {
-                await qBittorrent.TorrentsAddMagnet(url.Trim(), request.Category, null);
-            }
-            else if (url.StartsWith("http"))
-            {
-                var httpClient = new HttpClient();
-                var result = await httpClient.GetByteArrayAsync(url);
-                await qBittorrent.TorrentsAddFile(result, request.Category, null);
-            }
-            else
-            {
-                return BadRequest($"Invalid torrent link format {url}");
-            }
+                if (url.StartsWith("magnet"))
+                {
+                    await qBittorrent.TorrentsAddMagnet(url.Trim(), request.Category, null);
+                }
+                else if (url.StartsWith("http"))
+                {
+                    var httpClient = new HttpClient();
+                    var result = await httpClient.GetByteArrayAsync(url);
+                    await qBittorrent.TorrentsAddFile(result, request.Category, null);
+                }
+                else
+                {
+                    return BadRequest($"Invalid torrent link format {url}");
+                }
             }
             catch (RDNET.RealDebridException ex)
             {
-                // Infringing file.
-                if (ex.ErrorCode == 35)
-                {
-                    return Ok("Fails.");
-                }
+                logger.LogDebug($"ERROR: Encountered provider exception with ErrorCode {ex.ErrorCode} - {ex.Message}");
+                return Ok("Fails.");
             }
         }
 
