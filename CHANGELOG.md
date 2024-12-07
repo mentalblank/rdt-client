@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GHCR in build workflow.
 - Removed some junk from changelog.
 
+## [2.0.90] - 2024-12-06
+### Changed
+- Download individual files from Torbox instead of a zip file.
+
+### Removed
+- Removed ability to select instant files from AllDebrid.
+
 ## [2.0.89] - 2024-11-24
 ### Changed
 - Disabled selecting of files as Real-Debrid was the only provider that supported that.

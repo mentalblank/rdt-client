@@ -230,7 +230,7 @@ public class DbSettingsDefaultsWithCategory : DbSettingsDefaults
 
     [DisplayName("Post Download Action")]
     [Description("When all files are downloaded from the provider to the host, perform this action. Does not apply when using the symlink downloader.")]
-    public TorrentFinishedAction FinishedAction { get; set; } = TorrentFinishedAction.RemoveAllTorrents;
+    public TorrentFinishedAction FinishedAction { get; set; } = TorrentFinishedAction.None;
 }
 
 public class DbSettingsDefaults
