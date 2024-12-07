@@ -73,7 +73,7 @@ public class TorBoxTorrentClient(ILogger<TorBoxTorrentClient> logger, IHttpClien
             Progress = (Int64)((torrent.Progress) * 100.0),
             Status = torrent.DownloadState,
             Added = ChangeTimeZone(torrent.CreatedAt)!.Value,
-            Files = torrent.Files.Select(m => new TorrentClientFile
+            Files = (torrent.Files ?? []).Select(m => new TorrentClientFile
             {
                 Path = String.Join("/", m.Name.Split('/').Skip(1)),
                 Bytes = m.Size,
@@ -162,7 +162,7 @@ public class TorBoxTorrentClient(ILogger<TorBoxTorrentClient> logger, IHttpClien
 
         if (availability.Data != null)
         {
-            return (availability.Data[0]?.Files ?? []).Select(file => new TorrentClientAvailableFile()
+            return (availability.Data[0]?.Files ?? []).Select(file => new TorrentClientAvailableFile
                                                       {
                                                           Filename = file.Name,
                                                           Filesize = file.Size
@@ -291,8 +291,11 @@ public class TorBoxTorrentClient(ILogger<TorBoxTorrentClient> logger, IHttpClien
 
         var torrentId = await GetClient().Torrents.GetHashInfoAsync(torrent.Hash, skipCache: true);
 
-        var newFile = $"https://torbox.app/fakedl/{torrentId?.Id}/zip";
-        files.Add(newFile);
+        foreach (var file in torrent.Files)
+        {
+            var newFile = $"https://torbox.app/fakedl/{torrentId?.Id}/{file.Id}";
+            files.Add(newFile);
+        }
 
         return files;
     }
