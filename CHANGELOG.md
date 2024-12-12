@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GHCR in build workflow.
 - Removed some junk from changelog.
 
+## [2.0.91] - 2024-12-11
+### Changed
+- Torbox fixes.
+
 ## [2.0.90] - 2024-12-06
 ### Changed
 - Download individual files from Torbox instead of a zip file.
