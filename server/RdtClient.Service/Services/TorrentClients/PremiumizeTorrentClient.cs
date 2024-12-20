@@ -15,8 +15,20 @@ public class PremiumizeTorrentClient(ILogger<PremiumizeTorrentClient> logger, IH
     {
         try
         {
-            var apiKey = Settings.Get.Provider.ApiKey;
-
+            var apiKey = "";
+            if (Settings.Get.Provider.Provider == Provider.Premiumize)
+            {
+                apiKey = Settings.Get.Provider.ApiKey;
+            }
+            else if (Settings.Get.SecondaryProvider.SecondaryProvider == SecondaryProvider.Premiumize) 
+            {
+                apiKey = Settings.Get.SecondaryProvider.SecondaryApiKey;
+            }
+            else
+            {
+                throw new InvalidOperationException("Premiumize is not set as a provider.");
+            }
+            
             if (String.IsNullOrWhiteSpace(apiKey))
             {
                 throw new("Premiumize API Key not set in the settings");

@@ -14,8 +14,20 @@ public class TorBoxTorrentClient(ILogger<TorBoxTorrentClient> logger, IHttpClien
     {
         try
         {
-            var apiKey = Settings.Get.Provider.ApiKey;
-
+            var apiKey = "";
+            if (Settings.Get.Provider.Provider == Provider.TorBox)
+            {
+                apiKey = Settings.Get.Provider.ApiKey;
+            }
+            else if (Settings.Get.SecondaryProvider.SecondaryProvider == SecondaryProvider.TorBox) 
+            {
+                apiKey = Settings.Get.SecondaryProvider.SecondaryApiKey;
+            }
+            else
+            {
+                throw new InvalidOperationException("TorBox is not set as a provider.");
+            }
+            
             if (String.IsNullOrWhiteSpace(apiKey))
             {
                 throw new("TorBox API Key not set in the settings");
@@ -74,7 +86,7 @@ public class TorBoxTorrentClient(ILogger<TorBoxTorrentClient> logger, IHttpClien
             Progress = (Int64)(torrent.Progress * 100.0),
             Status = torrent.DownloadState,
             Added = ChangeTimeZone(torrent.CreatedAt)!.Value,
-            Files = (torrent.Files).Select(m => new TorrentClientFile
+            Files = (torrent.Files ?? []).Select(m => new TorrentClientFile
             {
                 Path = String.Join("/", m.Name.Split('/').Skip(1)),
                 Bytes = m.Size,

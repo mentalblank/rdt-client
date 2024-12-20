@@ -17,8 +17,20 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
     {
         try
         {
-            var apiKey = Settings.Get.Provider.ApiKey;
-
+            var apiKey = "";
+            if (Settings.Get.Provider.Provider == Provider.RealDebrid)
+            {
+                apiKey = Settings.Get.Provider.ApiKey;
+            }
+            else if (Settings.Get.SecondaryProvider.SecondaryProvider == SecondaryProvider.RealDebrid) 
+            {
+                apiKey = Settings.Get.SecondaryProvider.SecondaryApiKey;
+            }
+            else
+            {
+                throw new InvalidOperationException("Real-Debrid is not set as a provider.");
+            }
+            
             if (String.IsNullOrWhiteSpace(apiKey))
             {
                 throw new("Real-Debrid API Key not set in the settings");

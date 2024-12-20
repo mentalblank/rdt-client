@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A quick and dirty fix for RdName including a file type extension, such as MKV and RDT-Client using the extension in the directory path causing issues, eg. with ARR apps, unless it's removed.
 - Added missing TorBox information to readme.
 - Added links to every provider's API keys to readme.
+- Added uploading torrents to a secondary provider.
 ### Changed
 - Modified list sorting.
 - Multiple changes to default setting values including some regex in default settings to exclude certain files from being downloaded.
@@ -26,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refrences to Real-Debrid when using TorBox.
 - GHCR in build workflow.
 - Removed some junk from changelog.
+
+## [2.0.92] - 2024-12-18
+### Changed
+- Torbox fixes.
 
 ## [2.0.91] - 2024-12-11
 ### Changed

@@ -46,6 +46,21 @@ public class Torrents(
             };
         }
     }
+    
+    private ITorrentClient SecondaryTorrentClient
+    {
+        get
+        {
+            return Settings.Get.SecondaryProvider.SecondaryProvider switch
+            {
+                SecondaryProvider.Premiumize => premiumizeTorrentClient,
+                SecondaryProvider.RealDebrid => realDebridTorrentClient,
+                SecondaryProvider.AllDebrid => allDebridTorrentClient,
+                SecondaryProvider.TorBox => torBoxTorrentClient,
+                _ => throw new("Invalid Secondary Provider")
+            };
+        }
+    }
 
     private static readonly SemaphoreSlim TorrentResetLock = new(1, 1);
 
@@ -147,6 +162,13 @@ public class Torrents(
             }
         }
 
+        if (!String.IsNullOrWhiteSpace(Settings.Get.SecondaryProvider.SecondaryApiKey) && Settings.Get.SecondaryProvider.SecondaryProvider != SecondaryProvider.NoProvider)
+        {
+            // Add to secondary provider
+            var secondaryID = await SecondaryTorrentClient.AddMagnet(magnetLink);
+            Log($"Magnet link also added to secondary provider with ID {secondaryID}", torrent);
+        }
+
         return newTorrent;
     }
 
@@ -196,6 +218,13 @@ public class Torrents(
             {
                 logger.LogError(ex, $"Unable to create torrent blackhole directory: {Settings.Get.General.CopyAddedTorrents}: {ex.Message}");
             }
+        }
+
+        if (!String.IsNullOrWhiteSpace(Settings.Get.SecondaryProvider.SecondaryApiKey) && Settings.Get.SecondaryProvider.SecondaryProvider != SecondaryProvider.NoProvider)
+        {
+            // Add to secondary provider
+            var secondaryID = await SecondaryTorrentClient.AddFile(bytes);
+            Log($"Magnet link also added to secondary provider with ID {secondaryID}", torrent);
         }
 
         return newTorrent;

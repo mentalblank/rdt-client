@@ -16,8 +16,20 @@ public class AllDebridTorrentClient(ILogger<AllDebridTorrentClient> logger, IHtt
     {
         try
         {
-            var apiKey = Settings.Get.Provider.ApiKey;
-
+            var apiKey = "";
+            if (Settings.Get.Provider.Provider == Provider.AllDebrid)
+            {
+                apiKey = Settings.Get.Provider.ApiKey;
+            }
+            else if (Settings.Get.SecondaryProvider.SecondaryProvider == SecondaryProvider.AllDebrid) 
+            {
+                apiKey = Settings.Get.SecondaryProvider.SecondaryApiKey;
+            }
+            else
+            {
+                throw new InvalidOperationException("All-Debrid is not set as a provider.");
+            }
+            
             if (String.IsNullOrWhiteSpace(apiKey))
             {
                 throw new("All-Debrid API Key not set in the settings");

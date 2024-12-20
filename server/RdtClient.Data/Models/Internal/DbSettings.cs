@@ -16,6 +16,10 @@ public class DbSettings
     [DisplayName("Provider")]
     [Description("")]
     public DbSettingsProvider Provider { get; set; } = new();
+    
+    [DisplayName("Secondary Provider")]
+    [Description("")]
+    public DbSettingsSecondaryProvider SecondaryProvider { get; set; } = new();
 
     [DisplayName("qBittorrent / *darr")]
     [Description("The following settings only apply when a torrent gets added through the qbittorrent API, usually Radarr or Sonarr.")]
@@ -151,8 +155,7 @@ public class DbSettingsProvider
 <a href=""https://real-debrid.com/"" target=""_blank"" rel=""noopener"">https://real-debrid.com/</a>
 <a href=""https://alldebrid.com/"" target=""_blank"" rel=""noopener"">https://alldebrid.com/</a>
 <a href=""https://www.premiumize.me/"" target=""_blank"" rel=""noopener"">https://www.premiumize.me/</a>
-<a href=""https://torbox.app/"" target=""_blank"" rel=""noopener"">https://torbox.app/</a>
-At this point only 1 provider can be used at the time.")]
+<a href=""https://torbox.app/"" target=""_blank"" rel=""noopener"">https://torbox.app/</a>")]
     public Provider Provider { get; set; } = Provider.RealDebrid;
 
     [DisplayName("API Key")]
@@ -164,8 +167,8 @@ or
 <a href=""https://www.premiumize.me/account/"" target=""_blank"" rel=""noopener"">https://www.premiumize.me/account/</a>
 or
 <a href=""https://torbox.app/settings/"" target=""_blank"" rel=""noopener"">https://torbox.app/settings/</a>")]
-    public String ApiKey { get; set; } = "";
-
+    public String ApiKey { get; set; } = "";  
+    
     [DisplayName("Automatically import and process torrents added to provider")]
     [Description("When selected, import downloads that are not added through DebridClient but have been directly added to your debrid provider.")]
     public Boolean AutoImport { get; set; } = false;
@@ -184,6 +187,17 @@ or
 
     [DisplayName("Auto Import Defaults")]
     public DbSettingsDefaultsWithCategory Default { get; set; } = new();
+}
+
+public class DbSettingsSecondaryProvider
+{
+    [DisplayName("Secondary Provider")]
+    [Description("Optional - Select a secondary provider in addition to your primary debrid provider above.")]
+    public SecondaryProvider SecondaryProvider { get; set; } = SecondaryProvider.TorBox;
+
+    [DisplayName("Secondary API Key")]
+    [Description("Optional - Enter the API key for your secondary provider.")]
+    public String SecondaryApiKey { get; set; } = "";
 }
 
 public class DbSettingsIntegrations
