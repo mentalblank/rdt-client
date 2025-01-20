@@ -28,6 +28,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GHCR in build workflow.
 - Removed some junk from changelog.
 
+## [2.0.95] - 2025-01-19
+### Added
+- Added the /api/v2/transfer/info qBittorrent endpoint.
+
+### Changed
+- AllDebrid Symlink path fixes.
+
+## [2.0.94] - 2025-01-05
+### Changed
+- AllDebrid path fixes.
+
+## [2.0.93] - 2025-01-03
+### Changed
+- Torbox fixes.
+
 ## [2.0.92] - 2024-12-18
 ### Changed
 - Torbox fixes.

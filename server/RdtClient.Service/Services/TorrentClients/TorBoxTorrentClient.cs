@@ -4,6 +4,7 @@ using TorBoxNET;
 using RdtClient.Data.Enums;
 using RdtClient.Data.Models.TorrentClient;
 using System.Web;
+using RdtClient.Data.Models.Data;
 
 namespace RdtClient.Service.Services.TorrentClients;
 
@@ -132,13 +133,9 @@ public class TorBoxTorrentClient(ILogger<TorBoxTorrentClient> logger, IHttpClien
 
     public async Task<String> AddMagnet(String magnetLink)
     {
-        // var seeding = Settings.Get.Integrations.Default.FinishedAction;
+        var user = await GetClient().User.GetAsync(true);
 
-        // Line is not working right now, will disable seeding and fix in december when I have time again.
-        // var seed = (seeding == TorrentFinishedAction.RemoveAllTorrents || seeding == TorrentFinishedAction.RemoveRealDebrid) ? 3 : 2;
-
-        var seed = 3;
-        var result = await GetClient().Torrents.AddMagnetAsync(magnetLink, seed, false);
+        var result = await GetClient().Torrents.AddMagnetAsync(magnetLink, user.Data?.Settings?.SeedTorrents ?? 3, false);
 
         if (result.Error == "ACTIVE_LIMIT")
         {
@@ -153,11 +150,9 @@ public class TorBoxTorrentClient(ILogger<TorBoxTorrentClient> logger, IHttpClien
 
     public async Task<String> AddFile(Byte[] bytes)
     {
-        // Line is not working right now, will disable seeding and fix in december when I have time again.
-        // var seed = (seeding == TorrentFinishedAction.RemoveAllTorrents || seeding == TorrentFinishedAction.RemoveRealDebrid) ? 3 : 2;
-        const Int32 seed = 3;
+        var user = await GetClient().User.GetAsync(true);
 
-        var result = await GetClient().Torrents.AddFileAsync(bytes, seed);
+        var result = await GetClient().Torrents.AddFileAsync(bytes, user.Data?.Settings?.SeedTorrents ?? 3);
         if (result.Error == "ACTIVE_LIMIT")
         {
             using var stream = new MemoryStream(bytes);
@@ -173,20 +168,19 @@ public class TorBoxTorrentClient(ILogger<TorBoxTorrentClient> logger, IHttpClien
     {
         var availability = await GetClient().Torrents.GetAvailabilityAsync(hash, listFiles: true);
 
-        if (availability.Data != null || availability.Data?.Count < 0)
+        if (availability.Data != null && availability.Data.Count > 0)
         {
             return (availability.Data[0]?.Files ?? []).Select(file => new TorrentClientAvailableFile
-                                                      {
-                                                          Filename = file.Name,
-                                                          Filesize = file.Size
-                                                      })
-                                                      .ToList();
+            {
+                Filename = file.Name,
+                Filesize = file.Size
+            }).ToList();
         }
 
         return [];
     }
 
-    public Task SelectFiles(Data.Models.Data.Torrent torrent)
+    public Task SelectFiles(Torrent torrent)
     {
         return Task.CompletedTask;
     }
@@ -213,7 +207,7 @@ public class TorBoxTorrentClient(ILogger<TorBoxTorrentClient> logger, IHttpClien
         return result.Data!;
     }
 
-    public async Task<Data.Models.Data.Torrent> UpdateData(Data.Models.Data.Torrent torrent, TorrentClientTorrent? torrentClientTorrent)
+    public async Task<Torrent> UpdateData(Torrent torrent, TorrentClientTorrent? torrentClientTorrent)
     {
         try
         {
@@ -248,6 +242,7 @@ public class TorBoxTorrentClient(ILogger<TorBoxTorrentClient> logger, IHttpClien
                 torrent.RdFiles = JsonConvert.SerializeObject(rdTorrent.Files);
             }
 
+            torrent.ClientKind = Torrent.TorrentClientKind.TorBox;
             torrent.RdHost = rdTorrent.Host;
             torrent.RdSplit = rdTorrent.Split;
             torrent.RdProgress = rdTorrent.Progress;
@@ -299,7 +294,7 @@ public class TorBoxTorrentClient(ILogger<TorBoxTorrentClient> logger, IHttpClien
         return torrent;
     }
 
-    public async Task<IList<String>?> GetDownloadLinks(Data.Models.Data.Torrent torrent)
+    public async Task<IList<String>?> GetDownloadLinks(Torrent torrent)
     {
         var files = new List<String>();
 

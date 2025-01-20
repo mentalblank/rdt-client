@@ -322,7 +322,8 @@ public class QBittorrentController(ILogger<QBittorrentController> logger, QBitto
 
         foreach (var url in urls)
         {
-            try{
+            try
+            {
                 if (url.StartsWith("magnet"))
                 {
                     await qBittorrent.TorrentsAddMagnet(url.Trim(), request.Category, null);
@@ -503,6 +504,22 @@ public class QBittorrentController(ILogger<QBittorrentController> logger, QBitto
     public async Task<ActionResult> SyncMainDataPost()
     {
         return await SyncMainData();
+    }
+    
+    [Authorize(Policy = "AuthSetting")]
+    [Route("transfer/info")]
+    [HttpGet]
+    public ActionResult TransferInfo()
+    {
+        return Ok(QBittorrent.TransferInfo());
+    }
+
+    [Authorize(Policy = "AuthSetting")]
+    [Route("transfer/info")]
+    [HttpPost]
+    public ActionResult TransferInfoPost()
+    {
+        return TransferInfo();
     }
 }
 
