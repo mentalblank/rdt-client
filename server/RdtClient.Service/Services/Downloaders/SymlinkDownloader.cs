@@ -109,7 +109,7 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
                 potentialFilePaths.Add("");
 
                 potentialFilePaths = potentialFilePaths.Distinct().ToList();
-
+                
                 for (var retryCount = 0; retryCount < MaxRetries; retryCount++)
                 {
                     DownloadProgress?.Invoke(this,
@@ -123,10 +123,12 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
                     _logger.Debug($"Searching {rcloneMountPath} for {fileName} (attempt #{retryCount})...");
 
                     file = FindFile(rcloneMountPath, potentialFilePaths, fileName);
+
                     if (!String.IsNullOrWhiteSpace(Settings.Get.General.RcloneRefreshCommand))
                     {
                         RefreshRclone();
                     }
+
                     if (file == null && searchSubDirectories)
                     {
                         var subDirectories = Directory.GetDirectories(rcloneMountPath, "*.*", SearchOption.TopDirectoryOnly);
