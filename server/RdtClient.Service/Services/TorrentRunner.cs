@@ -1,14 +1,14 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Text.Json;
-using System.Web;
-using Aria2NET;
+﻿using Aria2NET;
 using Microsoft.Extensions.Logging;
 using RdtClient.Data.Enums;
 using RdtClient.Data.Models.Data;
 using RdtClient.Data.Models.Internal;
 using RdtClient.Service.Helpers;
 using RdtClient.Service.Services.Downloaders;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Text.Json;
+using System.Web;
 
 namespace RdtClient.Service.Services;
 
@@ -38,7 +38,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
 
         // When starting up reset any pending downloads or unpackings so that they are restarted.
         var allTorrents = await torrents.Get();
-            
+
         allTorrents = allTorrents.Where(m => m.Completed == null).ToList();
 
         Log($"Found {allTorrents.Count} not completed torrents");
@@ -72,17 +72,6 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
         {
             Log($"No Debrid Api Key set in settings");
             return;
-        }
-
-        if (Settings.Get.DownloadClient.Client == Data.Enums.DownloadClient.Symlink)
-        {
-            var rcloneMountPath = Settings.Get.DownloadClient.RcloneMountPath;
-
-            if (!Directory.Exists(rcloneMountPath))
-            {
-                Log($"Rclone mount path ({rcloneMountPath}) was not found!");
-                return;
-            }
         }
 
         var settingDownloadLimit = Settings.Get.General.DownloadLimit;
@@ -133,6 +122,19 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
             Log("Finished updating Aria2 status");
         }
 
+        if (ActiveDownloadClients.Any(m => m.Value.Type == Data.Enums.DownloadClient.DownloadStation))
+        {
+            Log("Updating DownloadStation status");
+
+            foreach (var activeDownload in ActiveDownloadClients)
+            {
+                if (activeDownload.Value.Downloader is DownloadStationDownloader downloadStationDownloader)
+                {
+                    await downloadStationDownloader.Update();
+                }
+            }
+        }
+
         // Check if any torrents are finished downloading to the host, remove them from the active download list.
         var completedActiveDownloads = ActiveDownloadClients.Where(m => m.Value.Finished).ToList();
 
@@ -160,7 +162,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                     // Retry the download if an error is encountered.
                     LogError($"Download reported an error: {downloadClient.Error}", download, download.Torrent);
                     Log($"Download retry count {download.RetryCount}/{download.Torrent!.DownloadRetryAttempts}, torrent retry count {download.Torrent.RetryCount}/{download.Torrent.TorrentRetryAttempts}", download, download.Torrent);
-                        
+
                     if (download.RetryCount < download.Torrent.DownloadRetryAttempts)
                     {
                         Log($"Retrying download", download, download.Torrent);
@@ -213,7 +215,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                 if (unpackClient.Error != null)
                 {
                     Log($"Unpack reported an error: {unpackClient.Error}", download, download.Torrent);
-                        
+
                     await downloads.UpdateError(downloadId, unpackClient.Error);
                     await downloads.UpdateCompleted(downloadId, DateTimeOffset.UtcNow);
                 }
@@ -298,7 +300,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
 
             await torrents.Delete(torrent.TorrentId, true, true, true);
         }
-            
+
         // Process torrent lifetime
         foreach (var torrent in allTorrents.Where(m => m.Downloads.Count == 0 && m.Completed == null && m.Lifetime > 0))
         {
@@ -552,7 +554,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                 }
 
                 // Check if torrent is complete, or if we don't want to download any files to the host.
-                if ((torrent.Downloads.Count > 0) || 
+                if ((torrent.Downloads.Count > 0) ||
                     torrent.RdStatus == TorrentStatus.Finished && torrent.HostDownloadAction == TorrentHostDownloadAction.DownloadNone)
                 {
                     var completeCount = torrent.Downloads.Count(m => m.Completed != null);
@@ -638,7 +640,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                 await torrents.UpdateComplete(torrent.TorrentId, ex.Message, DateTimeOffset.UtcNow, true);
             }
         }
-            
+
         await remoteService.Update();
 
         sw.Stop();
