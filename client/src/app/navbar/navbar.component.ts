@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth.service';
 import { Profile } from '../models/profile.model';
@@ -9,22 +9,20 @@ import { SettingsService } from '../settings.service';
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.scss'],
 })
-export class NavbarComponent implements OnInit {
+export class NavbarComponent implements OnInit, AfterViewInit {
   public showMobileMenu = false;
-
   public profile: Profile;
   public providerLink: string;
 
   constructor(
     private settingsService: SettingsService,
     private authService: AuthService,
-    private router: Router,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
     this.settingsService.getProfile().subscribe((result) => {
       this.profile = result;
-
       switch (result.provider) {
         case 'RealDebrid':
           this.providerLink = 'https://real-debrid.com/';
@@ -42,12 +40,37 @@ export class NavbarComponent implements OnInit {
     });
   }
 
+  ngAfterViewInit(): void {
+    const magnetButton = document.getElementById("register-magnet");
+    if (magnetButton) {
+      magnetButton.addEventListener("click", () => {
+        const url = new URL(window.location.origin);
+        let handlerUrl = `${url.origin}/add?magnet=%s`;
+
+        try {
+          if (navigator.registerProtocolHandler) {
+            navigator.registerProtocolHandler("magnet", handlerUrl);
+            alert("Magnet links will now open with RDT-Client.");
+          } else {
+            throw new Error("Your browser does not support protocol handlers.");
+          }
+        } catch (error) {
+          alert(
+            "Your browser does not support automatic magnet link registration.\n\nFor Firefox, follow these steps:\n1. Open about:config\n2. Search for 'network.protocol-handler.external.magnet'\n3. Set it to 'true'\n4. Add a manual handler in 'Applications' settings."
+          );
+        }
+      });
+    } else {
+      console.log("Magnet button not found.");
+    }
+  }
+
   public logout(): void {
     this.authService.logout().subscribe(
       () => {
         this.router.navigate(['/login']);
       },
-      (err) => {},
+      (err) => {}
     );
   }
 }

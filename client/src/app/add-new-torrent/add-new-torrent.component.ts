@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { TorrentService } from 'src/app/torrent.service';
 import { Torrent, TorrentFileAvailability } from '../models/torrent.model';
 import { SettingsService } from '../settings.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-add-new-torrent',
@@ -47,9 +48,15 @@ export class AddNewTorrentComponent implements OnInit {
     private router: Router,
     private torrentService: TorrentService,
     private settingsService: SettingsService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      if (params['magnet']) {
+        this.magnetLink = decodeURIComponent(params['magnet']);
+      }
+    });
     this.settingsService.get().subscribe((settings) => {
       const providerSetting = settings.first((m) => m.key === 'Provider:Provider');
       this.provider = providerSetting.enumValues[providerSetting.value as number];
