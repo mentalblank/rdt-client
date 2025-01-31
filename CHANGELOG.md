@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fork Changes
 ### Added
+- Registration of client as browser's default magnet handler
+  - **NOTE:** Some non-chromium based browsers do not allow automatic registration.
+    - Firefox users must manually register the handler by:
+      - *Opening about:config*
+      - *Setting "network.protocol-handler.external.magnet" to true*
+      - *Using Firefox settings → Applications → Magnet to set a custom handler manually.*
 - RClone mount refreshing via editable client setting.
 - Slight delays to avoid spamming RD.
 - A quick and dirty fix for RdName including a file type extension, such as MKV and RDT-Client using the extension in the directory path causing issues, eg. with ARR apps, unless it's removed.
