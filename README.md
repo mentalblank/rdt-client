@@ -1,14 +1,14 @@
 # Debrid Torrent Client
 
-This is a web interface to manage your torrents on Real-Debrid, AllDebrid, Premiumize, or Torbox. It supports the following features:
+This is a web interface to manage your torrents on Real-Debrid, AllDebrid, Premiumize, Torbox, or DebridLink. It supports the following features:
 
 - Add new torrents through magnets or files
-- Download all files from Real-Debrid, AllDebrid, Premiumize, or Torbox to your local machine automatically
+- Download all files from Real-Debrid, AllDebrid, Premiumize, Torbox, or DebridLink to your local machine automatically
 - Unpack all files when finished downloading
 - Implements a fake qBittorrent API so you can hook up other applications like Sonarr, Radarr or Couchpotato.
 - Built with Angular 15 and .NET 9
 
-**You will need a Premium service at Real-Debrid, AllDebrid, Premiumize, or TorBox!**
+**You will need a Premium service at Real-Debrid, AllDebrid, Premiumize, Torbox, or DebridLink!**
 
 [Click here to sign up for Real-Debrid.](https://real-debrid.com/)
 
@@ -17,6 +17,8 @@ This is a web interface to manage your torrents on Real-Debrid, AllDebrid, Premi
 [Click here to sign up for Premiumize.](https://www.premiumize.me/)
 
 [Click here to sign up for TorBox.](https://torbox.app/)
+
+[Click here to sign up for DebridLink.](https://debrid-link.fr/)
 
 ## Docker Setup
 
@@ -109,7 +111,7 @@ If you use Proxmox for your homelab, you can run rdt-client in a linux container
 
 ### Download Clients
 
-Currently there 4 available download clients:
+Currently there 5 available download clients:
 
 #### Internal Downloader
 
@@ -156,6 +158,17 @@ Required configuration:
 
 Suggested configuration:
 - Automatic retry downloads > 3
+
+### Synology Download Station
+
+The Synology Download Station downloader uses an external Download Station server. You will need to set this up yourself.
+
+It has the following options:
+
+- Url: The URL to the Synology DownloadStation. A common URL is `http://127.0.0.1:5000`
+- Username: The username to use when connecting to the Synology DownloadStation.
+- Password: The password to use when connecting to the Synology DownloadStation.
+- Download Path: The root path to download the file on the Synology DownloadStation host. If left empty, the default path configured on your Download Station server will be used.
 
 ### Troubleshooting
 

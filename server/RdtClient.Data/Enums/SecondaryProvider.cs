@@ -15,7 +15,10 @@ public enum SecondaryProvider
 
     [Description("TorBox")]
     TorBox,
-    
+
+    [Description("DebridLink")]
+    DebridLink,
+
     [Description("NoProvider")]
     NoProvider
 }

@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Registration of client as browser's default magnet handler
   - **NOTE:** Some non-chromium based browsers do not allow automatic registration.
     - Firefox users must manually register the handler by:
-      - *Opening about:config*
-      - *Setting "network.protocol-handler.external.magnet" to true*
+      - *Opening "about:config"*
+      - *Setting "network.protocol-handler.external.magnet" to "true".*
       - *Using Firefox settings → Applications → Magnet to set a custom handler manually.*
 - RClone mount refreshing via editable client setting.
 - Slight delays to avoid spamming RD.
@@ -33,6 +33,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refrences to Real-Debrid when using TorBox.
 - GHCR in build workflow.
 - Removed some junk from changelog.
+
+## [2.0.97] - 2025-02-16
+### Added
+- Added support for DebridLink.fr.
+
+### Fixed
+- Fixed for the internal downloader.
+- Added a column for torrent add date.
+- Upgraded AllDebrid API.
 
 ## [2.0.96] - 2025-01-29
 ### Added

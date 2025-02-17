@@ -23,6 +23,7 @@ public class Torrents(
     AllDebridTorrentClient allDebridTorrentClient,
     PremiumizeTorrentClient premiumizeTorrentClient,
     RealDebridTorrentClient realDebridTorrentClient,
+    DebridLinkClient debridLinkClient,
     TorBoxTorrentClient torBoxTorrentClient)
 {
     private static readonly SemaphoreSlim RealDebridUpdateLock = new(1, 1);
@@ -41,6 +42,7 @@ public class Torrents(
                 Provider.Premiumize => premiumizeTorrentClient,
                 Provider.RealDebrid => realDebridTorrentClient,
                 Provider.AllDebrid => allDebridTorrentClient,
+                Provider.DebridLink => debridLinkClient,
                 Provider.TorBox => torBoxTorrentClient,
                 _ => throw new("Invalid Provider")
             };
@@ -56,6 +58,7 @@ public class Torrents(
                 SecondaryProvider.Premiumize => premiumizeTorrentClient,
                 SecondaryProvider.RealDebrid => realDebridTorrentClient,
                 SecondaryProvider.AllDebrid => allDebridTorrentClient,
+                SecondaryProvider.DebridLink => debridLinkClient,
                 SecondaryProvider.TorBox => torBoxTorrentClient,
                 _ => throw new("Invalid Secondary Provider")
             };
@@ -604,7 +607,7 @@ public class Torrents(
 
         await torrentData.UpdateComplete(download.TorrentId, null, null, false);
     }
-        
+
     public async Task UpdateComplete(Guid torrentId, String? error, DateTimeOffset datetime, Boolean retry)
     {
         await torrentData.UpdateComplete(torrentId, error, datetime, retry);
@@ -686,7 +689,7 @@ public class Torrents(
                                     Torrent torrent)
     {
         await RealDebridUpdateLock.WaitAsync();
-            
+
         try
         {
             var existingTorrent = await torrentData.GetByHash(infoHash);
@@ -761,7 +764,7 @@ public class Torrents(
         var outputSb = new StringBuilder();
 
         using var process = new Process();
-            
+
         process.StartInfo.FileName = fileName;
         process.StartInfo.Arguments = arguments;
         process.StartInfo.CreateNoWindow = true;
@@ -787,7 +790,7 @@ public class Torrents(
 
             errorSb.AppendLine(data.Data.Trim());
         };
-            
+
         process.Start();
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();

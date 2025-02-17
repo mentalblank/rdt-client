@@ -36,6 +36,9 @@ export class NavbarComponent implements OnInit, AfterViewInit {
         case 'TorBox':
           this.providerLink = 'https://torbox.app/';
           break;
+        case 'DebridLink':
+          this.providerLink = 'https://debrid-link.com/';
+          break;
       }
     });
   }
