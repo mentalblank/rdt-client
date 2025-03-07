@@ -268,6 +268,13 @@ public class Torrents(
             return;
         }
 
+        if (downloadLinks.Count == 0)
+        {
+            await torrentData.UpdateRetry(torrentId, null, torrent.TorrentRetryAttempts);
+            await torrentData.UpdateComplete(torrentId, "No Files Available to Download", DateTimeOffset.Now, false);
+            return;
+        }
+
         foreach (var downloadLink in downloadLinks)
         {
             // Make sure downloads don't get added multiple times
