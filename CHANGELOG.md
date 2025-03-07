@@ -34,6 +34,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GHCR in build workflow.
 - Removed some junk from changelog.
 
+## [2.0.98] - 2025-02-16
+### Added
+- Added unit tests, thanks @Cucumberrbob!
+
+### Changed
+- Fixed symlinks for AllDebrid.
+- Upgraded DebridLink.fr to the latest version.
+- Fixed nested files in the Premiumize Provider.
+- Fixed deleting of torrents in the watch folders.
+
 ## [2.0.97] - 2025-02-16
 ### Added
 - Added support for DebridLink.fr.
