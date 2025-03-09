@@ -34,6 +34,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GHCR in build workflow.
 - Removed some junk from changelog.
 
+## [2.0.102] - 2025-03-07
+### Changed
+- Fixed Angular build for Docker.
+
+## [2.0.101] - 2025-03-07
+### Changed
+- Fixed Angular build (again).
+
+## [2.0.100] - 2025-03-07
+### Changed
+- Fixed Angular build.
+
+## [2.0.99] - 2025-03-07
+### Security fix
+- The Api/Authentication/Update was not protected by authentication, meaning everyone could reset your password and gain access.
+
+### Added
+- Set the useragent for the Bezadd downloader to avoid getting blacklisted by Torbox.
+
+### Changed
+- Upgraded to Angular 19.
+- Upgraded to Torbox 1.5.
+
 ## [2.0.98] - 2025-02-16
 ### Added
 - Added unit tests, thanks @Cucumberrbob!

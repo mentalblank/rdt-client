@@ -274,8 +274,14 @@ public class Torrents(
 
         if (downloadLinks.Count == 0)
         {
+            logger.LogInformation("All files excluded by filters (IncludeRegex: {includeRegex}, ExcludeRegex: {excludeRegex}, DownloadMinSize: {downloadMinSize}  {torrentInfo}",
+                            torrent.IncludeRegex,
+                            torrent.ExcludeRegex,
+                            torrent.DownloadMinSize,
+                            torrent.ToLog());
+
             await torrentData.UpdateRetry(torrentId, null, torrent.TorrentRetryAttempts);
-            await torrentData.UpdateComplete(torrentId, "No Files Available to Download", DateTimeOffset.Now, false);
+            await torrentData.UpdateComplete(torrentId, "All files excluded", DateTimeOffset.Now, false);
             return;
         }
 
