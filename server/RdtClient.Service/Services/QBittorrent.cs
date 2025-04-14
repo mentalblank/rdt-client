@@ -421,11 +421,11 @@ public class QBittorrent(ILogger<QBittorrent> logger, Settings settings, Authent
     {
         if (deleteFiles)
         {
-            logger.LogDebug($"Delete {hash}, with files");
+            logger.LogDebug("Delete {hash}, with files", hash);
         }
         else
         {
-            logger.LogDebug($"Delete {hash}, no files");
+            logger.LogDebug("Delete {hash}, no files", hash);
         }
 
         var torrent = await torrents.GetByHash(hash);
@@ -484,7 +484,7 @@ public class QBittorrent(ILogger<QBittorrent> logger, Settings settings, Authent
             Priority = priority ?? (Settings.Get.Integrations.Default.Priority > 0 ? Settings.Get.Integrations.Default.Priority : null)
         };
 
-        await torrents.UploadMagnet(magnetLink, torrent);
+        await torrents.AddMagnetToDebridQueue(magnetLink, torrent);
     }
 
     public async Task TorrentsAddFile(Byte[] fileBytes, String? category, Int32? priority)
@@ -508,7 +508,7 @@ public class QBittorrent(ILogger<QBittorrent> logger, Settings settings, Authent
             Priority = priority ?? (Settings.Get.Integrations.Default.Priority > 0 ? Settings.Get.Integrations.Default.Priority : null)
         };
 
-        await torrents.UploadFile(fileBytes, torrent);
+        await torrents.AddFileToDebridQueue(fileBytes, torrent);
     }
 
     public async Task TorrentsSetCategory(String hash, String? category)

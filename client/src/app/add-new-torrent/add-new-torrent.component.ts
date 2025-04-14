@@ -6,10 +6,10 @@ import { SettingsService } from '../settings.service';
 import { ActivatedRoute } from '@angular/router';
 
 @Component({
-    selector: 'app-add-new-torrent',
-    templateUrl: './add-new-torrent.component.html',
-    styleUrls: ['./add-new-torrent.component.scss'],
-    standalone: false
+  selector: 'app-add-new-torrent',
+  templateUrl: './add-new-torrent.component.html',
+  styleUrls: ['./add-new-torrent.component.scss'],
+  standalone: false,
 })
 export class AddNewTorrentComponent implements OnInit {
   public fileName: string;

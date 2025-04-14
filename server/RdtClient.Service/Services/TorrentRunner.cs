@@ -8,11 +8,10 @@ using RdtClient.Service.Services.Downloaders;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
-using System.Web;
 
 namespace RdtClient.Service.Services;
 
-public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Downloads downloads, RemoteService remoteService)
+public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Downloads downloads)
 {
     public static readonly ConcurrentDictionary<Guid, DownloadClient> ActiveDownloadClients = new();
     public static readonly ConcurrentDictionary<Guid, UnpackClient> ActiveUnpackClients = new();
@@ -315,6 +314,29 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
             await torrents.UpdateComplete(torrent.TorrentId, $"Torrent lifetime of {torrent.Lifetime} minutes reached", DateTimeOffset.UtcNow, false);
         }
 
+        // Process torrents in DebridQueue
+        var torrentsToAddToProvider = allTorrents.Where(m => m.RdId == null && m.RdAdded == null && m.FileOrMagnet != null && m.RdStatus == TorrentStatus.Queued)
+                                                 .ToList();
+
+        if (torrentsToAddToProvider.Count != 0)
+        {
+            var downloadingTorrentsCount = allTorrents.Count(m => m.RdStatus is not (TorrentStatus.Queued or TorrentStatus.Finished or TorrentStatus.Error));
+
+            var maxParallelDownloads = Settings.Get.Provider.MaxParallelDownloads;
+
+            logger.LogDebug("Currently downloading {downloadingTorrentCount}/{maxParallelDownloads} torrents, {queuedCount} queued.",
+                            downloadingTorrentsCount,
+                            maxParallelDownloads,
+                            torrentsToAddToProvider.Count);
+
+            var dequeueCount = maxParallelDownloads == 0 ? torrentsToAddToProvider.Count : maxParallelDownloads - downloadingTorrentsCount;
+
+            foreach (var torrent in torrentsToAddToProvider.Take(dequeueCount))
+            {
+                await torrents.DequeueFromDebridQueue(torrent);
+            }
+        }
+
         allTorrents = await torrents.Get();
 
         allTorrents = allTorrents.Where(m => m.Completed == null).ToList();
@@ -363,8 +385,11 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                             var downloadLink = await torrents.UnrestrictLink(download.DownloadId);
                             download.Link = downloadLink;
 
-                            var fileName = await torrents.RetrieveFileName(download.DownloadId);
-                            download.FileName = fileName;
+                            if (download.FileName == null)
+                            {
+                                var fileName = await torrents.RetrieveFileName(download.DownloadId);
+                                download.FileName = fileName;
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -449,13 +474,8 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
 
                     // Check if the unpacking process is even needed
                     var uri = new Uri(download.Link);
-                    var fileName = uri.Segments.Last();
 
-                    fileName = HttpUtility.UrlDecode(fileName);
-
-                    Log($"Found file name {fileName}", download, torrent);
-
-                    var extension = Path.GetExtension(fileName);
+                    var extension = Path.GetExtension(download.FileName);
 
                     if ((extension != ".rar" && extension != ".zip") ||
                         torrent.DownloadClient == Data.Enums.DownloadClient.Symlink)
@@ -640,8 +660,6 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                 await torrents.UpdateComplete(torrent.TorrentId, ex.Message, DateTimeOffset.UtcNow, true);
             }
         }
-
-        await remoteService.Update();
 
         sw.Stop();
 

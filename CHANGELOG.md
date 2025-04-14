@@ -34,6 +34,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GHCR in build workflow.
 - Removed some junk from changelog.
 
+## [2.0.108] - 2025-04-13
+### Fixed
+- Fixed websocket UI updating.
+
+## [2.0.107] - 2025-04-13
+### Fixed
+- Fixed Docker release versioning.
+
+## [2.0.106] - 2025-04-13
+### Fixed
+- Changed how the GitHub release is created and how the changelog is generated.
+
+## [2.0.105] - 2025-04-13
+### Added
+- Add feature to limit the amount of torrents that get sent to the provider at the same time.
+### Fixed
+- Moved the websocket update process to its own background thread to improve UI update consistency.
+
+## [2.0.104] - 2025-04-12
+### Fixed
+- Update the version number
+
+## [2.0.103] - 2025-04-12
+### Added
+- Button to select all options when deleting a torrent, thanks @EugeneKallis
+- Add setting to ignore update notifications. A notification will appear regardless of this setting if any GitHub Security Advisories are published in this repo.
+### Changed
+- Download .zip of torrent files from TorBox when possible, thanks @asylumexp
+- Users of AllDebrid and RealDebrid will now have no files downloaded when all files are excluded by filters. Before, if all files were excluded, rdt-client would download all the files in the torrent.
+- Reduce number of calls to debrid provider API when no torrents need updating
+### Fixed
+- The dropdown navigation menu on mobile will now close when you navigate to another page
+- Long torrent names without spaces will now wrap across lines
+### Security
+- Require auth to change debrid api key
+
 ## [2.0.102] - 2025-03-07
 ### Changed
 - Fixed Angular build for Docker.
@@ -385,10 +421,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add the option "Post Download Action" to the Torrent settings popup.
 - Add a 2nd "Add Torrent" button on the add torrent page.
 - Add the Aria2c downloader to the Docker container and set it as the default downloader when running in docker.
-
-## [2.0.32] - 2023-06-27
-### Changed
-- Fixed the BaseURL content-length setting.
 
 ## [2.0.32] - 2023-06-27
 ### Changed
@@ -801,4 +833,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First release
 - Add unraring progress and default auto download / auto remove options.
-
