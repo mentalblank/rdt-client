@@ -129,14 +129,14 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
     public async Task<String> AddMagnet(String magnetLink)
     {
         var result = await GetClient().Torrents.AddMagnetAsync(magnetLink);
-
+        var resultId = result?.Id?.ToString() ?? throw new($"Unable to add magnet link. Invalid response ID: {result?.Id}");
         return result.Id;
     }
 
     public async Task<String> AddFile(Byte[] bytes)
     {
         var result = await GetClient().Torrents.AddFileAsync(bytes);
-
+        var resultId = result?.Id?.ToString() ?? throw new($"Unable to add magnet link. Invalid response ID: {result?.Id}");
         return result.Id;
     }
 
@@ -263,9 +263,9 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
         }
         catch (Exception ex)
         {
-            if (ex.Message == "Resource not found")
+            if (!string.IsNullOrEmpty(ex.Message))
             {
-                torrent.RdStatusRaw = "deleted";
+                torrent.RdStatusRaw = ex.Message;
             }
             else
             {

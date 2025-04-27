@@ -1,7 +1,7 @@
 # [rogerfar/rdt-client](https://github.com/rogerfar/rdt-client)
 Thid docker file follows the [linuxserver.io](https://linuxserver.io) pattern that leverages the [s6-overlay](https://github.com/just-containers/s6-overlay) to run the application as a service within the container.  This allows for scripts to be run prior to start of the application to handle initalization and setting of permissions. 
 
-rdt-client is a web a web interface to manage your torrents on Real-Debrid. It supports the following features:
+rdt-client is a web a web interface to manage your torrents on debrid providers. It supports the following features:
 
 * Add new torrents through magnets or files
 * Download all files from Real Debrid to your local machine automatically

@@ -1,6 +1,6 @@
-# Real-Debrid Torrent Client
+# RDT-Client
 
-This is a web interface to manage your torrents on Real-Debrid, AllDebrid, Premiumize TorBox or DebridLink. It supports the following features:
+This is a web interface to manage your torrents on Real-Debrid, AllDebrid, Premiumize, TorBox or DebridLink. It supports the following features:
 
 - Add new torrents through magnets or files
 - Download all files from Real-Debrid, AllDebrid, Premiumize or TorBox to your local machine automatically
@@ -100,12 +100,16 @@ If you use Proxmox for your homelab, you can run rdt-client in a linux container
 
 ### First Login
 
-1. Browse to [http://127.0.0.1:6500](http://127.0.0.1:6500) (or the path of your server).
-1. The very first credentials you enter in will be remembered for future logins.
-1. Click on `Settings` on the top and enter your Real-Debrid API key (found here: [https://real-debrid.com/apitoken](https://real-debrid.com/apitoken).
-1. If you are using docker then the `Download path` setting needs to be the same as in your docker file mapping. By default this is `/data/downloads`. If you are using Windows, this is a path on your host.
-1. Same goes for `Mapped path`, but this is the destination path from your docker mapping. This is a path on your host. For Windows, this will most likely be the same as the `Download path`.
-1. Save your settings.
+1. Browse to [http://127.0.0.1:6500](http://127.0.0.1:6500) (or the path of your server).  
+2. The very first credentials you enter in will be remembered for future logins.  
+3. Click on `Settings` on the top and enter your provider's API key.
+    - Real-Debrid: [https://real-debrid.com/apitoken](https://real-debrid.com/apitoken).
+    - AllDebrid: [https://alldebrid.com/apikeys](https://alldebrid.com/apikeys).
+    - Premiumize: [https://www.premiumize.me/account](https://www.premiumize.me/account).
+    - TorBox: [https://torbox.app/settings](https://torbox.app/settings). 
+4. If you are using Docker, then the `Download path` setting needs to be the same as in your Docker file mapping. By default, this is `/data/downloads`. If you are using Windows, this is a path on your host.  
+5. Same goes for `Mapped path`, but this is the destination path from your Docker mapping. This is a path on your host. For Windows, this will most likely be the same as the `Download path`.  
+6. Save your settings.
 
 ### Download Clients
 
@@ -175,12 +179,12 @@ It has the following options:
 
 ### Connecting Sonarr/Radarr
 
-RdtClient emulates the qBittorrent web protocol and allow applications to use those APIs. This way you can use Sonarr and Radarr to download directly from RealDebrid.
+RdtClient emulates the qBittorrent web protocol and allow applications to use those APIs. This way you can use Sonarr and Radarr to download directly from debrid providers.
 
 1. Login to Sonarr or Radarr and click `Settings`.
 1. Go to the `Download Client` tab and click the plus to add.
 1. Click `qBittorrent` in the list.
-1. Enter the IP or hostname of the RealDebridClient in the `Host` field.
+1. Enter the IP or hostname of RDT-Client in the `Host` field.
 1. Enter the 6500 in the `Port` field.
 1. Enter your Username/Password you setup above in the Username/Password field.
 1. Set the category to `sonarr` for Sonarr or `radarr` for Radarr.

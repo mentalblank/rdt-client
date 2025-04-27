@@ -189,7 +189,7 @@ or
     public String? ApiHostname { get; set; }
 
     [DisplayName("Automatically import and process torrents added to provider")]
-    [Description("When selected, import downloads that are not added through RealDebridClient but have been directly added to your debrid provider.")]
+    [Description("When selected, import downloads that are not added through RDT-Client but have been directly added to your debrid provider.")]
     public Boolean AutoImport { get; set; } = false;
 
     [DisplayName("Automatically delete downloads removed from provider")]
@@ -266,7 +266,7 @@ public class DbSettingsDefaultsWithCategory : DbSettingsDefaults
 public class DbSettingsDefaults
 {
     [DisplayName("Only download available files on debrid provider")]
-    [Description("When selected, it will only download files in the torrent that have been download by Real-Debrid. You can use this in combination with the Min File size setting above.")]
+    [Description("When selected, it will only download files in the torrent that have been download by your debrid provider. You can use this in combination with the Min File size setting above.")]
     public Boolean OnlyDownloadAvailableFiles { get; set; } = true;
 
     [DisplayName("Minimum file size to download")]
