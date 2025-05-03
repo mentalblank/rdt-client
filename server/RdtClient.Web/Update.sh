@@ -5,7 +5,7 @@ INSTALL_DIR="/opt/rdtc"
 INSTALLED_DIR="$INSTALL_DIR/.installed"
 INSTALLED_FILE="$INSTALLED_DIR/version.txt"
 BACKUP_DIR="$INSTALL_DIR/.backup"
-GITHUB_API_URL="https://api.github.com/repos/rogerfar/rdt-client/releases/latest"
+GITHUB_API_URL="https://api.github.com/repos/mentalblank/rdt-client/releases/latest"
 DOWNLOAD_URL=$(curl -s "$GITHUB_API_URL" | jq -r '.assets[0].browser_download_url')
 
 # Function to check if a newer version is available
@@ -46,36 +46,39 @@ check_for_update() {
 
 # Function to update the software
 update() {
-    echo "Updating RealDebridClient..."
-    
+    echo "Updating RDT-Client..."
+
     # Download the latest zip file
-	echo "Downloading Lastest RealDebridClient"
+    echo "Downloading Latest RDT-Client"
     curl -sLO "$DOWNLOAD_URL"
-    
+
+    # Get the name of the downloaded file
+    ZIP_FILE=$(basename "$DOWNLOAD_URL")
+
     # Stop the rdtc service
-	echo "Stopping RealDebridClient"
+    echo "Stopping RDT-Client"
     sudo systemctl stop rdtc
-    
-	echo "Backing up RealDebridClient"
-	cp $INSTALL_DIR/appsettings.json $BACKUP_DIR
-	cp -r $INSTALL_DIR/db $BACKUP_DIR
-	
+
+    echo "Backing up RDT-Client"
+    cp "$INSTALL_DIR/appsettings.json" "$BACKUP_DIR"
+    cp -r "$INSTALL_DIR/db" "$BACKUP_DIR"
+
     # Unzip the downloaded file
-	echo "Unzipping RealDebridClient.zip"
-    unzip -q -o RealDebridClient.zip -d "$INSTALL_DIR"
-    
+    echo "Unzipping $ZIP_FILE"
+    unzip -q -o "$ZIP_FILE" -d "$INSTALL_DIR"
+
     # Store the new version in the installed file
-	echo "Updating Latest Version file"
+    echo "Updating Latest Version file"
     echo "$latest_version" > "$INSTALLED_FILE"
-	
-	echo "Restoring Backup"
-	cp $BACKUP_DIR/appsettings.json $INSTALL_DIR
-	cp -r $BACKUP_DIR/db $INSTALL_DIR
-    
+
+    echo "Restoring Backup"
+    cp "$BACKUP_DIR/appsettings.json" "$INSTALL_DIR"
+    cp -r "$BACKUP_DIR/db" "$INSTALL_DIR"
+
     # Start the rdtc service
-	echo "Starting RealDebridClient"
+    echo "Starting RDT-Client"
     sudo systemctl start rdtc
-    
+
     echo "Update complete."
 }
 

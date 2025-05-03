@@ -15,7 +15,7 @@ Stop-Service RealDebridClient
 
 Write-Host "Stopped ReadDebridClient"
 
-$releasesUri = "https://api.github.com/repos/rogerfar/rdt-client/releases/latest"
+$releasesUri = "https://api.github.com/repos/mentalblank/rdt-client/releases/latest"
 $downloadUri = ((Invoke-RestMethod -Method GET -Uri $releasesUri).assets | Where-Object name -like "*.zip").browser_download_url
 
 Write-Host "Downloading $downloadUri"

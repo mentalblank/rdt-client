@@ -59,7 +59,7 @@ Serilog.Debugging.SelfLog.Enable(msg =>
     Debug.WriteLine(msg);
 });
 
-Log.Information("Starting RealDebridClient host");
+Log.Information("Starting RDT-Client host");
 
 builder.Services.AddControllers();
 
