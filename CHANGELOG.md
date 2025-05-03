@@ -5,8 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+
+## [2.0.111] - 2025-05-03
+### Added
+- Added button to register rdt-client as a handler for magnet links on [supported browsers](https://caniuse.com/mdn-api_navigator_registerprotocolhandler_scheme_parameter_magnet).
 ### Fork Changes
-- Added registration of client as browser's default magnet handler. (Merged Upstream)
+- Merged Upstream -> Added button to register rdt-client as a handler for magnet links on [supported browsers](https://caniuse.com/mdn-api_navigator_registerprotocolhandler_scheme_parameter_magnet).
 - Updated README formatting and fixed some typos.
 - Updated README-DOCKER formatting and fixed some typos.
 - Improved update process where script now dynamically handles update archive filenames, preventing breakage if the file name changes.
