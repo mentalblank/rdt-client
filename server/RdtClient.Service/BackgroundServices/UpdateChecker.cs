@@ -38,7 +38,7 @@ public class UpdateChecker(ILogger<UpdateChecker> logger) : BackgroundService
         {
             try
             {
-                var gitHubReleases = await GitHubRequest<List<GitHubReleasesResponse>>("/repos/rogerfar/rdt-client/tags?per_page=1", stoppingToken);
+                var gitHubReleases = await GitHubRequest<List<GitHubReleasesResponse>>("/repos/mentalblank/rdt-client/tags?per_page=1", stoppingToken);
 
                 var latestRelease = gitHubReleases?.FirstOrDefault(m => m.Name != null)?.Name;
 
@@ -55,7 +55,7 @@ public class UpdateChecker(ILogger<UpdateChecker> logger) : BackgroundService
 
                 LatestVersion = latestRelease;
 
-                var gitHubSecurityAdvisories = await GitHubRequest<List<GitHubSecurityAdvisoriesResponse>>("/repos/rogerfar/rdt-client/security-advisories", stoppingToken);
+                var gitHubSecurityAdvisories = await GitHubRequest<List<GitHubSecurityAdvisoriesResponse>>("/repos/mentalblank/rdt-client/security-advisories", stoppingToken);
 
                 var unseenGhsaIds = gitHubSecurityAdvisories?.Where(advisory => !KnownGhsaIds.Contains(advisory.GhsaId));
                 

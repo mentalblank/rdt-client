@@ -55,7 +55,7 @@
           <a class="navbar-item" routerLink="profile"> Profile </a>
           <a class="navbar-item" (click)="logout()"> Logout </a>
           <hr class="navbar-divider" />
-          <a href="https://github.com/rogerfar/rdt-client" target="_blank" class="navbar-item">Version {{ version }}</a>
+          <a href="https://github.com/mentalblank/rdt-client" target="_blank" class="navbar-item">Version {{ version }}</a>
         </div>
       </div>
     </div>
@@ -73,7 +73,7 @@
 >
   <span *ngIf="profile.isInsecure"> Your current version is insecure. </span>
   <span>
-    Version {{ profile.latestVersion }} of RealDebrid Client was found. You are currently on version
+    Version {{ profile.latestVersion }} of RDT-Client was found. You are currently on version
     {{ profile.currentVersion }}.
   </span>
 </div>

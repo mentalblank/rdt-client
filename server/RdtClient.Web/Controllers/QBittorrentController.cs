@@ -341,10 +341,86 @@ public class QBittorrentController(ILogger<QBittorrentController> logger, QBitto
             }
             catch (RDNET.RealDebridException ex)
             {
-                // Infringing file.
-                if (ex.ErrorCode == 35)
+                switch (ex.ErrorCode)
                 {
-                    return Ok("Fails.");
+                    case -1:
+                        return Ok("Internal error");
+                    case 1:
+                        return Ok("Missing parameter");
+                    case 2:
+                        return Ok("Bad parameter value");
+                    case 3:
+                        return Ok("Unknown method");
+                    case 4:
+                        return Ok("Method not allowed");
+                    case 5:
+                        return Ok("Slow down");
+                    case 6:
+                        return Ok("Resource unreachable");
+                    case 7:
+                        return Ok("Resource not found");
+                    case 8:
+                        return Ok("Bad token");
+                    case 9:
+                        return Ok("Permission denied");
+                    case 10:
+                        return Ok("Two-Factor authentication needed");
+                    case 11:
+                        return Ok("Two-Factor authentication pending");
+                    case 12:
+                        return Ok("Invalid login");
+                    case 13:
+                        return Ok("Invalid password");
+                    case 14:
+                        return Ok("Account locked");
+                    case 15:
+                        return Ok("Account not activated");
+                    case 16:
+                        return Ok("Unsupported hoster");
+                    case 17:
+                        return Ok("Hoster in maintenance");
+                    case 18:
+                        return Ok("Hoster limit reached");
+                    case 19:
+                        return Ok("Hoster temporarily unavailable");
+                    case 20:
+                        return Ok("Hoster not available for free users");
+                    case 21:
+                        return Ok("Too many active downloads");
+                    case 22:
+                        return Ok("IP Address not allowed");
+                    case 23:
+                        return Ok("Traffic exhausted");
+                    case 24:
+                        return Ok("File unavailable");
+                    case 25:
+                        return Ok("Service unavailable");
+                    case 26:
+                        return Ok("Upload too big");
+                    case 27:
+                        return Ok("Upload error");
+                    case 28:
+                        return Ok("File not allowed");
+                    case 29:
+                        return Ok("Torrent too big");
+                    case 30:
+                        return Ok("Torrent file invalid");
+                    case 31:
+                        return Ok("Action already done");
+                    case 32:
+                        return Ok("Image resolution error");
+                    case 33:
+                        return Ok("Torrent already active");
+                    case 34:
+                        return Ok("Too many requests");
+                    case 35:
+                        return Ok("Infringing file");
+                    case 36:
+                        return Ok("Fair Usage Limit");
+                    case 37:
+                        return Ok("Disabled endpoint");
+                    default:
+                        return Ok($"Unknown error code: {ex.ErrorCode}");
                 }
             }
         }

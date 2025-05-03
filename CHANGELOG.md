@@ -5,6 +5,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fork Changes
+- Added registration of client as browser's default magnet handler. (Merged Upstream)
+- Updated README formatting and fixed some typos.
+- Updated README-DOCKER formatting and fixed some typos.
+- Improved update process where script now dynamically handles update archive filenames, preventing breakage if the file name changes.
+- Updated terminology and replaced references to "*Real-Debrid*" with "*your debrid provider*" (or similar) for broader provider compatibility.
+- Renamed "Real Debrid Client" to "RDT-Client" across the project for consistency with package naming and multi-provider support.
+- Enhanced first login instructions in the README, including API token links for all supported providers.
+- Fixed minor typos in the README (missing commas).
+- Expanded error handling in QBittorrentController.cs by adding support for additional Real-Debrid error codes.
+- Changed torrent table to include sorting chevrons and let it adapt to different screen sizes using responsive fxLayout approach with breakpoints.
+- Modified README-DOCKER to include traefik labels.
+- Changed default DB Settings to include various preferences including a default exclude regex and optional rclone refresh command for the symlink downloader.
+- Added settings option to allow / disallow the download and extraction of compressed files using symlink downloader.
+- Added a change to RealDebridTorrentClient to strip some file extentions from torrent.RdName resulting in */torrentname.mkv/torrentname.mkv* becoming */torrentname/torrentname.mkv* (Only applies to some video formats)
+- Removed some junk from changelog.
+- Changed logo for consistency with package naming and multi-provider support.
+- Shortened "*Received provider error:*" to "*Provider error:*" in TorrentRunner
+- Added "*\*.bak*" to .gitignore
+- Changed docker build workflow to use github repo name instead of "*rdtclient*"
 
 ## [2.0.110] - 2025-04-24
 ### Fixed
@@ -813,12 +833,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2020-05-16
 ### Changed
 - Small bug fixes
-
-### Changed
-- test
-
-### Removed
-- nothing
 
 ## [1.0.0] - 2020-04-11
 ### Added

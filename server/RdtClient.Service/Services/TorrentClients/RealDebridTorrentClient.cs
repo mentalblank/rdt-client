@@ -8,6 +8,7 @@ using RdtClient.Data.Models.TorrentClient;
 using RdtClient.Service.Helpers;
 using Download = RdtClient.Data.Models.Data.Download;
 using Torrent = RDNET.Torrent;
+using System.Text.RegularExpressions;
 
 namespace RdtClient.Service.Services.TorrentClients;
 
@@ -23,7 +24,7 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
 
             if (String.IsNullOrWhiteSpace(apiKey))
             {
-                throw new("Real-Debrid API Key not set in the settings");
+                throw new("Provider API Key not set in the settings");
             }
 
             var httpClient = httpClientFactory.CreateClient(DiConfig.RD_CLIENT);
@@ -45,20 +46,20 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
         {
             foreach (var inner in ae.InnerExceptions)
             {
-                logger.LogError(inner, $"The connection to RealDebrid has failed: {inner.Message}");
+                logger.LogError(inner, $"The connection to provider has failed: {inner.Message}");
             }
 
             throw;
         }
         catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
         {
-            logger.LogError(ex, $"The connection to RealDebrid has timed out: {ex.Message}");
+            logger.LogError(ex, $"The connection to provider has timed out: {ex.Message}");
 
             throw;
         }
         catch (TaskCanceledException ex)
         {
-            logger.LogError(ex, $"The connection to RealDebrid has timed out: {ex.Message}");
+            logger.LogError(ex, $"The connection to provider has timed out: {ex.Message}");
 
             throw; 
         }
@@ -129,14 +130,14 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
     public async Task<String> AddMagnet(String magnetLink)
     {
         var result = await GetClient().Torrents.AddMagnetAsync(magnetLink);
-
+        var resultId = result?.Id?.ToString() ?? throw new($"Unable to add magnet link. Invalid response ID: {result?.Id}");
         return result.Id;
     }
 
     public async Task<String> AddFile(Byte[] bytes)
     {
         var result = await GetClient().Torrents.AddFileAsync(bytes);
-
+        var resultId = result?.Id?.ToString() ?? throw new($"Unable to add magnet link. Invalid response ID: {result?.Id}");
         return result.Id;
     }
 
@@ -221,6 +222,10 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
                 torrent.RdName = torrentClientTorrent.OriginalFilename;
             }
 
+            string FileExtPattern = @"\.(mkv|mp4|avi|m2ts|mov|wmv|asf|mpegts|ts|3gpp|flv|mpeg|wtv|webm|m4v|3gp|vob|ogv|rm|rmvb|divx|xvid|f4v|mts|mxf)$";
+            string RdNameExtStripped = Regex.Replace(torrent.RdName, FileExtPattern, ""); 
+            torrent.RdName = RdNameExtStripped;
+            
             if (torrentClientTorrent.Bytes > 0)
             {
                 torrent.RdSize = torrentClientTorrent.Bytes;
@@ -263,9 +268,9 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
         }
         catch (Exception ex)
         {
-            if (ex.Message == "Resource not found")
+            if (!string.IsNullOrEmpty(ex.Message))
             {
-                torrent.RdStatusRaw = "deleted";
+                torrent.RdStatusRaw = ex.Message;
             }
             else
             {
