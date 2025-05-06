@@ -28,7 +28,8 @@ public class Torrents(
     PremiumizeTorrentClient premiumizeTorrentClient,
     RealDebridTorrentClient realDebridTorrentClient,
     DebridLinkClient debridLinkClient,
-    TorBoxTorrentClient torBoxTorrentClient)
+    TorBoxTorrentClient torBoxTorrentClient,
+    TorBoxUsenetClient torBoxUsenetClient)
 {
     private static readonly SemaphoreSlim RealDebridUpdateLock = new(1, 1);
 
@@ -48,6 +49,7 @@ public class Torrents(
                 Provider.AllDebrid => allDebridTorrentClient,
                 Provider.DebridLink => debridLinkClient,
                 Provider.TorBox => torBoxTorrentClient,
+                Provider.TorBoxUsenet => torBoxUsenetClient,
                 _ => throw new("Invalid Provider")
             };
         }
@@ -161,6 +163,18 @@ public class Torrents(
         Log($"Adding {hash} (torrent file) to queue", newTorrent);
 
         await CopyAddedTorrent(monoTorrent.Name, bytes);
+
+        return newTorrent;
+    }
+
+    public async Task<Torrent> AddNzbFileToQueue(Byte[] bytes, Torrent torrent)
+    {
+        var hash = await TorrentClient.AddFile(bytes);
+
+        torrent.RdStatus = TorrentStatus.Queued;
+        torrent.RdName = "NZB Upload";
+        
+        var newTorrent = await AddQueued(hash, Convert.ToBase64String(bytes), true, torrent);
 
         return newTorrent;
     }

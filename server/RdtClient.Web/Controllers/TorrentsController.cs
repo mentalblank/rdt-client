@@ -66,7 +66,7 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
     {
         if (file == null || file.Length <= 0)
         {
-            return BadRequest("Invalid torrent file");
+            return BadRequest("Invalid file");
         }
 
         if (formData?.Torrent == null)
@@ -84,7 +84,16 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
 
         var bytes = memoryStream.ToArray();
 
-        await torrents.AddFileToDebridQueue(bytes, formData.Torrent);
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+        if (ext == ".nzb")
+        {
+            await torrents.AddNzbFileToQueue(bytes, formData.Torrent);
+        }
+        else
+        {
+            await torrents.AddFileToDebridQueue(bytes, formData.Torrent);
+        }
 
         return Ok();
     }
@@ -121,7 +130,7 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
     {
         if (file == null || file.Length <= 0)
         {
-            return BadRequest("Invalid torrent file");
+            return BadRequest("Invalid file");
         }
 
         var fileStream = file.OpenReadStream();
@@ -132,11 +141,25 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
 
         var bytes = memoryStream.ToArray();
 
-        var torrent = await MonoTorrent.Torrent.LoadAsync(bytes);
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
 
-        var result = await torrents.GetAvailableFiles(torrent.InfoHashes.V1OrV2.ToHex());
-
-        return Ok(result);
+        switch (ext)
+        {
+            case ".torrent":
+            {
+                var torrent = await MonoTorrent.Torrent.LoadAsync(bytes);
+                var result = await torrents.GetAvailableFiles(torrent.InfoHashes.V1OrV2.ToHex());
+                return Ok(result);
+            }
+            case ".nzb":
+            {
+                //TODO: Currently GetAvailableFiles calls GetAvailabilityAsync with listFiles true but TB returns without files
+                var result = await torrents.GetAvailableFiles(BitConverter.ToString(System.Security.Cryptography.MD5.Create().ComputeHash(bytes)).Replace("-", "").ToLowerInvariant());
+                return Ok(result);
+            }
+            default:
+                return BadRequest("Unsupported file type");
+        }
     }
 
     [HttpPost]
@@ -242,9 +265,21 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
             await fileStream.CopyToAsync(memoryStream);
 
             var bytes = memoryStream.ToArray();
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (ext == ".nzb")
+            {
+                //TODO: Currently GetAvailableFiles calls GetAvailabilityAsync with listFiles true but TB returns without files
+                await torrents.GetAvailableFiles(BitConverter.ToString(System.Security.Cryptography.MD5.Create().ComputeHash(bytes)).Replace("-", "").ToLowerInvariant());
+
+                return Ok(new
+                {
+                    includeError = "Regex filtering currently not supported for NZB files.",
+                    excludeError = "",
+                    selectedFiles = new List<TorrentClientAvailableFile>()
+                });
+            }
 
             var torrent = await MonoTorrent.Torrent.LoadAsync(bytes);
-
             availableFiles = await torrents.GetAvailableFiles(torrent.InfoHashes.V1OrV2.ToHex());
         }
         else
@@ -270,7 +305,7 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
                     includeError = ex.Message;
                 }
             }
-        } 
+        }
         else if (!String.IsNullOrWhiteSpace(request.ExcludeRegex))
         {
             foreach (var availableFile in availableFiles)
