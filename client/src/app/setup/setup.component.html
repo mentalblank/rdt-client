@@ -71,7 +71,8 @@
                   <option [ngValue]="1">AllDebrid</option>
                   <option [ngValue]="2">Premiumize</option>
                   <option [ngValue]="3">TorBox</option>
-                  <option [ngValue]="4">DebridLink</option>
+                  <option [ngValue]="4">TorBoxUsenet</option>
+                  <option [ngValue]="5">DebridLink</option>
                 </select>
               </div>
             </div>
@@ -103,6 +104,10 @@
                 <a href="https://torbox.app/settings" target="_blank" rel="noopener">https://torbox.app/settings</a>.
               </p>
               <p class="help" *ngIf="provider === 4">
+                You can find your API key here:
+                <a href="https://torbox.app/settings" target="_blank" rel="noopener">https://torbox.app/settings</a>.
+              </p>
+              <p class="help" *ngIf="provider === 5">
                 You can find your API key here:
                 <a href="https://debrid-link.com/webapp/apikey" target="_blank" rel="noopener"
                   >https://debrid-link.com/webapp/apikey</a

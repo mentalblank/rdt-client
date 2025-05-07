@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added button to register rdt-client as a handler for magnet links on [supported browsers](https://caniuse.com/mdn-api_navigator_registerprotocolhandler_scheme_parameter_magnet).
 ### Fork Changes
-- Merged Upstream -> Added button to register rdt-client as a handler for magnet links on [supported browsers](https://caniuse.com/mdn-api_navigator_registerprotocolhandler_scheme_parameter_magnet).
+- Merged Into Upstream -> Added button to register rdt-client as a handler for magnet links on [supported browsers](https://caniuse.com/mdn-api_navigator_registerprotocolhandler_scheme_parameter_magnet).
+- Torbox Usenet Test Provider (Added 2025-05-07).
 - Updated README formatting and fixed some typos.
 - Updated README-DOCKER formatting and fixed some typos.
 - Improved update process where script now dynamically handles update archive filenames, preventing breakage if the file name changes.
