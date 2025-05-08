@@ -151,4 +151,21 @@ export class SettingsComponent implements OnInit {
       alert("Magnet link registration failed.");
     }
   }
+
+  private generateApiKey(): string {
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    return Array.from({ length: 32 }, () => charset.charAt(Math.floor(Math.random() * charset.length))).join('');
+  }
+
+  public regenerateApiKey(setting: Setting): void {
+    setting.value = this.generateApiKey();
+  }
+
+  public copyToClipboard(value: string | number | boolean): void {
+    const str = String(value);
+    navigator.clipboard.writeText(str).then(
+      () => console.log('API key copied to clipboard'),
+      (err) => console.error('Could not copy API key:', err),
+    );
+  }
 }

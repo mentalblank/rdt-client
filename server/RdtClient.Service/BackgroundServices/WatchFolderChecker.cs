@@ -21,7 +21,7 @@ public class WatchFolderChecker(ILogger<WatchFolderChecker> logger, IServiceProv
 
         using var scope = serviceProvider.CreateScope();
         var torrentService = scope.ServiceProvider.GetRequiredService<Torrents>();
-            
+
         logger.LogInformation("WatchFolderChecker started.");
 
         while (!stoppingToken.IsCancellationRequested)
@@ -63,7 +63,7 @@ public class WatchFolderChecker(ILogger<WatchFolderChecker> logger, IServiceProv
                 {
                     var fileInfo = new FileInfo(torrentFile);
 
-                    if (fileInfo.Extension != ".magnet" && fileInfo.Extension != ".torrent")
+                    if (fileInfo.Extension != ".magnet" && fileInfo.Extension != ".torrent" && fileInfo.Extension != ".nzb")
                     {
                         continue;
                     }
@@ -93,9 +93,14 @@ public class WatchFolderChecker(ILogger<WatchFolderChecker> logger, IServiceProv
                             DownloadRetryAttempts = Settings.Get.Watch.Default.DownloadRetryAttempts,
                             DeleteOnError = Settings.Get.Watch.Default.DeleteOnError,
                             Lifetime = Settings.Get.Watch.Default.TorrentLifetime,
-                            Priority = Settings.Get.Watch.Default.Priority > 0 ? Settings.Get.Watch.Default.Priority : null
+                            Priority = Settings.Get.Watch.Default.Priority > 0 ? Settings.Get.Watch.Default.Priority : null,
+                            RdName = fileInfo.Name,
+                            DebridContentKind = fileInfo.Extension switch
+                            {
+                                ".nzb" => 2,
+                                _ => 1
+                            }
                         };
-
                         if (fileInfo.Extension == ".torrent")
                         {
                             var torrentFileContents = await File.ReadAllBytesAsync(torrentFile, stoppingToken);
@@ -106,12 +111,20 @@ public class WatchFolderChecker(ILogger<WatchFolderChecker> logger, IServiceProv
                             var magnetLink = await File.ReadAllTextAsync(torrentFile, stoppingToken);
                             await torrentService.AddMagnetToDebridQueue(magnetLink, torrent);
                         }
+                        else if (fileInfo.Extension == ".nzb")
+                        {
+                            var fileStream = fileInfo.OpenRead();
+                            await using var memoryStream = new MemoryStream();
+                            await fileStream.CopyToAsync(memoryStream);
+                            var bytes = memoryStream.ToArray();
+                            await torrentService.AddFileToDebridQueue(bytes, torrent);
+                        }
 
                         if (!Directory.Exists(processedStorePath))
                         {
                             Directory.CreateDirectory(processedStorePath);
                         }
-                        
+
                         var processedPath = Path.Combine(processedStorePath, fileInfo.Name);
 
                         if (File.Exists(processedPath))

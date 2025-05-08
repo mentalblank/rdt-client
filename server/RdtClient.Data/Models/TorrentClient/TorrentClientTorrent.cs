@@ -20,4 +20,5 @@ public class TorrentClientTorrent
     public DateTimeOffset? Ended { get; set; }
     public Int64? Speed { get; set; }
     public Int64? Seeders { get; set; }
+    public long DebridContentKind { get; set; } = 1;
 }
