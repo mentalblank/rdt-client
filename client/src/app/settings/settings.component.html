@@ -18,9 +18,35 @@
         setting.displayName
       }}</label>
       <ng-container [ngSwitch]="setting.type">
-        <div class="control" *ngSwitchCase="'String'">
-          <input class="input" type="text" [(ngModel)]="setting.value" />
-        </div>
+        <ng-container *ngSwitchCase="'String'">
+          <div
+            class="field is-grouped is-align-items-center"
+            *ngIf="setting.key === 'General:ClientApiKey'; else defaultStringInput"
+          >
+            <div class="control is-expanded">
+              <input
+                class="input is-static"
+                type="text"
+                [value]="setting.value"
+                readonly
+                tabindex="-1"
+                style="background-color: #f5f5f5; cursor: default"
+              />
+            </div>
+            <div class="control">
+              <button class="button is-danger" type="button" (click)="regenerateApiKey(setting)">Regenerate</button>
+            </div>
+            <div class="control">
+              <button class="button is-info" type="button" (click)="copyToClipboard(setting.value)">Copy</button>
+            </div>
+          </div>
+
+          <ng-template #defaultStringInput>
+            <div class="control">
+              <input class="input" type="text" [(ngModel)]="setting.value" />
+            </div>
+          </ng-template>
+        </ng-container>
         <div class="control" *ngSwitchCase="'Int32'">
           <input class="input" type="number" [(ngModel)]="setting.value" />
         </div>
