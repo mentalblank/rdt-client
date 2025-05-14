@@ -8,5 +8,8 @@ public enum AuthenticationType
     UserNamePassword,
 
     [Description("No Authentication")]
-    None
+    None,
+
+    [Description("API Key")]
+    UserNamePasswordClientApiKey,
 }

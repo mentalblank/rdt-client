@@ -117,4 +117,34 @@ public static class DownloadHelper
     {
         return String.Concat(path.Split(Path.GetInvalidPathChars()));
     }
+
+    public static String ComputeMd5Hash(Byte[] data)
+    {
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        return BitConverter.ToString(md5.ComputeHash(data)).Replace("-", "").ToLowerInvariant();
+    }
+    public static Int32 DetectContentKind(String fileName, dynamic? request = null)
+    {
+        var magnet = request?.MagnetLink as String;
+        if (!String.IsNullOrEmpty(magnet) && magnet.StartsWith("magnet:?"))
+        {
+            return 0;
+        }
+
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return ext switch
+        {
+            ".nzb" => 1,
+            ".magnet" or ".torrent" => 0,
+            _ => 0
+        };
+    }
+    public static async Task<Byte[]> DownloadBytesFromUrl(String url)
+    {
+        using var httpClient = new HttpClient();
+        var response = await httpClient.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadAsByteArrayAsync();
+    }
 }

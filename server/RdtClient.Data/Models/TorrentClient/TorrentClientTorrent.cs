@@ -14,6 +14,7 @@ public class TorrentClientTorrent
     public String? Status { get; set; }
     public String? Message { get; set; }
     public Int64 StatusCode { get; set; }
+    public Int64 ContentKind { get; set; }
     public DateTimeOffset? Added { get; set; }
     public List<TorrentClientFile>? Files { get; set; }
     public List<String>? Links { get; set; }

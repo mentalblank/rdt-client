@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.113] - 2025-05-22
 ### Fixed
 - Revert Synolog.Api.Client because of breaking changes.
+### Fork Changes
+- "Set and forget" magnet and torrent file enrichment through a configurable user-defined list with adjustable caching period.
+- Expanded button to select all options when deleting a torrent to also be present in individual torrent screen.
+- Added settings option to allow / disallow the download of compressed files using symlink downloader.
+- Improved update process where script now dynamically handles update archive filenames, preventing breakage if the file name changes.
+- Updated terminology and replaced references to "*Real-Debrid*" with "*your debrid provider*" (or similar) for broader provider compatibility.
+- Renamed "Real Debrid Client" to "RDTClient" across the project for consistency with package naming and multi-provider support.
+- Enhanced first login instructions in the README, including API token links for all supported providers.
+- Expanded error handling in QBittorrentController.cs by adding support for additional Real-Debrid error codes.
+- Changed torrent table to include sorting chevrons and let it adapt to different screen sizes using responsive fxLayout approach with breakpoints.
+- Updated README formatting and fixed some typos.
+- Changed default DB Settings to include various preferences including a default exclude regex
+- Added optional rclone refresh command for the symlink downloader.
+- Added an option to strip some file extentions from torrent.RdName resulting in */torrentname.mkv/torrentname.mkv* becoming */torrentname/torrentname.mkv*
+- Removed some junk from changelog.
+- Shortened "*Received provider error:*" to "*Provider error:*" in TorrentRunner
+- Changed docker build workflow to use github repo name instead of hardcoded "*rdtclient*"
+- Added some additional workflows
+- Small changes to initial start up chown actions.
+- Removed referral links
 
 ## [2.0.112] - 2025-05-18
 ### Added
@@ -832,12 +852,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2020-05-16
 ### Changed
 - Small bug fixes
-
-### Changed
-- test
-
-### Removed
-- nothing
 
 ## [1.0.0] - 2020-04-11
 ### Added

@@ -66,7 +66,7 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
     {
         if (file == null || file.Length <= 0)
         {
-            return BadRequest("Invalid torrent file");
+            return BadRequest("Invalid file");
         }
 
         if (formData?.Torrent == null)
@@ -84,6 +84,22 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
 
         var bytes = memoryStream.ToArray();
 
+        switch (Path.GetExtension(file.FileName).ToLowerInvariant())
+        {
+            case ".nzb":
+                formData.Torrent.ContentKind = 1;
+                formData.Torrent.RdName = Path.GetFileNameWithoutExtension(file.FileName);
+
+                break;
+            case ".magnet":
+            case ".torrent":
+                formData.Torrent.ContentKind = 0;
+
+                break;
+            default:
+                return BadRequest("Invalid file type");
+        }
+
         await torrents.AddFileToDebridQueue(bytes, formData.Torrent);
 
         return Ok();
@@ -97,7 +113,7 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
         {
             return BadRequest();
         }
-        
+
         if (String.IsNullOrEmpty(request.MagnetLink))
         {
             return BadRequest("Invalid magnet link");
@@ -109,6 +125,21 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
         }
 
         logger.LogDebug($"Add magnet");
+
+        if (request.MagnetLink.StartsWith("magnet:?"))
+        {
+            request.Torrent.ContentKind = 0;
+        }
+        else if (request.MagnetLink.StartsWith("https://") && request.MagnetLink.EndsWith(".nzb", StringComparison.OrdinalIgnoreCase))
+        {
+            request.Torrent.ContentKind = 1;
+            var fileName = Path.GetFileNameWithoutExtension(new Uri(request.MagnetLink).AbsolutePath);
+            request.Torrent.RdName = fileName;
+        }
+        else
+        {
+            return BadRequest("Invalid link format");
+        }
 
         await torrents.AddMagnetToDebridQueue(request.MagnetLink, request.Torrent);
 
@@ -125,39 +156,87 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
         }
 
         var fileStream = file.OpenReadStream();
-
         await using var memoryStream = new MemoryStream();
-
         await fileStream.CopyToAsync(memoryStream);
-
         var bytes = memoryStream.ToArray();
 
-        var torrent = await MonoTorrent.Torrent.LoadAsync(bytes);
+        switch (Path.GetExtension(file.FileName).ToLowerInvariant())
+        {
+            case ".nzb":
+                return Ok(await torrents.GetAvailableFiles(DownloadHelper.ComputeMd5Hash(bytes), 1));
+            case ".magnet":
+            case ".torrent":
+            {
+                var torrent = await MonoTorrent.Torrent.LoadAsync(bytes);
 
-        var result = await torrents.GetAvailableFiles(torrent.InfoHashes.V1OrV2.ToHex());
-
-        return Ok(result);
+                return Ok(await torrents.GetAvailableFiles(torrent.InfoHashes.V1OrV2.ToHex(), 0));
+            }
+            default:
+                return BadRequest("Invalid file type");
+        }
     }
 
     [HttpPost]
     [Route("CheckFilesMagnet")]
     public async Task<ActionResult> CheckFilesMagnet([FromBody] TorrentControllerCheckFilesRequest? request)
     {
-        if (request == null)
+        if (request == null || String.IsNullOrWhiteSpace(request.MagnetLink))
         {
-            return BadRequest();
+            return BadRequest("Link cannot be null or empty");
         }
 
-        if (String.IsNullOrEmpty(request.MagnetLink))
+        var contentKind = DownloadHelper.DetectContentKind(request.MagnetLink);
+
+        switch (contentKind)
         {
-            return BadRequest("MagnetLink cannot be null or empty");
+            case 0: // Magnet link
+                try
+                {
+                    if (request.MagnetLink.StartsWith("magnet:?"))
+                    {
+                        var magnet = MagnetLink.Parse(request.MagnetLink);
+                        var result = await torrents.GetAvailableFiles(magnet.InfoHashes.V1OrV2.ToHex());
+
+                        return Ok(result);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest($"Invalid magnet link: {ex.Message}");
+                }
+
+                break;
+
+            case 1: // Direct NZB file URL
+                try
+                {
+                    using var httpClient = new HttpClient();
+                    var response = await httpClient.GetAsync(request.MagnetLink);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        return BadRequest($"Failed to download NZB file: {response.StatusCode}");
+                    }
+
+                    await using var memoryStream = new MemoryStream();
+                    await response.Content.CopyToAsync(memoryStream);
+
+                    var bytes = memoryStream.ToArray();
+                    var torrent = await MonoTorrent.Torrent.LoadAsync(bytes);
+                    var result = await torrents.GetAvailableFiles(torrent.InfoHashes.V1OrV2.ToHex());
+
+                    return Ok(result);
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest($"Error processing NZB file: {ex.Message}");
+                }
+
+            default:
+                return BadRequest("Unsupported link format");
         }
 
-        var magnet = MagnetLink.Parse(request.MagnetLink);
-
-        var result = await torrents.GetAvailableFiles(magnet.InfoHashes.V1OrV2.ToHex());
-
-        return Ok(result);
+        return BadRequest("Invalid link request");
     }
 
     [HttpPost]
@@ -198,7 +277,7 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
 
         return Ok();
     }
-        
+
     [HttpPut]
     [Route("Update")]
     public async Task<ActionResult> Update([FromBody] Torrent? torrent)
@@ -270,7 +349,7 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
                     includeError = ex.Message;
                 }
             }
-        } 
+        }
         else if (!String.IsNullOrWhiteSpace(request.ExcludeRegex))
         {
             foreach (var availableFile in availableFiles)
@@ -329,5 +408,5 @@ public class TorrentControllerVerifyRegexRequest
 {
     public String? IncludeRegex { get; set; }
     public String? ExcludeRegex { get; set; }
-    public String? MagnetLink { get; set;}
+    public String? MagnetLink { get; set; }
 }

@@ -16,7 +16,7 @@ public class UnpackClient(Download download, String destinationPath)
 
     public Int32 Progess { get; private set; }
 
-    private readonly Torrent _torrent = download.Torrent ?? throw new($"Torrent is null");
+    private readonly Torrent _torrent = download.Torrent ?? throw new Exception($"Torrent is null");
 
     private readonly CancellationTokenSource _cancellationTokenSource = new();
 
@@ -26,11 +26,16 @@ public class UnpackClient(Download download, String destinationPath)
 
         try
         {
-            var filePath = DownloadHelper.GetDownloadPath(destinationPath, _torrent, download) ?? throw new("Invalid download path");
+            var filePath = DownloadHelper.GetDownloadPath(destinationPath, _torrent, download) ?? throw new Exception("Invalid download path");
 
             Task.Run(async delegate
             {
-                if (!_cancellationTokenSource.IsCancellationRequested)
+                if (_torrent.DownloadClient == Data.Enums.DownloadClient.Symlink && !Settings.Get.Provider.Default.DownloadCompressedSymlink)
+                {
+                    Error = $"Compressed file: {_torrent.RdName}";
+                    Finished = true;
+                }
+                else if (!_cancellationTokenSource.IsCancellationRequested)
                 {
                     await Unpack(filePath, _cancellationTokenSource.Token);
                 }
@@ -52,7 +57,7 @@ public class UnpackClient(Download download, String destinationPath)
     {
         try
         {
-            if (!File.Exists(filePath))
+            if (!File.Exists(filePath) || (_torrent.DownloadClient == Data.Enums.DownloadClient.Symlink && !Settings.Get.Provider.Default.DownloadCompressedSymlink))
             {
                 return;
             }
@@ -106,7 +111,7 @@ public class UnpackClient(Download download, String destinationPath)
 
             if (_torrent.ClientKind == Data.Enums.Provider.TorBox)
             {
-                TorBoxTorrentClient.MoveHashDirContents(extractPath, _torrent);
+                TorBoxMultiClient.MoveHashDirContents(extractPath, _torrent);
             }
         }
         catch (Exception ex)
@@ -153,6 +158,11 @@ public class UnpackClient(Download download, String destinationPath)
         var fi = parts.Select(m => new FileInfo(m));
 
         var extension = Path.GetExtension(filePath);
+
+        if (_torrent.DownloadClient == Data.Enums.DownloadClient.Symlink && !Settings.Get.Provider.Default.DownloadCompressedSymlink)
+        {
+            return;
+        }
 
         IArchive archive;
         if (extension == ".zip")

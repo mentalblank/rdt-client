@@ -22,10 +22,16 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
             return [];
         }
 
-        if (!Uri.TryCreate(trackerUrlList, UriKind.Absolute, out var trackerUri) ||
-            (trackerUri.Scheme != Uri.UriSchemeHttp && trackerUri.Scheme != Uri.UriSchemeHttps))
+        Uri? trackerUri;
+
+        if (File.Exists(trackerUrlList))
         {
-            logger.LogWarning("Invalid tracker list URL format: {Url}", trackerUrlList);
+            trackerUri = new Uri("file://" + Path.GetFullPath(trackerUrlList));
+        }
+        else if (!Uri.TryCreate(trackerUrlList, UriKind.Absolute, out trackerUri) ||
+                 (trackerUri.Scheme != Uri.UriSchemeHttp && trackerUri.Scheme != Uri.UriSchemeHttps && trackerUri.Scheme != "file"))
+        {
+            logger.LogWarning("Invalid tracker list URL or file format: {Url}", trackerUrlList);
 
             return [];
         }
@@ -72,7 +78,7 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
 
             logger.LogDebug("Tracker cache miss or cache disabled. Fetching tracker list.");
 
-            var trackers = await FetchAndParseTrackersAsync(trackerUri).ConfigureAwait(false);
+            var trackers = await FetchTrackers(trackerUri).ConfigureAwait(false);
 
             if (useCache)
             {
@@ -104,38 +110,62 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
         }
     }
 
-    private async Task<String[]> FetchAndParseTrackersAsync(Uri trackerUri)
+    private async Task<String[]> FetchTrackers(Uri trackerUri)
     {
-        logger.LogDebug("Fetching tracker list from URL: {TrackerUrl}", trackerUri);
-
-        var httpClient = httpClientFactory.CreateClient();
-
-        var version = Assembly.GetEntryAssembly()?.GetName().Version?.ToString();
-
-        var currentVersion = version != null && version.LastIndexOf('.') > 0
-            ? $"v{version[..version.LastIndexOf('.')]}"
-            : "";
-
-        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("RdtClient", currentVersion));
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        var token = cts.Token;
-        var response = await httpClient.GetAsync(trackerUri, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-
-        using (response)
+        if (trackerUri.Scheme == "file")
         {
-            response.EnsureSuccessStatusCode();
-
-            await using var contentStream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
-            using var reader = new StreamReader(contentStream);
-            var result = await reader.ReadToEndAsync(token).ConfigureAwait(false);
-
-            String[] trackers;
+            logger.LogDebug("Fetching tracker list from file: {TrackerFilePath}", trackerUri.LocalPath);
 
             try
             {
-                var trackerRejectionCount = 0;
+                var result = await File.ReadAllTextAsync(trackerUri.LocalPath).ConfigureAwait(false);
 
-                trackers = result
+                return ParseTrackers(result);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error reading tracker list from file.");
+
+                throw new InvalidOperationException("Failed to read tracker list from file.", ex);
+            }
+        }
+        else
+        {
+            logger.LogDebug("Fetching tracker list from URL: {TrackerUrl}", trackerUri);
+
+            var httpClient = httpClientFactory.CreateClient();
+
+            var version = Assembly.GetEntryAssembly()?.GetName().Version?.ToString();
+
+            var currentVersion = version != null && version.LastIndexOf('.') > 0
+                ? $"v{version.Substring(0, version.LastIndexOf('.'))}"
+                : "";
+
+            httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("RdtClient", currentVersion));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            var token = cts.Token;
+            var response = await httpClient.GetAsync(trackerUri, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+
+            using (response)
+            {
+                response.EnsureSuccessStatusCode();
+
+                await using var contentStream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
+                using var reader = new StreamReader(contentStream);
+                var result = await reader.ReadToEndAsync(token).ConfigureAwait(false);
+
+                return ParseTrackers(result);
+            }
+        }
+    }
+
+    private String[] ParseTrackers(String result)
+    {
+        try
+        {
+            var trackerRejectionCount = 0;
+
+            var trackers = result
                            .Split([
                                       "\r\n", "\n"
                                   ],
@@ -149,6 +179,7 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
                                {
                                    logger.LogDebug("Rejected tracker: {TrackerUrl} - Reason: Invalid format or unsupported scheme.", t);
                                    trackerRejectionCount++;
+
                                    return false;
                                }
 
@@ -176,17 +207,15 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
                            .Distinct(StringComparer.OrdinalIgnoreCase)
                            .ToArray();
 
-                logger.LogInformation("{TrackerRejectionCount} trackers were rejected during enrichment.", trackerRejectionCount);
-            }
-            catch (Exception ex)
-
-            {
-                logger.LogError(ex, "Error parsing tracker list response.");
-
-                throw new InvalidOperationException("Failed to parse tracker list response.", ex);
-            }
+            logger.LogInformation("{TrackerRejectionCount} trackers were rejected during enrichment.", trackerRejectionCount);
 
             return trackers;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error parsing tracker list response.");
+
+            throw new InvalidOperationException("Failed to parse tracker list response.", ex);
         }
     }
 }

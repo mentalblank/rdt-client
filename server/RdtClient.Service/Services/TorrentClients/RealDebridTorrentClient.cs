@@ -1,4 +1,5 @@
 ﻿using System.Web;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RDNET;
@@ -23,7 +24,7 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
 
             if (String.IsNullOrWhiteSpace(apiKey))
             {
-                throw new("Real-Debrid API Key not set in the settings");
+                throw new("Provider API Key not set in the settings");
             }
 
             var httpClient = httpClientFactory.CreateClient(DiConfig.RD_CLIENT);
@@ -45,22 +46,22 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
         {
             foreach (var inner in ae.InnerExceptions)
             {
-                logger.LogError(inner, $"The connection to RealDebrid has failed: {inner.Message}");
+                logger.LogError(inner, $"The connection to provider has failed: {inner.Message}");
             }
 
             throw;
         }
         catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
         {
-            logger.LogError(ex, $"The connection to RealDebrid has timed out: {ex.Message}");
+            logger.LogError(ex, $"The connection to provider has timed out: {ex.Message}");
 
             throw;
         }
         catch (TaskCanceledException ex)
         {
-            logger.LogError(ex, $"The connection to RealDebrid has timed out: {ex.Message}");
+            logger.LogError(ex, $"The connection to provider has timed out: {ex.Message}");
 
-            throw; 
+            throw;
         }
     }
 
@@ -118,7 +119,7 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
     public async Task<TorrentClientUser> GetUser()
     {
         var user = await GetClient().User.GetAsync();
-            
+
         return new()
         {
             Username = user.Username,
@@ -221,6 +222,10 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
                 torrent.RdName = torrentClientTorrent.OriginalFilename;
             }
 
+            var trimRegex = Settings.Get.Integrations.Default.TrimRegex ?? "";
+            var rdNameExtStripped = Regex.Replace(torrent.RdName!, trimRegex, "");
+            torrent.RdName = rdNameExtStripped;
+
             if (torrentClientTorrent.Bytes > 0)
             {
                 torrent.RdSize = torrentClientTorrent.Bytes;
@@ -263,9 +268,9 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
         }
         catch (Exception ex)
         {
-            if (ex.Message == "Resource not found")
+            if (!string.IsNullOrEmpty(ex.Message))
             {
-                torrent.RdStatusRaw = "deleted";
+                torrent.RdStatusRaw = ex.Message;
             }
             else
             {
@@ -307,7 +312,7 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
         }
 
         Log($"Torrent has {torrent.Files.Count(m => m.Selected)} selected files out of {torrent.Files.Count} files, found {downloadLinks.Count} links, torrent ended: {torrent.RdEnded}", torrent);
-        
+
         // Check if all the links are set that have been selected
         if (torrent.Files.Count(m => m.Selected) == downloadLinks.Count)
         {
@@ -340,7 +345,7 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
         }
 
         Log($"Did not find any suiteable download links", torrent);
-            
+
         return null;
     }
 
