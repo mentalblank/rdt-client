@@ -409,7 +409,7 @@ public class Torrents(
 
         if (deleteData)
         {
-            Log($"Deleting RdtClient data", torrent);
+            Log($"Deleting data", torrent);
 
             await downloads.DeleteForTorrent(torrent.TorrentId);
             await torrentData.Delete(torrentId);
@@ -417,7 +417,7 @@ public class Torrents(
 
         if (deleteRdTorrent && torrent.RdId != null)
         {
-            Log($"Deleting RealDebrid Torrent", torrent);
+            Log($"Deleting torrent", torrent);
 
             try
             {
