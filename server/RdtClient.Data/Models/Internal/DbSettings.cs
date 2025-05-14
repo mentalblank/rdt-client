@@ -69,13 +69,18 @@ Supports the following parameters:
     [Description("How to authenticate with the client. WARNING: when set to None anyone with access to the URL can use the client without any credentials.")]
     public AuthenticationType AuthenticationType { get; set; } = AuthenticationType.UserNamePassword;
 
+
+    [DisplayName("API Key")]
+    [Description("The API key required for clients to authenticate.")]
+    public string? ClientApiKey { get; set; }
+
     [DisplayName("Copy added torrent files")]
     [Description("When a torrent file or magnet is added, create a copy in this directory.")]
     public String? CopyAddedTorrents { get; set; } = "/mnt/seed";
 
     [DisplayName("Magnet tracker enrichment")]
     [Description(@"Choose which tracker list to append to magnet links, see this <a href=""https://github.com/ngosang/trackerslist/blob/master/README.md"" target=""_blank"">README</a> for more info.")]
-    public MagnetTrackerEnrichment MagnetTrackerEnrichment { get; set; } = MagnetTrackerEnrichment.TrackersBest;
+    public MagnetTrackerEnrichment MagnetTrackerEnrichment { get; set; } = MagnetTrackerEnrichment.None;
 
     [DisplayName("RClone custom command ")]
     [Description("Allows users to define a command, such as \"rc vfs/refresh recursive=true --rc-addr=172.17.0.1:5572\", to trigger an RClone refresh operation before initiating the file discovery process.")]

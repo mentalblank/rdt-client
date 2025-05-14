@@ -5,6 +5,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fork Changes
+- Enable the simultaneous handling of Torrent and NZB downloads through the TorBox provider.
+  - Add Fake SABnzbd API endpoints and settings for enabling basic compatibility with *arr apps.
+  - Changes to authentication settings and creation of a Client API Key for use with the fake SABnzbd endpoints.
+  - Notes:
+    - NZB files can be uploaded, added via URLs using the magnet link input box on the “Add New Torrent” page, or through blackhole
+    - NZB uploads are currently assigned filename as the default name, This updates from TorBox if cached and can lead to `example\example.mkv` or `nzb\nzb.mkv`
+    - Optional passwords for NZB archives cannot be configured.
+    - Only the default post-processing configuration used by TorBox is applied.
+    - User interface remains unchanged.
+    - NZBs require a higher buffer / chunks / timeout setting to not overwhelm the TorBox API.
+    - Full testing still required. (`docker pull mentalblank/rdt-client:2.0.112`)
 
 ## [2.0.111] - 2025-05-03
 ### Added

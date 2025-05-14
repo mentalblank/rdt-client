@@ -8,29 +8,29 @@ public enum MagnetTrackerEnrichment
     None,
 
     [Description("Best trackers")]
-    TrackersBest,
+    trackers_best,
 
     [Description("All trackers")]
-    TrackersAll,
+    trackers_all,
 
     [Description("All UDP trackers")]
-    TrackersAllUdp,
+    trackers_all_udp,
 
     [Description("All HTTP trackers")]
-    TrackersAllHttp,
+    trackers_all_http,
 
     [Description("All HTTPS trackers")]
-    TrackersAllHttps,
+    trackers_all_https,
 
     [Description("All WebSocket (WS) trackers")]
-    TrackersAllWs,
-
-    [Description("All I2P trackers")]
-    TrackersAllI2P,
+    trackers_all_ws,
 
     [Description("Best IP-only trackers")]
-    TrackersBestIp,
+    trackers_best_ip,
+
+    [Description("All I2P trackers")]
+    trackers_all_i2p,
 
     [Description("All IP-only trackers")]
-    TrackersAllIp
+    trackers_all_ip
 }
