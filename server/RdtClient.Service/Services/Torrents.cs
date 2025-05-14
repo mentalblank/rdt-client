@@ -108,69 +108,52 @@ public class Torrents(
         await torrentData.UpdateCategory(torrent.TorrentId, category);
     }
 
-    public static async Task<string> enrichMagnetLink(string magnetLink)
+    public static async Task<string> EnrichMagnetLink(string magnetLink)
     {
         var enrichment = Settings.Get.General.MagnetTrackerEnrichment;
+        if (enrichment == MagnetTrackerEnrichment.None) return magnetLink;
 
-        if (enrichment == MagnetTrackerEnrichment.None)
+        var baseUrl = "https://github.com/ngosang/trackerslist/raw/refs/heads/master/";
+        var trackerFile = enrichment switch
         {
-            return magnetLink;
-        }
-
-        var trackerUrl = enrichment switch
-        {
-            MagnetTrackerEnrichment.TrackersBest => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_best.txt",
-            MagnetTrackerEnrichment.TrackersAll => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all.txt",
-            MagnetTrackerEnrichment.TrackersAllUdp => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all_udp.txt",
-            MagnetTrackerEnrichment.TrackersAllHttp => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all_http.txt",
-            MagnetTrackerEnrichment.TrackersAllHttps => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all_https.txt",
-            MagnetTrackerEnrichment.TrackersAllWs => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all_ws.txt",
-            MagnetTrackerEnrichment.TrackersAllI2P => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all_i2p.txt",
-            MagnetTrackerEnrichment.TrackersBestIp => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_best_ip.txt",
-            MagnetTrackerEnrichment.TrackersAllIp => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all_ip.txt",
+            MagnetTrackerEnrichment.TrackersBest => "trackers_best.txt",
+            MagnetTrackerEnrichment.TrackersAll => "trackers_all.txt",
+            MagnetTrackerEnrichment.TrackersAllUdp => "trackers_all_udp.txt",
+            MagnetTrackerEnrichment.TrackersAllHttp => "trackers_all_http.txt",
+            MagnetTrackerEnrichment.TrackersAllHttps => "trackers_all_https.txt",
+            MagnetTrackerEnrichment.TrackersAllWs => "trackers_all_ws.txt",
+            MagnetTrackerEnrichment.TrackersAllI2P => "trackers_all_i2p.txt",
+            MagnetTrackerEnrichment.TrackersBestIp => "trackers_best_ip.txt",
+            MagnetTrackerEnrichment.TrackersAllIp => "trackers_all_ip.txt",
             _ => throw new ArgumentOutOfRangeException(nameof(enrichment), enrichment, "Unsupported enrichment option")
         };
+        var trackerUrl = baseUrl + trackerFile;
 
-        using var httpClient = new HttpClient();
-        var trackerData = await httpClient.GetStringAsync(trackerUrl);
-
-        var newTrackers = trackerData
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .Select(t => t.Trim())
-            .Where(t => !string.IsNullOrWhiteSpace(t));
+        using var http = new HttpClient();
+        var newTrackers = (await http.GetStringAsync(trackerUrl))
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         var uri = new Uri(magnetLink);
-        var queryParams = HttpUtility.ParseQueryString(uri.Query);
+        var query = HttpUtility.ParseQueryString(uri.Query);
+        var xt = query["xt"] ?? throw new FormatException("Missing 'xt' parameter in magnet link.");
 
-        var xt = queryParams["xt"];
-        if (string.IsNullOrWhiteSpace(xt) || !xt.StartsWith("urn:btih:", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new FormatException("Invalid or missing 'xt' parameter in magnet link.");
-        }
-
-        var xtParam = $"xt={xt}";
-
-        var allTrackers = (queryParams.GetValues("tr") ?? Array.Empty<string>())
+        var allTrackers = (query.GetValues("tr") ?? Array.Empty<string>())
             .Concat(newTrackers)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Select(t => $"tr={t}");
+            .Distinct(StringComparer.OrdinalIgnoreCase);
 
-        var basePart = magnetLink.Split('?')[0];
+        query.Remove("tr");
+        foreach (var tracker in allTrackers) query.Add("tr", tracker);
 
-        var otherParams = (queryParams.AllKeys ?? Array.Empty<string>())
-            .Where(k => k != "tr" && k != "xt")
-            .Select(k => $"{k}={queryParams[k]}");
+        var builder = new UriBuilder(uri) { Query = query.ToString() };
 
-        var fullQuery = string.Join("&", new[] { xtParam }.Concat(otherParams).Concat(allTrackers));
-
-        return $"{basePart}?{fullQuery}";
+        // Return unencoded version if needed
+        return builder.Uri.GetComponents(UriComponents.AbsoluteUri, UriFormat.Unescaped);
     }
 
     public async Task<Torrent> AddMagnetToDebridQueue(String magnetLink, Torrent torrent)
     {
         MagnetLink magnet;
-        var unescapedMagnet = Uri.UnescapeDataString(magnetLink);
-        var enrichedMagnet = await enrichMagnetLink(unescapedMagnet);
+        var enrichedMagnet = await EnrichMagnetLink(Uri.UnescapeDataString(magnetLink));
         try
         {
             magnet = MagnetLink.Parse(enrichedMagnet);
@@ -427,7 +410,7 @@ public class Torrents(
 
         if (deleteData)
         {
-            Log($"Deleting RdtClient data", torrent);
+            Log($"Deleting data", torrent);
 
             await downloads.DeleteForTorrent(torrent.TorrentId);
             await torrentData.Delete(torrentId);
@@ -435,7 +418,7 @@ public class Torrents(
 
         if (deleteRdTorrent && torrent.RdId != null)
         {
-            Log($"Deleting RealDebrid Torrent", torrent);
+            Log($"Deleting torrent", torrent);
 
             try
             {
@@ -486,7 +469,7 @@ public class Torrents(
     {
         var download = await downloads.GetById(downloadId) ?? throw new($"Download with ID {downloadId} not found");
 
-        Log($"Unrestricting link", download, download.Torrent);
+        Log("Unrestricting link", download, download.Torrent);
 
         var unrestrictedLink = await TorrentClient.Unrestrict(download.Path);
 
