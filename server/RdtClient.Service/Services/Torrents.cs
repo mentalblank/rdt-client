@@ -3,6 +3,7 @@ using System.IO.Abstractions;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Web;
 using Microsoft.Extensions.Logging;
 using MonoTorrent;
 using RdtClient.Data.Data;
@@ -107,18 +108,77 @@ public class Torrents(
         await torrentData.UpdateCategory(torrent.TorrentId, category);
     }
 
+    public static async Task<string> enrichMagnetLink(string magnetLink)
+    {
+        var enrichment = Settings.Get.General.MagnetTrackerEnrichment;
+
+        if (enrichment == MagnetTrackerEnrichment.None)
+        {
+            return magnetLink;
+        }
+
+        var trackerUrl = enrichment switch
+        {
+            MagnetTrackerEnrichment.TrackersBest => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_best.txt",
+            MagnetTrackerEnrichment.TrackersAll => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all.txt",
+            MagnetTrackerEnrichment.TrackersAllUdp => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all_udp.txt",
+            MagnetTrackerEnrichment.TrackersAllHttp => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all_http.txt",
+            MagnetTrackerEnrichment.TrackersAllHttps => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all_https.txt",
+            MagnetTrackerEnrichment.TrackersAllWs => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all_ws.txt",
+            MagnetTrackerEnrichment.TrackersAllI2P => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all_i2p.txt",
+            MagnetTrackerEnrichment.TrackersBestIp => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_best_ip.txt",
+            MagnetTrackerEnrichment.TrackersAllIp => "https://github.com/ngosang/trackerslist/raw/refs/heads/master/trackers_all_ip.txt",
+            _ => throw new ArgumentOutOfRangeException(nameof(enrichment), enrichment, "Unsupported enrichment option")
+        };
+
+        using var httpClient = new HttpClient();
+        var trackerData = await httpClient.GetStringAsync(trackerUrl);
+
+        var newTrackers = trackerData
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim())
+            .Where(t => !string.IsNullOrWhiteSpace(t));
+
+        var uri = new Uri(magnetLink);
+        var queryParams = HttpUtility.ParseQueryString(uri.Query);
+
+        var xt = queryParams["xt"];
+        if (string.IsNullOrWhiteSpace(xt) || !xt.StartsWith("urn:btih:", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new FormatException("Invalid or missing 'xt' parameter in magnet link.");
+        }
+
+        var xtParam = $"xt={xt}";
+
+        var allTrackers = (queryParams.GetValues("tr") ?? Array.Empty<string>())
+            .Concat(newTrackers)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(t => $"tr={t}");
+
+        var basePart = magnetLink.Split('?')[0];
+
+        var otherParams = (queryParams.AllKeys ?? Array.Empty<string>())
+            .Where(k => k != "tr" && k != "xt")
+            .Select(k => $"{k}={queryParams[k]}");
+
+        var fullQuery = string.Join("&", new[] { xtParam }.Concat(otherParams).Concat(allTrackers));
+
+        return $"{basePart}?{fullQuery}";
+    }
+
     public async Task<Torrent> AddMagnetToDebridQueue(String magnetLink, Torrent torrent)
     {
         MagnetLink magnet;
-
+        var unescapedMagnet = Uri.UnescapeDataString(magnetLink);
+        var enrichedMagnet = await enrichMagnetLink(unescapedMagnet);
         try
         {
-            magnet = MagnetLink.Parse(magnetLink);
+            magnet = MagnetLink.Parse(enrichedMagnet);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{ex.Message}, trying to parse {magnetLink}", ex.Message, magnetLink);
-            throw new($"{ex.Message}, trying to parse {magnetLink}");
+            logger.LogError(ex, "{ex.Message}, trying to parse {enrichedMagnet}", ex.Message, enrichedMagnet);
+            throw new($"{ex.Message}, trying to parse {enrichedMagnet}");
         }
 
         torrent.RdStatus = TorrentStatus.Queued;
@@ -126,11 +186,11 @@ public class Torrents(
 
         var hash = magnet.InfoHashes.V1OrV2.ToHex();
 
-        var newTorrent = await AddQueued(hash, magnetLink, false, torrent);
+        var newTorrent = await AddQueued(hash, enrichedMagnet, false, torrent);
 
         Log($"Adding {hash} (magnet link) to queue", newTorrent);
 
-        await CopyAddedTorrent(magnet.Name!, magnetLink);
+        await CopyAddedTorrent(magnet.Name!, enrichedMagnet);
 
         return newTorrent;
     }
@@ -224,7 +284,7 @@ public class Torrents(
         {
             throw new("Torrent has no torrent file or magnet link");
         }
-        
+
         logger.LogDebug("Adding {hash} to debrid provider {torrentInfo}", torrent.Hash, torrent.ToLog());
 
         var id = torrent.IsFile
