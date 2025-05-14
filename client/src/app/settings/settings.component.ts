@@ -151,4 +151,12 @@ export class SettingsComponent implements OnInit {
       alert("Magnet link registration failed.");
     }
   }
+
+  public get magnetHelpText(): string {
+    if (this.canRegisterMagnetHandler) {
+      return `This will attempt to register the client as your browser's default handler for magnet links and automatically open them in the new torrent screen for downloading.`;
+    } else {
+      return `Magnet link registration is unavailable because either your <a href="https://caniuse.com/mdn-api_navigator_registerprotocolhandler" target="_blank" rel="noopener noreferrer">browser does not support it</a> or the client is not being served to you in a <a href="https://developer.mozilla.org/en-US/docs/Glossary/Secure_Context/" target="_blank" rel="noopener noreferrer">secure context</a>.`;
+    }
+  }
 }
