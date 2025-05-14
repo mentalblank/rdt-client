@@ -14,7 +14,7 @@ public class Torrent
     public String Hash { get; set; } = null!;
 
     public String? Category { get; set; }
-        
+
     public TorrentDownloadAction DownloadAction { get; set; }
     public TorrentFinishedAction FinishedAction { get; set; }
     public TorrentHostDownloadAction HostDownloadAction { get; set; }
@@ -23,7 +23,7 @@ public class Torrent
     public String? ExcludeRegex { get; set; }
     public String? DownloadManualFiles { get; set; }
     public DownloadClient DownloadClient { get; set; }
-
+    public Int64 ContentKind { get; set; }
     public DateTimeOffset Added { get; set; }
     public DateTimeOffset? FilesSelected { get; set; }
     public DateTimeOffset? Completed { get; set; }
