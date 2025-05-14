@@ -3,6 +3,7 @@ using System.IO.Abstractions;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Web;
 using Microsoft.Extensions.Logging;
 using MonoTorrent;
 using RdtClient.Data.Data;
@@ -107,18 +108,59 @@ public class Torrents(
         await torrentData.UpdateCategory(torrent.TorrentId, category);
     }
 
+    public static async Task<string> EnrichMagnetLink(string magnetLink)
+    {
+        var enrichment = Settings.Get.General.MagnetTrackerEnrichment;
+        if (enrichment == MagnetTrackerEnrichment.None) return magnetLink;
+
+        var baseUrl = "https://github.com/ngosang/trackerslist/raw/refs/heads/master/";
+        var trackerFile = enrichment switch
+        {
+            MagnetTrackerEnrichment.TrackersBest => "trackers_best.txt",
+            MagnetTrackerEnrichment.TrackersAll => "trackers_all.txt",
+            MagnetTrackerEnrichment.TrackersAllUdp => "trackers_all_udp.txt",
+            MagnetTrackerEnrichment.TrackersAllHttp => "trackers_all_http.txt",
+            MagnetTrackerEnrichment.TrackersAllHttps => "trackers_all_https.txt",
+            MagnetTrackerEnrichment.TrackersAllWs => "trackers_all_ws.txt",
+            MagnetTrackerEnrichment.TrackersAllI2P => "trackers_all_i2p.txt",
+            MagnetTrackerEnrichment.TrackersBestIp => "trackers_best_ip.txt",
+            MagnetTrackerEnrichment.TrackersAllIp => "trackers_all_ip.txt",
+            _ => throw new ArgumentOutOfRangeException(nameof(enrichment), enrichment, "Unsupported enrichment option")
+        };
+        var trackerUrl = baseUrl + trackerFile;
+
+        using var http = new HttpClient();
+        var newTrackers = (await http.GetStringAsync(trackerUrl))
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var uri = new Uri(magnetLink);
+        var query = HttpUtility.ParseQueryString(uri.Query);
+        var xt = query["xt"] ?? throw new FormatException("Missing 'xt' parameter in magnet link.");
+
+        var allTrackers = (query.GetValues("tr") ?? Array.Empty<string>())
+            .Concat(newTrackers)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        query.Remove("tr");
+        foreach (var tracker in allTrackers) query.Add("tr", tracker);
+
+        var builder = new UriBuilder(uri) { Query = query.ToString() };
+
+        return builder.Uri.GetComponents(UriComponents.AbsoluteUri, UriFormat.Unescaped);
+    }
+
     public async Task<Torrent> AddMagnetToDebridQueue(String magnetLink, Torrent torrent)
     {
         MagnetLink magnet;
-
+        var enrichedMagnet = await EnrichMagnetLink(Uri.UnescapeDataString(magnetLink));
         try
         {
-            magnet = MagnetLink.Parse(magnetLink);
+            magnet = MagnetLink.Parse(enrichedMagnet);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{ex.Message}, trying to parse {magnetLink}", ex.Message, magnetLink);
-            throw new($"{ex.Message}, trying to parse {magnetLink}");
+            logger.LogError(ex, "{ex.Message}, trying to parse {enrichedMagnet}", ex.Message, enrichedMagnet);
+            throw new($"{ex.Message}, trying to parse {enrichedMagnet}");
         }
 
         torrent.RdStatus = TorrentStatus.Queued;
@@ -126,11 +168,11 @@ public class Torrents(
 
         var hash = magnet.InfoHashes.V1OrV2.ToHex();
 
-        var newTorrent = await AddQueued(hash, magnetLink, false, torrent);
+        var newTorrent = await AddQueued(hash, enrichedMagnet, false, torrent);
 
         Log($"Adding {hash} (magnet link) to queue", newTorrent);
 
-        await CopyAddedTorrent(magnet.Name!, magnetLink);
+        await CopyAddedTorrent(magnet.Name!, enrichedMagnet);
 
         return newTorrent;
     }
@@ -224,7 +266,7 @@ public class Torrents(
         {
             throw new("Torrent has no torrent file or magnet link");
         }
-        
+
         logger.LogDebug("Adding {hash} to debrid provider {torrentInfo}", torrent.Hash, torrent.ToLog());
 
         var id = torrent.IsFile
@@ -426,7 +468,7 @@ public class Torrents(
     {
         var download = await downloads.GetById(downloadId) ?? throw new($"Download with ID {downloadId} not found");
 
-        Log($"Unrestricting link", download, download.Torrent);
+        Log("Unrestricting link", download, download.Torrent);
 
         var unrestrictedLink = await TorrentClient.Unrestrict(download.Path);
 
