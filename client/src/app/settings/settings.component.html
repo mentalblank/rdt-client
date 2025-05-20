@@ -24,9 +24,30 @@
         }
         @switch (setting.type) {
           @case ("String") {
-            <div class="control">
-              <input class="input" type="text" [(ngModel)]="setting.value" />
-            </div>
+            @if (setting.key === "General:ClientApiKey") {
+              <div class="field is-grouped is-align-items-center">
+                <div class="control is-expanded">
+                  <input
+                    class="input is-static"
+                    type="text"
+                    [value]="setting.value"
+                    readonly
+                    tabindex="-1"
+                    style="background-color: #f5f5f5; cursor: default"
+                  />
+                </div>
+                <div class="control">
+                  <button class="button is-danger" type="button" (click)="regenerateApiKey(setting)">Regenerate</button>
+                </div>
+                <div class="control">
+                  <button class="button is-info" type="button" (click)="copyToClipboard(setting.value)">Copy</button>
+                </div>
+              </div>
+            } @else {
+              <div class="control">
+                <input class="input" type="text" [(ngModel)]="setting.value" />
+              </div>
+            }
           }
           @case ("Int32") {
             <div class="control">

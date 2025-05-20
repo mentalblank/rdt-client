@@ -16,7 +16,7 @@ public static class DownloadHelper
         }
 
         var directory = RemoveInvalidPathChars(torrent.RdName);
-        
+
         var torrentPath = Path.Combine(downloadPath, directory);
 
         var fileName = GetFileName(download);
@@ -116,5 +116,38 @@ public static class DownloadHelper
     public static String RemoveInvalidPathChars(String path)
     {
         return String.Concat(path.Split(Path.GetInvalidPathChars()));
+    }
+
+    public static String ComputeMd5Hash(Byte[] data)
+    {
+        using var md5 = System.Security.Cryptography.MD5.Create();
+
+        return BitConverter.ToString(md5.ComputeHash(data)).Replace("-", "").ToLowerInvariant();
+    }
+
+    public static Int32 DetectContentKind(String input)
+    {
+        if (input.StartsWith("magnet:?", StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        var ext = input.StartsWith(".") ? input.ToLowerInvariant() : Path.GetExtension(input).ToLowerInvariant();
+
+        return ext switch
+        {
+            ".nzb" => 1,
+            ".magnet" or ".torrent" => 0,
+            _ => 0 // Fallback to Torrent if no specific type is detected
+        };
+    }
+
+    public static async Task<Byte[]> DownloadBytesFromUrl(String url)
+    {
+        using var httpClient = new HttpClient();
+        var response = await httpClient.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadAsByteArrayAsync();
     }
 }

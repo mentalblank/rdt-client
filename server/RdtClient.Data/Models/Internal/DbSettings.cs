@@ -71,10 +71,14 @@ Supports the following parameters:
     [Description("How to authenticate with the client. WARNING: when set to None anyone with access to the URL can use the client without any credentials.")]
     public AuthenticationType AuthenticationType { get; set; } = AuthenticationType.UserNamePassword;
 
+    [DisplayName("API Key")]
+    [Description("The API key required for clients to authenticate.")]
+    public String? ClientApiKey { get; set; }
+
     [DisplayName("Copy added torrent files")]
     [Description("When a torrent file or magnet is added, create a copy in this directory.")]
     public String? CopyAddedTorrents { get; set; } = null;
-    
+
     [DisplayName("Disable update notifications")]
     [Description("Ignore update notifications. You will still be notified if the version you are running has a security vulnerability.")]
     public Boolean DisableUpdateNotifications { get; set; } = false;
@@ -143,6 +147,7 @@ http://127.0.0.1:6800/jsonrpc.")]
     [DisplayName("Synology DownloadStation Username")]
     [Description("The username to use when connecting to the Synology DownloadStation.")]
     public String? DownloadStationUsername { get; set; } = null;
+
     [DisplayName("Synology DownloadStation Password")]
     [Description("The password to use when connecting to the Synology DownloadStation.")]
     public String? DownloadStationPassword { get; set; } = null;

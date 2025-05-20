@@ -23,7 +23,7 @@ public class Torrent
     public String? ExcludeRegex { get; set; }
     public String? DownloadManualFiles { get; set; }
     public DownloadClient DownloadClient { get; set; }
-
+    public Int64 ContentKind { get; set; }
     public DateTimeOffset Added { get; set; }
     public DateTimeOffset? FilesSelected { get; set; }
     public DateTimeOffset? Completed { get; set; }

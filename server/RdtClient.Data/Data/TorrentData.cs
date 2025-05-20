@@ -101,7 +101,8 @@ public class TorrentData(DataContext dataContext) : ITorrentData
             DeleteOnError = torrent.DeleteOnError,
             Lifetime = torrent.Lifetime,
             RdStatus = torrent.RdStatus,
-            RdName = torrent.RdName
+            RdName = torrent.RdName,
+            ContentKind = torrent.ContentKind
         };
 
         await dataContext.Torrents.AddAsync(newTorrent);

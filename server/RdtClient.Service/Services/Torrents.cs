@@ -28,7 +28,7 @@ public class Torrents(
     PremiumizeTorrentClient premiumizeTorrentClient,
     RealDebridTorrentClient realDebridTorrentClient,
     DebridLinkClient debridLinkClient,
-    TorBoxTorrentClient torBoxTorrentClient)
+    TorBoxMultiClient torBoxMultiClient)
 {
     private static readonly SemaphoreSlim RealDebridUpdateLock = new(1, 1);
 
@@ -47,8 +47,8 @@ public class Torrents(
                 Provider.RealDebrid => realDebridTorrentClient,
                 Provider.AllDebrid => allDebridTorrentClient,
                 Provider.DebridLink => debridLinkClient,
-                Provider.TorBox => torBoxTorrentClient,
-                _ => throw new("Invalid Provider")
+                Provider.TorBox => torBoxMultiClient,
+                _ => throw new Exception("Invalid Provider")
             };
         }
     }
@@ -109,100 +109,122 @@ public class Torrents(
 
     public async Task<Torrent> AddMagnetToDebridQueue(String magnetLink, Torrent torrent)
     {
-        MagnetLink magnet;
+        if (torrent.ContentKind == 1)
+        {
+            if (TorrentClient is not IMultiClient)
+            {
+                throw new Exception("NZB support is not available for the current provider.");
+            }
+
+            var bytes = await DownloadHelper.DownloadBytesFromUrl(magnetLink);
+            var hash = DownloadHelper.ComputeMd5Hash(bytes);
+            torrent.RdStatus = TorrentStatus.Queued;
+            Log($"Adding {hash} (NZB) to queue", torrent);
+            await CopyAddedTorrent(torrent.RdName!, bytes, torrent.ContentKind);
+
+            return await AddQueued(hash, magnetLink, false, torrent);
+        }
 
         try
         {
-            magnet = MagnetLink.Parse(magnetLink);
+            var magnet = MagnetLink.Parse(magnetLink);
+            torrent.RdStatus = TorrentStatus.Queued;
+            torrent.RdName = magnet.Name;
+            var hash = magnet.InfoHashes.V1OrV2.ToHex();
+            Log($"Adding {hash} (magnet link) to queue", torrent);
+            await CopyAddedTorrent(magnet.Name!, magnetLink, torrent.ContentKind);
+
+            return await AddQueued(hash, magnetLink, false, torrent);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{ex.Message}, trying to parse {magnetLink}", ex.Message, magnetLink);
-            throw new($"{ex.Message}, trying to parse {magnetLink}");
+            logger.LogError(ex, "{Message}, trying to parse {MagnetLink}", ex.Message, magnetLink);
+
+            throw new Exception($"{ex.Message}, trying to parse {magnetLink}");
         }
-
-        torrent.RdStatus = TorrentStatus.Queued;
-        torrent.RdName = magnet.Name;
-
-        var hash = magnet.InfoHashes.V1OrV2.ToHex();
-
-        var newTorrent = await AddQueued(hash, magnetLink, false, torrent);
-
-        Log($"Adding {hash} (magnet link) to queue", newTorrent);
-
-        await CopyAddedTorrent(magnet.Name!, magnetLink);
-
-        return newTorrent;
     }
 
     public async Task<Torrent> AddFileToDebridQueue(Byte[] bytes, Torrent torrent)
     {
-        MonoTorrent.Torrent monoTorrent;
+        String hash;
 
-        var fileAsBase64 = Convert.ToBase64String(bytes);
-        logger.LogDebug($"bytes {bytes}");
-
-        try
+        if (torrent.ContentKind == 1)
         {
-            monoTorrent = await MonoTorrent.Torrent.LoadAsync(bytes);
+            if (TorrentClient is not IMultiClient multiClient)
+            {
+                throw new Exception("NZB support is not available for the current provider.");
+            }
+
+            hash = await multiClient.AddFile(bytes, torrent.ContentKind, torrent.RdName);
+            torrent.RdStatus = TorrentStatus.Queued;
+            await CopyAddedTorrent(torrent.RdName ?? hash, bytes, torrent.ContentKind);
         }
-        catch (Exception ex)
+        else
         {
-            throw new($"{ex.Message}, trying to parse {fileAsBase64}");
+            hash = await TorrentClient.AddFile(bytes);
+
+            try
+            {
+                var monoTorrent = await MonoTorrent.Torrent.LoadAsync(bytes);
+                torrent.RdName = monoTorrent.Name;
+                await CopyAddedTorrent(monoTorrent.Name, bytes, torrent.ContentKind);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"{ex.Message}, trying to parse {Convert.ToBase64String(bytes)}");
+            }
+
+            torrent.RdStatus = TorrentStatus.Queued;
         }
 
-        torrent.RdStatus = TorrentStatus.Queued;
-        torrent.RdName = monoTorrent.Name;
-
-        var hash = monoTorrent.InfoHashes.V1OrV2.ToHex();
-
-        var newTorrent = await AddQueued(hash, fileAsBase64, true, torrent);
-
-        Log($"Adding {hash} (torrent file) to queue", newTorrent);
-
-        await CopyAddedTorrent(monoTorrent.Name, bytes);
-
-        return newTorrent;
+        return await AddQueued(hash, Convert.ToBase64String(bytes), true, torrent);
     }
 
-    private async Task CopyAddedTorrent(String torrentName, Object fileOrMagnet)
+    private async Task CopyAddedTorrent(String downloadName, Object fileOrMagnet, Int64 contentKind)
     {
         if (!String.IsNullOrWhiteSpace(Settings.Get.General.CopyAddedTorrents))
         {
             try
             {
-                if (!Directory.Exists(Settings.Get.General.CopyAddedTorrents))
+                var targetDir = Settings.Get.General.CopyAddedTorrents;
+
+                if (!Directory.Exists(targetDir))
                 {
-                    Directory.CreateDirectory(Settings.Get.General.CopyAddedTorrents);
+                    Directory.CreateDirectory(targetDir);
                 }
 
-                var copyFileName = Path.Combine(Settings.Get.General.CopyAddedTorrents, FileHelper.RemoveInvalidFileNameChars(torrentName));
+                var safeName = FileHelper.RemoveInvalidFileNameChars(downloadName);
 
-                copyFileName = fileOrMagnet switch
+                var extension = fileOrMagnet switch
                 {
-                    String => $"{copyFileName}.magnet",
-                    Byte[] => $"{copyFileName}.torrent",
-                    _ => throw new ArgumentException("Unexpected type for fileOrMagnet")
+                    String _ => ".magnet",
+                    Byte[] _ when contentKind == 0 => ".torrent",
+                    Byte[] _ when contentKind == 1 => ".nzb",
+                    _ => throw new ArgumentException($"Unsupported download type: kind={contentKind}")
                 };
 
-                if (File.Exists(copyFileName))
+                var outPath = Path.Combine(targetDir, safeName + extension);
+
+                if (File.Exists(outPath))
                 {
-                    File.Delete(copyFileName);
+                    File.Delete(outPath);
                 }
 
                 switch (fileOrMagnet)
                 {
-                    case String magnetLink:
-                        await File.WriteAllTextAsync(copyFileName, magnetLink);
+                    case String magnet:
+                        await File.WriteAllTextAsync(outPath, magnet);
+
                         break;
-                    case Byte[] torrentFile:
-                        await File.WriteAllBytesAsync(copyFileName, torrentFile);
+                    case Byte[] data:
+                        await File.WriteAllBytesAsync(outPath, data);
+
                         break;
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"Unable to create torrent blackhole directory: {Settings.Get.General.CopyAddedTorrents}: {ex.Message}");
+                logger.LogError(ex, $"Failed to copy “{downloadName}” to “{Settings.Get.General.CopyAddedTorrents}”: {ex.Message}");
             }
         }
     }
@@ -217,26 +239,31 @@ public class Torrents(
     {
         if (torrent.RdId != null)
         {
-            throw new("Torrent already added to debrid provider, cannot dequeue");
+            throw new InvalidOperationException("Torrent already added to debrid provider, cannot dequeue.");
         }
 
-        if (torrent.FileOrMagnet == null)
+        if (String.IsNullOrEmpty(torrent.FileOrMagnet))
         {
-            throw new("Torrent has no torrent file or magnet link");
+            throw new InvalidOperationException("Torrent has no torrent file or magnet link.");
         }
-        
+
         logger.LogDebug("Adding {hash} to debrid provider {torrentInfo}", torrent.Hash, torrent.ToLog());
 
         await RealDebridUpdateLock.WaitAsync();
 
         try
         {
-            var id = torrent.IsFile
-                ? await TorrentClient.AddFile(Convert.FromBase64String(torrent.FileOrMagnet))
-                : await TorrentClient.AddMagnet(torrent.FileOrMagnet);
+            var id = TorrentClient switch
+            {
+                IMultiClient multiClient => torrent.IsFile
+                    ? await multiClient.AddFile(Convert.FromBase64String(torrent.FileOrMagnet), torrent.ContentKind, torrent.RdName)
+                    : await multiClient.AddMagnet(torrent.FileOrMagnet, torrent.ContentKind),
+                _ => torrent.IsFile
+                    ? await TorrentClient.AddFile(Convert.FromBase64String(torrent.FileOrMagnet))
+                    : await TorrentClient.AddMagnet(torrent.FileOrMagnet)
+            };
 
             await torrentData.UpdateRdId(torrent, id);
-
             await UpdateTorrentClientData(torrent);
 
             return torrent;
@@ -247,9 +274,23 @@ public class Torrents(
         }
     }
 
-    public async Task<IList<TorrentClientAvailableFile>> GetAvailableFiles(String hash)
+    public async Task<IList<TorrentClientAvailableFile>> GetAvailableFiles(String hash, Int32? type = null)
     {
-        var result = await TorrentClient.GetAvailableFiles(hash);
+        if (String.IsNullOrWhiteSpace(hash))
+        {
+            throw new ArgumentNullException(nameof(hash));
+        }
+
+        IList<TorrentClientAvailableFile> result;
+
+        if (TorrentClient is IMultiClient multiClient)
+        {
+            result = await multiClient.GetAvailableFiles(hash, type);
+        }
+        else
+        {
+            result = await TorrentClient.GetAvailableFiles(hash);
+        }
 
         return result;
     }
@@ -433,11 +474,15 @@ public class Torrents(
 
     public async Task<String> UnrestrictLink(Guid downloadId)
     {
-        var download = await downloads.GetById(downloadId) ?? throw new($"Download with ID {downloadId} not found");
+        var download = await downloads.GetById(downloadId) ?? throw new Exception($"Download with ID {downloadId} not found");
 
         Log($"Unrestricting link", download, download.Torrent);
 
-        var unrestrictedLink = await TorrentClient.Unrestrict(download.Path);
+        var unrestrictedLink = TorrentClient switch
+        {
+            IMultiClient multiClient => await multiClient.Unrestrict(download.Path, download.Torrent!.ContentKind),
+            _ => await TorrentClient.Unrestrict(download.Path)
+        };
 
         await downloads.UpdateUnrestrictedLink(downloadId, unrestrictedLink);
 
@@ -450,11 +495,11 @@ public class Torrents(
     /// </summary>
     public async Task<String> RetrieveFileName(Guid downloadId)
     {
-        var download = await downloads.GetById(downloadId) ?? throw new($"Download with ID {downloadId} not found");
+        var download = await downloads.GetById(downloadId) ?? throw new Exception($"Download with ID {downloadId} not found");
 
         Log($"Retrieving filename for", download, download.Torrent);
 
-        var fileName = await TorrentClient.GetFileName(download!);
+        var fileName = await TorrentClient.GetFileName(download);
 
         await downloads.UpdateFileName(downloadId, fileName);
 
@@ -500,7 +545,8 @@ public class Torrents(
                     {
                         Category = Settings.Get.Provider.Default.Category,
                         DownloadClient = Settings.Get.DownloadClient.Client,
-                        DownloadAction = Settings.Get.Provider.Default.OnlyDownloadAvailableFiles ? TorrentDownloadAction.DownloadAvailableFiles : TorrentDownloadAction.DownloadAll,
+                        DownloadAction =
+                            Settings.Get.Provider.Default.OnlyDownloadAvailableFiles ? TorrentDownloadAction.DownloadAvailableFiles : TorrentDownloadAction.DownloadAll,
                         HostDownloadAction = Settings.Get.Provider.Default.HostDownloadAction,
                         FinishedAction = Settings.Get.Provider.Default.FinishedAction,
                         DownloadMinSize = Settings.Get.Provider.Default.MinFileSize,
@@ -511,10 +557,11 @@ public class Torrents(
                         DeleteOnError = Settings.Get.Provider.Default.DeleteOnError,
                         Lifetime = Settings.Get.Provider.Default.TorrentLifetime,
                         Priority = Settings.Get.Provider.Default.Priority > 0 ? Settings.Get.Provider.Default.Priority : null,
-                        RdId = rdTorrent.Id
+                        RdId = rdTorrent.Id,
+                        ContentKind = rdTorrent.ContentKind,
                     };
 
-                    if (newTorrent.RdStatus == TorrentStatus.WaitingForFileSelection)
+                    if (newTorrent is { ContentKind: 0, RdStatus: TorrentStatus.WaitingForFileSelection })
                     {
                         continue;
                     }
@@ -590,7 +637,7 @@ public class Torrents(
 
             if (String.IsNullOrWhiteSpace(torrent.FileOrMagnet))
             {
-                throw new($"Cannot re-add this torrent, original magnet or file not found");
+                throw new Exception($"Cannot re-add this torrent, original magnet or file not found");
             }
 
             Torrent newTorrent;
@@ -767,7 +814,7 @@ public class Torrents(
             return;
         }
 
-        var torrent = await torrentData.GetById(torrentId) ?? throw new($"Cannot find Torrent with ID {torrentId}");
+        var torrent = await torrentData.GetById(torrentId) ?? throw new Exception($"Cannot find Torrent with ID {torrentId}");
 
         var downloadsForTorrent = await downloads.GetForTorrent(torrentId);
 
@@ -820,6 +867,7 @@ public class Torrents(
 
             outputSb.AppendLine(data.Trim());
         };
+
         process.ErrorDataReceived += (_, data) =>
         {
             if (data == null)
