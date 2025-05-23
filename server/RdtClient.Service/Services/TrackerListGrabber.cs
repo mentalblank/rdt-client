@@ -107,7 +107,6 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
         logger.LogDebug("Fetching tracker list from URL: {TrackerUrl}", trackerUri);
 
         var httpClient = httpClientFactory.CreateClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(15);
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         var token = cts.Token;
         var response = await httpClient.GetAsync(trackerUri, token).ConfigureAwait(false);
@@ -142,7 +141,8 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
                                       !t.Contains("..") &&
                                       !t.Contains("\\") &&
                                       !t.Any(Char.IsControl) &&
-                                      uri.Host.All(c => Char.IsLetterOrDigit(c) || c == '.' || c == '-');
+                                      uri.Host.All(c => Char.IsLetterOrDigit(c) || c == '.' || c == '-' || c == '_' || c == ':') &&
+                                      uri.Host.Length > 0;
                            })
                            .Distinct(StringComparer.OrdinalIgnoreCase)
                            .ToArray();
