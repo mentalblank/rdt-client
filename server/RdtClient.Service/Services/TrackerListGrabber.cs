@@ -130,19 +130,25 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
                            .Select(t => t.EndsWith("/") ? t.TrimEnd('/') : t)
                            .Select(t => t.Trim())
                            .Where(t =>
-                                      Uri.TryCreate(t, UriKind.Absolute, out var uri) &&
-                                      (uri.Scheme == Uri.UriSchemeHttp ||
+                           {
+                               if (!Uri.TryCreate(t, UriKind.Absolute, out var uri))
+                               {
+                                   return false;
+                               }
+
+                               return (uri.Scheme == Uri.UriSchemeHttp ||
                                        uri.Scheme == Uri.UriSchemeHttps ||
                                        uri.Scheme.Equals("udp", StringComparison.OrdinalIgnoreCase)) &&
                                       !t.Contains("..") &&
                                       !t.Contains("\\") &&
                                       !t.Any(Char.IsControl) &&
-                                      uri.Host.All(c => Char.IsLetterOrDigit(c) || c == '.' || c == '-') // Host validation
-                                 )
+                                      uri.Host.All(c => Char.IsLetterOrDigit(c) || c == '.' || c == '-');
+                           })
                            .Distinct(StringComparer.OrdinalIgnoreCase)
                            .ToArray();
             }
             catch (Exception ex)
+
             {
                 logger.LogError(ex, "Error parsing tracker list response.");
 
