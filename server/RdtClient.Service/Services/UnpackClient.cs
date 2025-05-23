@@ -159,7 +159,10 @@ public class UnpackClient(Download download, String destinationPath)
 
         var extension = Path.GetExtension(filePath);
 
-        if (_torrent.DownloadClient == Data.Enums.DownloadClient.Symlink && !Settings.Get.Provider.Default.DownloadCompressedSymlink) return;
+        if (_torrent.DownloadClient == Data.Enums.DownloadClient.Symlink && !Settings.Get.Provider.Default.DownloadCompressedSymlink)
+        {
+            return;
+        }
 
         IArchive archive;
         if (extension == ".zip")

@@ -9,28 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.113] - 2025-05-22
 ### Fixed
 - Revert Synolog.Api.Client because of breaking changes.
-
-## [2.0.112] - 2025-05-18
-### Added
-- Add ability to disable the built in unpacking process by setting the "Maximum unpack processes" to 0.
-
-### Changed
-- Upgraded Angular to use control flow.
-
-### Fixed
-- Fixed dequeing issue.
-- Fixed logging handler for ProviderUpdater.
-
 ### Fork Changes
+- "Set and forget" magnet and torrent file enrichment through a configurable user-defined list with adjustable caching period.
 - Expanded button to select all options when deleting a torrent to also be present in individual torrent screen.
 - Small changes to initial start up chown actions.
-- Enrichment can now be set to a customisable list, also .torrent files are now enriched.
-
-## [2.0.111] - 2025-05-03
-### Added
-- Added button to register rdt-client as a handler for magnet links on [supported browsers](https://caniuse.com/mdn-api_navigator_registerprotocolhandler_scheme_parameter_magnet).
-### Fork Changes
-- Add magnet link enrichment using configurable tracker lists from ngosang/trackerslist
 - Replaced the static magnet handler help text shown when registration is unavailable (due to an insecure context or lack of browser support) with contextual HTML links.
 - Added settings option to allow / disallow the download and extraction of compressed files using symlink downloader.
 - Improved update process where script now dynamically handles update archive filenames, preventing breakage if the file name changes.
@@ -43,12 +25,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated README-DOCKER formatting, fixed some typos, and included traefik labels.
 - Changed default DB Settings to include various preferences including a default exclude regex
 - Added optional rclone refresh command for the symlink downloader.
-- Added a change to RealDebridTorrentClient to strip some file extentions from torrent.RdName resulting in */torrentname.mkv/torrentname.mkv* becoming */torrentname/torrentname.mkv*
+- Added an option to strip some file extentions from torrent.RdName resulting in */torrentname.mkv/torrentname.mkv* becoming */torrentname/torrentname.mkv*
 - Removed some junk from changelog.
 - Shortened "*Received provider error:*" to "*Provider error:*" in TorrentRunner
 - Changed docker build workflow to use github repo name instead of hardcoded "*rdtclient*"
 - Added some additional workflows
 - Replaced referral links
+
+## [2.0.112] - 2025-05-18
+### Added
+- Add ability to disable the built in unpacking process by setting the "Maximum unpack processes" to 0.
+
+### Changed
+- Upgraded Angular to use control flow.
+
+### Fixed
+- Fixed dequeing issue.
+- Fixed logging handler for ProviderUpdater.
+
+## [2.0.111] - 2025-05-03
+### Added
+- Added button to register rdt-client as a handler for magnet links on [supported browsers](https://caniuse.com/mdn-api_navigator_registerprotocolhandler_scheme_parameter_magnet).
 
 ## [2.0.110] - 2025-04-24
 ### Fixed

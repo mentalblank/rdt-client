@@ -125,7 +125,6 @@ public class Torrents(
 
             return await AddQueued(hash, magnetLink, false, torrent);
         }
-
         try
         {
             var enriched = await enricher.EnrichMagnetLink(magnetLink);
@@ -133,7 +132,7 @@ public class Torrents(
 
             try
             {
-                magnet = MagnetLink.Parse(enriched);
+                magnet = MagnetLink.Parse(magnetLink);
             }
             catch (Exception ex)
             {
@@ -177,16 +176,22 @@ public class Torrents(
         }
         else
         {
-            hash = await TorrentClient.AddFile(bytes);
-            var fileAsBase64 = Convert.ToBase64String(bytes);
-            logger.LogDebug($"bytes {bytes}");
-
             var enriched = await enricher.EnrichTorrentBytes(bytes);
-            logger.LogDebug($"enriched bytes {enriched}");
+
+            hash = await TorrentClient.AddFile(enriched);
+
+            if (enriched.SequenceEqual(bytes))
+            {
+                logger.LogDebug("bytes {Bytes}", bytes);
+            }
+            else
+            {
+                logger.LogDebug("enriched bytes {Enriched}", enriched);
+            }
 
             try
             {
-                var monoTorrent = await MonoTorrent.Torrent.LoadAsync(enriched);
+                var monoTorrent = await MonoTorrent.Torrent.LoadAsync(bytes);
                 torrent.RdName = monoTorrent.Name;
                 await CopyAddedTorrent(monoTorrent.Name, bytes, torrent.ContentKind);
             }

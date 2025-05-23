@@ -83,7 +83,7 @@ Supports the following parameters:
 
     [DisplayName("Tracker enrichment list")]
     [Description("Optional. Specify the URL of a tracker list file to be appended to magnet links and torrent files.")]
-    public String? TrackerEnrichmentList { get; set; } = null;
+    public String? TrackerEnrichmentList { get; set; } = "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt";
 
     [DisplayName("Tracker enrichment cache expiration")]
     [Description("The time in minutes to cache the tracker list. Set to 0 to disable caching.")]
@@ -296,6 +296,10 @@ public class DbSettingsDefaults
     [DisplayName("Exclude files")]
     [Description("Ignore files that are matching this regular expression. Only use this setting OR the Include files setting, not both.")]
     public String? ExcludeRegex { get; set; } = @"(?i)^.*\.(xml|ac3|sql|docx|arj|lzh|tar|gz|bat|bmp|cmd|cue|db|diz|dll|((dvd)?disc|par(t)?|py)\d*|exe|flac|gif|htm(l)?|ico(n)?|idx|info|ini|index|jp(e)?g|l(i)?nk|md5|m2ts|mp3|nfo|nzb|png|rar|readme|reg|sample|sfv|sql|srr|sub|srt|tag|tak|t(e)?xt|thumb|torrent|ts|url|vbs|webp|zip|zsh|padding_file|smallfile|_unpack|ade|adp|app|application|appref-ms|asp|aspx|asx|bas|bgi|cab|cer|chm|cmd|cnt|com|cpl|crt|csh|der|diagcab|fxp|gadget|grp|hlp|hpj|hta|htc|inf|ins|iso|isp|its|jar|jnlp|js|jse|ksh|lnk|mad|maf|mag|mam|maq|mar|mas|mat|mau|mav|maw|mcf|mda|mdb|mde|mdt|mdw|mdz|msc|msh|msh1|msh2|mshxml|msh1xml|msh2xml|msi|msp|mst|msu|ops|osd|pcd|pif|pl|plg|prf|prg|printerexport|ps1|ps1xml|ps2|ps2xml|psc1|psc2|psd1|psdm1|pst|py|pyc|pyo|pyw|pyz|pyzw|reg|scf|scr|sct|shb|shs|theme|tmp|vb|vbe|vbp|vbs|vhd|vhdx|vsmacros|vsw|webpnp|website|ws|wsc|wsf|wsh|xbap|xll|xnk|7z|bdjo|bdmv|bin|cci|clpi|crl|idx|m4a|mpls|msi|pdf|sig|tbl|xig|xrt|zipx)$";
+
+    [DisplayName("Trim file extentions from folder name")]
+    [Description("Removes defined file extentions from downloaded folder names")]
+    public String? TrimRegex { get; set; } = @"(?i)\.(mkv|mp4|avi|m2ts|mov|wmv|asf|mpegts|ts|3gpp|flv|mpeg|wtv|webm|m4v|3gp|vob|ogv|rm|rmvb|divx|xvid|f4v|mts|mxf)$";
 
     [DisplayName("Automatic retry torrent")]
     [Description("When a single download has failed multiple times (see setting above) or when the torrent itself received an error it will retry the full torrent this many times before marking it failed.")]

@@ -1,4 +1,5 @@
 ﻿using System.Web;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RDNET;
@@ -213,13 +214,17 @@ public class RealDebridTorrentClient(ILogger<RealDebridTorrentClient> logger, IH
 
             if (!String.IsNullOrWhiteSpace(torrentClientTorrent.Filename))
             {
-                torrent.RdName = Path.GetFileNameWithoutExtension(torrentClientTorrent.Filename);
+                torrent.RdName = torrentClientTorrent.Filename;
             }
 
             if (!String.IsNullOrWhiteSpace(torrentClientTorrent.OriginalFilename))
             {
-                torrent.RdName = Path.GetFileNameWithoutExtension(torrentClientTorrent.OriginalFilename);
+                torrent.RdName = torrentClientTorrent.OriginalFilename;
             }
+
+            var trimRegex = Settings.Get.Integrations.Default.TrimRegex ?? "";
+            var rdNameExtStripped = Regex.Replace(torrent.RdName!, trimRegex, "");
+            torrent.RdName = rdNameExtStripped;
 
             if (torrentClientTorrent.Bytes > 0)
             {

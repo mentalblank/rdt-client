@@ -1,5 +1,7 @@
+using System.Net.Http.Headers;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 
 namespace RdtClient.Service.Services;
 
@@ -23,9 +25,9 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
         if (!Uri.TryCreate(trackerUrlList, UriKind.Absolute, out var trackerUri) ||
             (trackerUri.Scheme != Uri.UriSchemeHttp && trackerUri.Scheme != Uri.UriSchemeHttps))
         {
-            logger.LogError("Invalid tracker list URL: {Url}", trackerUrlList);
+            logger.LogWarning("Invalid tracker list URL format: {Url}", trackerUrlList);
 
-            throw new InvalidOperationException("Invalid tracker list URL.");
+            return [];
         }
 
         var currentExpiration = Settings.Get.General.TrackerEnrichmentCacheExpiration;
@@ -88,13 +90,13 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
         {
             logger.LogError(ex, "Fetching tracker list was canceled (timeout or cancellation).");
 
-            throw new InvalidOperationException("Fetching tracker list was canceled due to timeout or cancellation.", ex);
+            throw new TaskCanceledException("Fetching tracker list was canceled due to timeout or cancellation.", ex);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unable to fetch tracker list.");
 
-            throw new InvalidOperationException("Unable to fetch tracker list for enrichment.", ex);
+            throw new Exception("Unable to fetch tracker list for enrichment.", ex);
         }
         finally
         {
@@ -107,33 +109,84 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
         logger.LogDebug("Fetching tracker list from URL: {TrackerUrl}", trackerUri);
 
         var httpClient = httpClientFactory.CreateClient();
+
+        var version = Assembly.GetEntryAssembly()?.GetName().Version?.ToString();
+
+        var currentVersion = version != null && version.LastIndexOf('.') > 0
+            ? $"v{version[..version.LastIndexOf('.')]}"
+            : "";
+
+        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("RdtClient", currentVersion));
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        using var response = await httpClient.GetAsync(trackerUri, cts.Token).ConfigureAwait(false);
+        var token = cts.Token;
+        var response = await httpClient.GetAsync(trackerUri, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
 
-        response.EnsureSuccessStatusCode();
-
-        await using var contentStream = await response.Content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false);
-        using var reader = new StreamReader(contentStream);
-        var result = await reader.ReadToEndAsync(cts.Token).ConfigureAwait(false);
-
-        String[] trackers;
-
-        try
+        using (response)
         {
-            trackers = result
-                       .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                       .Where(line => !String.IsNullOrWhiteSpace(line))
-                       .Select(t => t.EndsWith("/") ? t.TrimEnd('/') : t)
-                       .Distinct(StringComparer.OrdinalIgnoreCase)
-                       .ToArray();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error parsing tracker list response.");
+            response.EnsureSuccessStatusCode();
 
-            throw new InvalidOperationException("Failed to parse tracker list response.", ex);
-        }
+            await using var contentStream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
+            using var reader = new StreamReader(contentStream);
+            var result = await reader.ReadToEndAsync(token).ConfigureAwait(false);
 
-        return trackers;
+            String[] trackers;
+
+            try
+            {
+                var trackerRejectionCount = 0;
+
+                trackers = result
+                           .Split([
+                                      "\r\n", "\n"
+                                  ],
+                                  StringSplitOptions.RemoveEmptyEntries)
+                           .Where(line => !String.IsNullOrWhiteSpace(line) && !line.TrimStart().StartsWith('#'))
+                           .Select(t => t.EndsWith("/") ? t.TrimEnd('/') : t)
+                           .Select(t => t.Trim())
+                           .Where(t =>
+                           {
+                               if (!Uri.TryCreate(t, UriKind.Absolute, out var uri))
+                               {
+                                   logger.LogDebug("Rejected tracker: {TrackerUrl} - Reason: Invalid format or unsupported scheme.", t);
+                                   trackerRejectionCount++;
+                                   return false;
+                               }
+
+                               var isIpv6 = uri.Host.StartsWith('[') && uri.Host.Contains(']');
+
+                               var valid = ((isIpv6 && uri.Host.All(c => Char.IsLetterOrDigit(c) || c == '.' || c == ':' || c == '[' || c == ']')) ||
+                                            (!isIpv6 && uri.Host.All(c => Char.IsLetterOrDigit(c) || c == '.' || c == '-' || c == '_'))) &&
+                                           (uri.Scheme == Uri.UriSchemeHttp ||
+                                            uri.Scheme == Uri.UriSchemeHttps ||
+                                            uri.Scheme.Equals("udp", StringComparison.OrdinalIgnoreCase) ||
+                                            uri.Scheme.Equals("wss", StringComparison.OrdinalIgnoreCase)) &&
+                                           !t.Contains("..") &&
+                                           !t.Contains("\\") &&
+                                           !t.Any(Char.IsControl) &&
+                                           uri.Host.Length > 0;
+
+                               if (!valid)
+                               {
+                                   logger.LogDebug("Enrichment tracker rejected: {TrackerUrl} - Reason: Invalid format or unsupported scheme.", t);
+                                   trackerRejectionCount++;
+                               }
+
+                               return valid;
+                           })
+                           .Distinct(StringComparer.OrdinalIgnoreCase)
+                           .ToArray();
+
+                logger.LogInformation("{TrackerRejectionCount} trackers were rejected during enrichment.", trackerRejectionCount);
+            }
+            catch (Exception ex)
+
+            {
+                logger.LogError(ex, "Error parsing tracker list response.");
+
+                throw new InvalidOperationException("Failed to parse tracker list response.", ex);
+            }
+
+            return trackers;
+        }
     }
 }
