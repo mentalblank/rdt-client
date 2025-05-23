@@ -37,66 +37,102 @@ public sealed class Enricher(ILogger<Enricher> logger, ITrackerListGrabber track
 
         if (qmIdx == -1 || qmIdx == magnetLink.Length - 1)
         {
-            return magnetLink;
+            // No query string or empty query string
+            var sb = new StringBuilder(magnetLink);
+
+            if (qmIdx == -1)
+            {
+                sb.Append('?');
+            }
+
+            // Only add '&' between trackers, not before the first tracker when magnet ends with '?'
+            for (var i = 0; i < newTrackers.Length; i++)
+            {
+                // Only add '&' for >0 trackers, or if the magnet did NOT end with '?' already
+                if (i > 0 || (qmIdx != magnetLink.Length - 1 && qmIdx != -1))
+                {
+                    sb.Append('&');
+                }
+
+                sb.Append("tr=").Append(Uri.EscapeDataString(newTrackers[i]));
+            }
+
+            logger.LogInformation("Added {NewTrackersCount} new trackers to a magnet link with no initial query string. Total trackers: {TotalTrackersCount}.",
+                                  newTrackers.Length,
+                                  newTrackers.Length);
+
+            return sb.ToString();
         }
 
         var schemePart = magnetLink[..qmIdx];
         var queryPart = magnetLink[(qmIdx + 1)..];
 
-        var query = HttpUtility.ParseQueryString(queryPart);
-        var existingTrackers = query.GetValues("tr") ?? [];
-        var trackerSet = new HashSet<String>(existingTrackers, StringComparer.OrdinalIgnoreCase);
-        var trackersToAdd = newTrackers.Where(t => !trackerSet.Contains(t)).ToList();
+        // Manually parse query string into dictionary (to preserve current encodings!)
+        var queryKVs = HttpUtility.ParseQueryString(queryPart);
 
-        if (trackersToAdd.Count == 0)
+        // gather key-values
+        var paramDict = new Dictionary<String, List<String>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (String key in queryKVs)
         {
-            return magnetLink;
+            if (key == null)
+            {
+                continue;
+            }
+
+            if (!paramDict.ContainsKey(key))
+            {
+                paramDict[key] = new List<String>();
+            }
+
+            paramDict[key].AddRange(queryKVs.GetValues(key) ?? []);
         }
 
-        var allTrackers = existingTrackers.Concat(trackersToAdd).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        // Remove any "tr" values and copy existing ones to a set
+        var existingTrackers = paramDict.TryGetValue("tr", out var value)
+            ? new HashSet<String>(value, StringComparer.OrdinalIgnoreCase)
+            : new HashSet<String>(StringComparer.OrdinalIgnoreCase);
 
-        query.Remove("tr");
+        paramDict.Remove("tr");
 
-        var baseQueryPairs = new List<String>();
+        // Add new trackers if they aren't duplicates
+        var newUniqueTrackers = newTrackers.Where(t => !existingTrackers.Contains(t)).ToList();
 
-        foreach (var key in query.AllKeys)
+        foreach (var tr in newUniqueTrackers)
         {
-            foreach (var val in query.GetValues(key) ?? [])
+            existingTrackers.Add(tr);
+        }
+
+        // Reconstruct param string: keep xt and dn as unencoded (since that's standard)
+        var outParams = new List<String>();
+
+        foreach (var kv in paramDict)
+        {
+            // for official keys like xt and dn, keep as-is (value should not be encoded again)
+            foreach (var v in kv.Value)
             {
-                if (key == "xt")
+                if (kv.Key == "xt" || kv.Key == "dn")
                 {
-                    baseQueryPairs.Add("xt=" + val);
+                    outParams.Add($"{kv.Key}={v}");
                 }
-                else if (key != null)
+                else
                 {
-                    baseQueryPairs.Add($"{Uri.EscapeDataString(key)}={Uri.EscapeDataString(val)}");
+                    outParams.Add($"{kv.Key}={HttpUtility.UrlEncode(v)}");
                 }
             }
         }
 
-        var rebuilt = schemePart + (baseQueryPairs.Count > 0 ? "?" + String.Join("&", baseQueryPairs) + "&" : "?");
-        var newMagnet = new StringBuilder(rebuilt);
-
-        for (var i = 0; i < allTrackers.Length; i++)
+        // trackers: always tr=... and encode the tracker value
+        foreach (var tr in existingTrackers)
         {
-            if (i == 0 && !rebuilt.EndsWith("&") && !rebuilt.EndsWith("?"))
-            {
-                newMagnet.Append('&');
-            }
-
-            newMagnet.Append("tr=").Append(Uri.EscapeDataString(allTrackers[i]));
-
-            if (i != allTrackers.Length - 1)
-            {
-                newMagnet.Append('&');
-            }
+            outParams.Add($"tr={Uri.EscapeDataString(tr)}");
         }
 
-        var finalMagnet = newMagnet.ToString();
+        var finalMagnet = schemePart + "?" + String.Join("&", outParams);
 
         logger.LogInformation("Added {NewTrackersCount} new trackers to the magnet link. Total trackers: {TotalTrackersCount}.",
-                              trackersToAdd.Count,
-                              allTrackers.Length);
+                              newUniqueTrackers.Count,
+                              existingTrackers.Count);
 
         return finalMagnet;
     }
@@ -128,11 +164,16 @@ public sealed class Enricher(ILogger<Enricher> logger, ITrackerListGrabber track
 
         var newTrackers = await trackerListGrabber.GetTrackers().ConfigureAwait(false);
 
+        // --- Fixed section:
         if (!newTrackers.Any())
         {
             logger.LogWarning("No new trackers were retrieved.");
 
-            return torrentBytes;
+            torrentDict.Remove("announce");
+
+            torrentDict["announce-list"] = new BEncodedList();
+
+            return torrentDict.Encode();
         }
 
         var seenTrackers = new HashSet<String>(StringComparer.OrdinalIgnoreCase);
@@ -160,11 +201,14 @@ public sealed class Enricher(ILogger<Enricher> logger, ITrackerListGrabber track
             }
         }
 
+        var addedTrackersCount = 0;
+
         foreach (var tracker in newTrackers)
         {
-            if (seenTrackers.Add(tracker))
+            if (seenTrackers.Add(tracker)) // if true, it was a new tracker not seen before
             {
                 allTrackers.Add(tracker);
+                addedTrackersCount++; // Increment here
             }
         }
 
@@ -184,9 +228,13 @@ public sealed class Enricher(ILogger<Enricher> logger, ITrackerListGrabber track
         {
             torrentDict["announce"] = new BEncodedString(allTrackers[0]);
         }
+        else
+        {
+            torrentDict.Remove("announce"); // Explicitly remove if no trackers are available.
+        }
 
         logger.LogInformation("Added {NewTrackersCount} new trackers to the torrent. Total trackers: {TotalTrackersCount}.",
-                              allTrackers.Count - seenTrackers.Count + newTrackers.Length,
+                              addedTrackersCount,
                               allTrackers.Count);
 
         return torrentDict.Encode();

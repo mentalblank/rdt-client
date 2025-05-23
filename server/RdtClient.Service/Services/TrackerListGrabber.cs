@@ -124,7 +124,11 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
             try
             {
                 trackers = result
-                           .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                           .Split(new[]
+                                  {
+                                      "\r\n", "\n"
+                                  },
+                                  StringSplitOptions.RemoveEmptyEntries)
                            .Where(line => !String.IsNullOrWhiteSpace(line) && !line.TrimStart().StartsWith('#'))
                            .Select(t => t.EndsWith("/") ? t.TrimEnd('/') : t)
                            .Select(t => t.Trim())
