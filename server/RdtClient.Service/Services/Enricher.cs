@@ -1,3 +1,5 @@
+
+using System.Text;
 using System.Web;
 using Microsoft.Extensions.Logging;
 using MonoTorrent.BEncoding;
@@ -13,7 +15,7 @@ public interface IEnricher
 /// <summary>
 /// Enriches magnet links and torrents by adding trackers from the tracker list grabber.
 /// </summary>
-public class Enricher(ILogger<Enricher> logger, ITrackerListGrabber trackerListGrabber) : IEnricher
+public sealed class Enricher(ILogger<Enricher> logger, ITrackerListGrabber trackerListGrabber) : IEnricher
 {
     /// <summary>
     /// Add trackers from the tracker list grabber to the magnet link.
@@ -22,36 +24,81 @@ public class Enricher(ILogger<Enricher> logger, ITrackerListGrabber trackerListG
     /// <returns>Magnet link with additional trackers</returns>
     public async Task<String> EnrichMagnetLink(String magnetLink)
     {
-        var newTrackers = await trackerListGrabber.GetTrackers();
+        var newTrackers = await trackerListGrabber.GetTrackers().ConfigureAwait(false);
 
-        var uri = new Uri(magnetLink);
-        var query = HttpUtility.ParseQueryString(uri.Query);
+        if (newTrackers.Length == 0)
+        {
+            logger.LogWarning("No new trackers were retrieved.");
 
+            return magnetLink;
+        }
+
+        var qmIdx = magnetLink.IndexOf('?');
+
+        if (qmIdx == -1 || qmIdx == magnetLink.Length - 1)
+        {
+            return magnetLink;
+        }
+
+        var schemePart = magnetLink[..qmIdx];
+        var queryPart = magnetLink[(qmIdx + 1)..];
+
+        var query = HttpUtility.ParseQueryString(queryPart);
         var existingTrackers = query.GetValues("tr") ?? [];
-        var allTrackers = existingTrackers.Concat(newTrackers).Distinct(StringComparer.OrdinalIgnoreCase);
+        var trackerSet = new HashSet<String>(existingTrackers, StringComparer.OrdinalIgnoreCase);
+        var trackersToAdd = newTrackers.Where(t => !trackerSet.Contains(t)).ToList();
 
-        var trackerQuery = String.Join("&tr=", allTrackers.Select(Uri.EscapeDataString));
-
-        if (!String.IsNullOrEmpty(trackerQuery))
+        if (trackersToAdd.Count == 0)
         {
-            trackerQuery = "&tr=" + trackerQuery;
+            return magnetLink;
         }
 
-        var baseWithoutTrackers = magnetLink.Split("&tr=")[0];
+        var allTrackers = existingTrackers.Concat(trackersToAdd).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
-        var separator = baseWithoutTrackers.Contains('?') ? "&" : "?";
+        query.Remove("tr");
 
-        var newUri = baseWithoutTrackers + separator + trackerQuery.TrimStart('&');
-        try
+        var baseQueryPairs = new List<String>();
+
+        foreach (var key in query.AllKeys)
         {
-            _ = new Uri(newUri);
+            foreach (var val in query.GetValues(key) ?? [])
+            {
+                if (key == "xt")
+                {
+                    baseQueryPairs.Add("xt=" + val);
+                }
+                else if (key != null)
+                {
+                    baseQueryPairs.Add($"{Uri.EscapeDataString(key)}={Uri.EscapeDataString(val)}");
+                }
+            }
         }
-        catch (UriFormatException ex)
+
+        var rebuilt = schemePart + (baseQueryPairs.Count > 0 ? "?" + String.Join("&", baseQueryPairs) + "&" : "?");
+        var newMagnet = new StringBuilder(rebuilt);
+
+        for (var i = 0; i < allTrackers.Length; i++)
         {
-            logger.LogWarning(ex, "Failed to enrich magnet link: {newUri}", newUri);
-            throw new InvalidOperationException($"Failed to enrich magnet link: {newUri}", ex);
+            if (i == 0 && !rebuilt.EndsWith("&") && !rebuilt.EndsWith("?"))
+            {
+                newMagnet.Append('&');
+            }
+
+            newMagnet.Append("tr=").Append(Uri.EscapeDataString(allTrackers[i]));
+
+            if (i != allTrackers.Length - 1)
+            {
+                newMagnet.Append('&');
+            }
         }
-        return newUri;
+
+        var finalMagnet = newMagnet.ToString();
+
+        logger.LogInformation("Added {NewTrackersCount} new trackers to the magnet link. Total trackers: {TotalTrackersCount}.",
+                              trackersToAdd.Count,
+                              allTrackers.Length);
+
+        return finalMagnet;
     }
 
     /// <summary>
@@ -61,54 +108,86 @@ public class Enricher(ILogger<Enricher> logger, ITrackerListGrabber trackerListG
     /// <returns>Torrent file bytes with additional trackers</returns>
     public async Task<Byte[]> EnrichTorrentBytes(Byte[] torrentBytes)
     {
-        var newTrackers = await trackerListGrabber.GetTrackers();
-
-        if (torrentBytes == null)
+        if (torrentBytes == null || torrentBytes.Length == 0)
         {
-            throw new ArgumentNullException(nameof(torrentBytes));
+            throw new ArgumentException("Torrent bytes cannot be null or empty.", nameof(torrentBytes));
         }
 
-        var torrentDict = BEncodedValue.Decode<BEncodedDictionary>(torrentBytes);
+        BEncodedDictionary torrentDict;
 
-
-        if (!torrentDict.TryGetValue("announce-list", out var announceListValue) || announceListValue is not BEncodedList announceList)
+        try
         {
-            announceList = new BEncodedList();
-            if (torrentDict.TryGetValue("announce", out var announceValue) && announceValue is BEncodedString announceStr)
-            {
-                announceList.Add(new BEncodedList { announceStr });
-            }
+            torrentDict = BEncodedValue.Decode<BEncodedDictionary>(torrentBytes);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to decode torrent bytes.");
+
+            throw new InvalidOperationException("Invalid torrent file format.", ex);
         }
 
-        var existingTrackers = new HashSet<String>(StringComparer.OrdinalIgnoreCase);
-        foreach (var tier in announceList)
+        var newTrackers = await trackerListGrabber.GetTrackers().ConfigureAwait(false);
+
+        if (!newTrackers.Any())
         {
-            if (tier is BEncodedList tierList)
+            logger.LogWarning("No new trackers were retrieved.");
+
+            return torrentBytes;
+        }
+
+        var seenTrackers = new HashSet<String>(StringComparer.OrdinalIgnoreCase);
+        var allTrackers = new List<String>();
+
+        if (torrentDict.TryGetValue("announce-list", out var alc) && alc is BEncodedList alList)
+        {
+            foreach (var tier in alList.OfType<BEncodedList>())
             {
-                foreach (var tracker in tierList)
+                foreach (var s in tier.OfType<BEncodedString>())
                 {
-                    if (tracker is BEncodedString trackerStr)
+                    if (seenTrackers.Add(s.Text))
                     {
-                        existingTrackers.Add(trackerStr.Text);
+                        allTrackers.Add(s.Text);
                     }
                 }
             }
         }
 
-        foreach (var tracker in newTrackers)
+        if (torrentDict.TryGetValue("announce", out var announceValue) && announceValue is BEncodedString announceStr)
         {
-            if (!existingTrackers.Contains(tracker))
+            if (seenTrackers.Add(announceStr.Text))
             {
-                announceList.Add(new BEncodedList { new BEncodedString(tracker) });
-                existingTrackers.Add(tracker);
+                allTrackers.Add(announceStr.Text);
             }
         }
 
-        torrentDict["announce-list"] = announceList;
-        if (announceList.Count > 0 && announceList[0] is BEncodedList firstTier && firstTier.Count > 0 && firstTier[0] is BEncodedString firstTracker)
+        foreach (var tracker in newTrackers)
         {
-            torrentDict["announce"] = firstTracker;
+            if (seenTrackers.Add(tracker))
+            {
+                allTrackers.Add(tracker);
+            }
         }
+
+        var dedupedAnnounceList = new BEncodedList();
+
+        foreach (var tracker in allTrackers)
+        {
+            dedupedAnnounceList.Add(new BEncodedList
+            {
+                new BEncodedString(tracker)
+            });
+        }
+
+        torrentDict["announce-list"] = dedupedAnnounceList;
+
+        if (allTrackers.Count > 0)
+        {
+            torrentDict["announce"] = new BEncodedString(allTrackers[0]);
+        }
+
+        logger.LogInformation("Added {NewTrackersCount} new trackers to the torrent. Total trackers: {TotalTrackersCount}.",
+                              allTrackers.Count - seenTrackers.Count + newTrackers.Length,
+                              allTrackers.Count);
 
         return torrentDict.Encode();
     }

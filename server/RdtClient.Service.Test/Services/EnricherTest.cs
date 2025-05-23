@@ -268,4 +268,49 @@ public class EnricherTest : IDisposable
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => enricher.EnrichTorrentBytes(originalTorrentBytes));
     }
+
+    [Fact]
+    public async Task EnrichMagnetLink_ReturnsOriginal_WhenMagnetIsMalformed()
+    {
+        SetupTrackerListGrabber(new[]
+        {
+            "http://some-tracker.com/announce"
+        });
+
+        var enricher = new Enricher(_loggerMock.Object, _trackerListGrabberMock.Object);
+
+        // No '?' in magnet link (malformed)
+        var malformed = "magnet:xt=bad";
+        var result = await enricher.EnrichMagnetLink(malformed);
+
+        Assert.Equal(malformed, result);
+
+        // Magnet ends with '?'
+        var endsWithQ = "magnet:?";
+        var result2 = await enricher.EnrichMagnetLink(endsWithQ);
+
+        Assert.Equal(endsWithQ, result2);
+    }
+
+    [Fact]
+    public async Task EnrichTorrentBytes_ThrowsArgumentException_OnNullOrEmptyInput()
+    {
+        var enricher = new Enricher(_loggerMock.Object, _trackerListGrabberMock.Object);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => enricher.EnrichTorrentBytes(null!));
+        await Assert.ThrowsAsync<ArgumentException>(() => enricher.EnrichTorrentBytes(Array.Empty<Byte>()));
+    }
+
+    [Fact]
+    public async Task EnrichTorrentBytes_ThrowsInvalidOperationException_OnNonTorrentBytes()
+    {
+        var enricher = new Enricher(_loggerMock.Object, _trackerListGrabberMock.Object);
+
+        var notTorrent = new Byte[]
+        {
+            1, 2, 3, 4, 5
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => enricher.EnrichTorrentBytes(notTorrent));
+    }
 }
