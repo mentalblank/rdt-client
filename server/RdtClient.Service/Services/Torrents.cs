@@ -261,7 +261,7 @@ public class Torrents(
     /// <param name="torrent">The torrent from the database to upload to the debrid provider</param>
     /// <returns>Updated torrent</returns>
     /// <exception cref="Exception">When RdId is not null or FileOrMagnet is null.</exception>
-    public async Task<Torrent> DequeueFromDebridQueue(Torrent torrent)
+    public async Task DequeueFromDebridQueue(Torrent torrent)
     {
         if (torrent.RdId != null)
         {
@@ -291,8 +291,6 @@ public class Torrents(
 
             await torrentData.UpdateRdId(torrent, id);
             await UpdateTorrentClientData(torrent);
-
-            return torrent;
         }
         finally
         {
@@ -574,6 +572,7 @@ public class Torrents(
                         DownloadAction =
                             Settings.Get.Provider.Default.OnlyDownloadAvailableFiles ? TorrentDownloadAction.DownloadAvailableFiles : TorrentDownloadAction.DownloadAll,
                         HostDownloadAction = Settings.Get.Provider.Default.HostDownloadAction,
+                        FinishedActionDelay = Settings.Get.Provider.Default.FinishedActionDelay,
                         FinishedAction = Settings.Get.Provider.Default.FinishedAction,
                         DownloadMinSize = Settings.Get.Provider.Default.MinFileSize,
                         IncludeRegex = Settings.Get.Provider.Default.IncludeRegex,
