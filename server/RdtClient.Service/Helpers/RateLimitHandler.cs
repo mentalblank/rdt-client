@@ -23,6 +23,7 @@ public class RateLimitHandler : DelegatingHandler
                 }
 
                 response.Dispose();
+
                 throw new RateLimitException("TorBox rate limit exceeded", delay);
             }
 

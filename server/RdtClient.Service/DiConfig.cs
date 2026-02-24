@@ -65,6 +65,7 @@ public static class DiConfig
     public static void RegisterHttpClients(this IServiceCollection services)
     {
         services.AddHttpClient();
+
         services.ConfigureHttpClientDefaults(builder =>
         {
             builder.ConfigureHttpClient(httpClient =>
@@ -74,7 +75,7 @@ public static class DiConfig
         });
 
         services.AddTransient<RateLimitHandler>();
-        
+
         services.AddHttpClient(RD_CLIENT)
                 .AddHttpMessageHandler<RateLimitHandler>()
                 .AddResilienceHandler("rd_client_handler", ConfigureResiliencePipeline);
@@ -90,12 +91,14 @@ public static class DiConfig
     {
         builder.AddTimeout(new TimeoutStrategyOptions
         {
-            TimeoutGenerator = _ => new ValueTask<TimeSpan>(TimeSpan.FromSeconds(Settings.Get.Provider.Timeout))
+            TimeoutGenerator = _ => new(TimeSpan.FromSeconds(Settings.Get.Provider.Timeout))
         });
+
         builder.AddRateLimitHeaders(options =>
         {
             options.EnableProactiveThrottling = true;
         });
+
         builder.AddRetry(new()
         {
             ShouldHandle = args => args.Outcome switch
@@ -126,10 +129,10 @@ public static class DiConfig
                         throw new RateLimitException("Provider rate limit exceeded", delay);
                     }
 
-                    return new ValueTask<TimeSpan?>(delay);
+                    return new(delay);
                 }
 
-                return new ValueTask<TimeSpan?>((TimeSpan?)null);
+                return new((TimeSpan?)null);
             }
         });
     }

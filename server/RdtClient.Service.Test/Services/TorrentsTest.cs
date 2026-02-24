@@ -11,11 +11,12 @@ using RdtClient.Data.Models.Internal;
 using RdtClient.Service.Services;
 using RdtClient.Service.Test.Helpers;
 using RdtClient.Service.Wrappers;
+using DownloadClient = RdtClient.Data.Enums.DownloadClient;
 using TorrentsService = RdtClient.Service.Services.Torrents;
 
 namespace RdtClient.Service.Test.Services;
 
-class Mocks
+internal class Mocks
 {
     public readonly Mock<IDownloads> DownloadsMock;
     public readonly Mock<IEnricher> EnricherMock;
@@ -92,6 +93,7 @@ public class TorrentsTest
         String downloadPath;
         String torrentPath;
         String filePath;
+
         if (OSHelper.IsLinux)
         {
             downloadPath = $"{settings.DownloadClient.DownloadPath}/{torrent.Category}";
@@ -337,19 +339,23 @@ public class TorrentsTest
     {
         // Arrange
         var mocks = new Mocks();
+
         var torrent = new Torrent
         {
             TorrentId = Guid.NewGuid()
         };
-        var nzbContent = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\r\n<nzb xmlns=\"http://www.newzbin.com/DTD/2003/nzb\">\r\n <head>\r\n  <meta type=\"title\">Test NZB Title</meta>\r\n </head>\r\n</nzb>";
+
+        var nzbContent =
+            "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\r\n<nzb xmlns=\"http://www.newzbin.com/DTD/2003/nzb\">\r\n <head>\r\n  <meta type=\"title\">Test NZB Title</meta>\r\n </head>\r\n</nzb>";
+
         var bytes = Encoding.UTF8.GetBytes(nzbContent);
-        
+
         mocks.TorrentDataMock.Setup(t => t.Add(It.IsAny<String>(),
                                                It.IsAny<String>(),
                                                It.IsAny<String>(),
                                                true,
                                                DownloadType.Nzb,
-                                               It.IsAny<Data.Enums.DownloadClient>(),
+                                               It.IsAny<DownloadClient>(),
                                                It.IsAny<Torrent>()))
              .ReturnsAsync(new Torrent());
 
@@ -374,8 +380,9 @@ public class TorrentsTest
                                                 It.IsAny<String>(),
                                                 true,
                                                 DownloadType.Nzb,
-                                                It.IsAny<Data.Enums.DownloadClient>(),
-                                                It.IsAny<Torrent>()), Times.Once);
+                                                It.IsAny<DownloadClient>(),
+                                                It.IsAny<Torrent>()),
+                                     Times.Once);
     }
 
     [Fact]
@@ -383,10 +390,12 @@ public class TorrentsTest
     {
         // Arrange
         var mocks = new Mocks();
+
         var torrent = new Torrent
         {
             TorrentId = Guid.NewGuid()
         };
+
         var link = "http://example.com/test.nzb";
 
         mocks.TorrentDataMock.Setup(t => t.Add(It.IsAny<String>(),
@@ -394,7 +403,7 @@ public class TorrentsTest
                                                It.IsAny<String>(),
                                                false,
                                                DownloadType.Nzb,
-                                               It.IsAny<Data.Enums.DownloadClient>(),
+                                               It.IsAny<DownloadClient>(),
                                                It.IsAny<Torrent>()))
              .ReturnsAsync(new Torrent());
 
@@ -419,7 +428,8 @@ public class TorrentsTest
                                                 link,
                                                 false,
                                                 DownloadType.Nzb,
-                                                It.IsAny<Data.Enums.DownloadClient>(),
-                                                It.IsAny<Torrent>()), Times.Once);
+                                                It.IsAny<DownloadClient>(),
+                                                It.IsAny<Torrent>()),
+                                     Times.Once);
     }
 }

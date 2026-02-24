@@ -10,7 +10,7 @@ public class SabnzbdModeAttribute(String mode) : Attribute, IActionConstraint
     public Boolean Accept(ActionConstraintContext context)
     {
         var request = context.RouteContext.HttpContext.Request;
-        
+
         String? modeValue = request.Query["mode"];
 
         if (String.IsNullOrWhiteSpace(modeValue) && request.HasFormContentType)

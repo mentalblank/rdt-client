@@ -1,6 +1,6 @@
-﻿using RdtClient.Data.Enums;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using RdtClient.Data.Enums;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 

@@ -2,8 +2,8 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RdtClient.Data.Enums;
-using RdtClient.Data.Models.DebridClient;
 using RdtClient.Data.Models.Data;
+using RdtClient.Data.Models.DebridClient;
 using RdtClient.Data.Models.Internal;
 using RdtClient.Service.Helpers;
 using TorBoxNET;
@@ -14,166 +14,34 @@ namespace RdtClient.Service.Services.DebridClients;
 public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientFactory httpClientFactory, IDownloadableFileFilter fileFilter) : IDebridClient
 {
     private TimeSpan? _offset;
-    protected virtual ITorBoxNetClient GetClient()
-    {
-        try
-        {
-            var apiKey = Settings.Get.Provider.ApiKey;
-
-            if (String.IsNullOrWhiteSpace(apiKey))
-            {
-                throw new("TorBox API Key not set in the settings");
-            }
-
-            var httpClient = httpClientFactory.CreateClient(DiConfig.TORBOX_CLIENT); 
-            var torBoxNetClient = new TorBoxNetClient(null, httpClient, 1);
-            torBoxNetClient.UseApiAuthentication(apiKey);
-
-            // Get the server time to fix up the timezones on results
-            if (_offset == null)
-            {
-                var serverTime = DateTimeOffset.UtcNow;
-                _offset = serverTime.Offset;
-            }
-
-            return torBoxNetClient;
-        }
-        catch (AggregateException ae)
-        {
-            foreach (var inner in ae.InnerExceptions)
-            {
-                logger.LogError(inner, $"The connection to TorBox has failed: {inner.Message}");
-            }
-
-            throw;
-        }
-        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
-        {
-            logger.LogError(ex, $"The connection to TorBox has timed out: {ex.Message}");
-
-            throw;
-        }
-        catch (TaskCanceledException ex)
-        {
-            logger.LogError(ex, $"The connection to TorBox has timed out: {ex.Message}");
-
-            throw;
-        }
-    }
-
-    protected virtual async Task<IEnumerable<TorrentInfoResult>?> GetCurrentTorrents()
-    {
-        return await GetClient().Torrents.GetCurrentAsync(true);
-    }
-
-    protected virtual async Task<IEnumerable<TorrentInfoResult>?> GetQueuedTorrents()
-    {
-        return await GetClient().Torrents.GetQueuedAsync(true);
-    }
-
-    protected virtual async Task<IEnumerable<UsenetInfoResult>?> GetCurrentUsenet()
-    {
-        return await GetClient().Usenet.GetCurrentAsync(true);
-    }
-
-    protected virtual async Task<IEnumerable<UsenetInfoResult>?> GetQueuedUsenet()
-    {
-        return await GetClient().Usenet.GetQueuedAsync(true);
-    }
-
-    protected virtual async Task<Response<List<AvailableTorrent?>>> GetTorrentAvailability(String hash)
-    {
-        return await GetClient().Torrents.GetAvailabilityAsync(hash, listFiles: true);
-    }
-
-    protected virtual async Task<Response<List<AvailableUsenet?>>> GetUsenetAvailability(String hash)
-    {
-        return await GetClient().Usenet.GetAvailabilityAsync(hash, listFiles: true);
-    }
-
-    private DebridClientTorrent Map(TorrentInfoResult torrent)
-    {
-        return new()
-        {
-            Id = torrent.Hash,
-            Filename = torrent.Name,
-            OriginalFilename = torrent.Name,
-            Hash = torrent.Hash,
-            Bytes = torrent.Size,
-            OriginalBytes = torrent.Size,
-            Host = torrent.DownloadPresent.ToString(),
-            Split = 0,
-            Progress = (Int64)(torrent.Progress * 100.0),
-            Status = torrent.DownloadState,
-            Type = DownloadType.Torrent,
-            Added = ChangeTimeZone(torrent.CreatedAt)!.Value,
-            Files = (torrent.Files ?? []).Select(m => new DebridClientFile
-            {
-                Path = String.Join("/", m.Name.Split('/').Skip(1)),
-                Bytes = m.Size,
-                Id = m.Id,
-                Selected = true
-            }).ToList(),
-            Links = [],
-            Ended = ChangeTimeZone(torrent.UpdatedAt),
-            Speed = torrent.DownloadSpeed,
-            Seeders = torrent.Seeds,
-        };
-    }
-
-    private DebridClientTorrent Map(UsenetInfoResult usenet)
-    {
-        return new()
-        {
-            Id = usenet.Hash,
-            Filename = usenet.Name,
-            OriginalFilename = usenet.Name,
-            Hash = usenet.Hash,
-            Bytes = usenet.Size,
-            OriginalBytes = usenet.Size,
-            Host = usenet.DownloadPresent.ToString(),
-            Split = 0,
-            Progress = (Int64)(usenet.Progress * 100.0),
-            Status = usenet.DownloadState,
-            Type = DownloadType.Nzb,
-            Added = ChangeTimeZone(usenet.CreatedAt)!.Value,
-            Files = (usenet.Files ?? []).Select(m => new DebridClientFile
-            {
-                Path = String.Join("/", m.Name.Split('/').Skip(1)),
-                Bytes = m.Size,
-                Id = m.Id,
-                Selected = true
-            }).ToList(),
-            Links = [],
-            Ended = ChangeTimeZone(usenet.UpdatedAt),
-            Speed = usenet.DownloadSpeed,
-            Seeders = 0,
-        };
-    }
 
     public async Task<IList<DebridClientTorrent>> GetDownloads()
     {
         var results = new List<DebridClientTorrent>();
 
         var currentTorrents = await GetCurrentTorrents();
+
         if (currentTorrents != null)
         {
             results.AddRange(currentTorrents.Select(Map));
         }
 
         var queuedTorrents = await GetQueuedTorrents();
+
         if (queuedTorrents != null)
         {
             results.AddRange(queuedTorrents.Select(Map));
         }
 
         var currentNzbs = await GetCurrentUsenet();
+
         if (currentNzbs != null)
         {
             results.AddRange(currentNzbs.Select(Map));
         }
 
         var queuedNzbs = await GetQueuedUsenet();
+
         if (queuedNzbs != null)
         {
             results.AddRange(queuedNzbs.Select(Map));
@@ -193,60 +61,13 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
         };
     }
 
-    private async Task<String> HandleAddTorrentErrors(Func<Boolean, Task<String>> action)
-    {
-        try
-        {
-            return await action(false);
-        }
-        catch (RateLimitException)
-        {
-            throw;
-        }
-        catch (Exception ex) when (ex.InnerException is RateLimitException rateLimitException)
-        {
-            throw rateLimitException;
-        }
-        catch (TorBoxException ex) when (ex.Error.Equals("active_limit", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
-        }
-        catch (Exception ex) when (ex.Message.Contains("slow_down", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
-        }
-    }
-
-    private async Task<String> HandleAddUsenetErrors(Func<Boolean, Task<String>> action)
-    {
-        try
-        {
-            return await action(false);
-        }
-        catch (RateLimitException)
-        {
-            throw;
-        }
-        catch (Exception ex) when (ex.InnerException is RateLimitException rateLimitException)
-        {
-            throw rateLimitException;
-        }
-        catch (TorBoxException ex) when (ex.Error.Equals("active_limit", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
-        }
-        catch (Exception ex) when (ex.Message.Contains("slow_down", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
-        }
-    }
-
     public async Task<String> AddTorrentMagnet(String magnetLink)
     {
         return await HandleAddTorrentErrors(async asQueued =>
         {
             var user = await GetClient().User.GetAsync(true);
             var result = await GetClient().Torrents.AddMagnetAsync(magnetLink, user.Data?.Settings?.SeedTorrents ?? 3, as_queued: asQueued);
+
             return result.Data!.Hash!;
         });
     }
@@ -257,6 +78,7 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
         {
             var user = await GetClient().User.GetAsync(true);
             var result = await GetClient().Torrents.AddFileAsync(bytes, user.Data?.Settings?.SeedTorrents ?? 3, as_queued: asQueued);
+
             return result.Data!.Hash!;
         });
     }
@@ -266,6 +88,7 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
         return await HandleAddUsenetErrors(async asQueued =>
         {
             var result = await GetClient().Usenet.AddLinkAsync(nzbLink, as_queued: asQueued);
+
             return result.Data!.Hash!;
         });
     }
@@ -275,6 +98,7 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
         return await HandleAddUsenetErrors(async asQueued =>
         {
             var result = await GetClient().Usenet.AddFileAsync(bytes, name: name, as_queued: asQueued);
+
             return result.Data!.Hash!;
         });
     }
@@ -286,10 +110,11 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
         if (availability.Data != null && availability.Data.Count > 0)
         {
             return (availability.Data[0]?.Files ?? []).Select(file => new DebridClientAvailableFile
-            {
-                Filename = file.Name,
-                Filesize = file.Size
-            }).ToList();
+                                                      {
+                                                          Filename = file.Name,
+                                                          Filesize = file.Size
+                                                      })
+                                                      .ToList();
         }
 
         var usenetAvailability = await GetUsenetAvailability(hash);
@@ -297,10 +122,11 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
         if (usenetAvailability.Data != null && usenetAvailability.Data.Count > 0)
         {
             return (usenetAvailability.Data[0]?.Files ?? []).Select(file => new DebridClientAvailableFile
-            {
-                Filename = file.Name,
-                Filesize = file.Size
-            }).ToList();
+                                                            {
+                                                                Filename = file.Name,
+                                                                Filesize = file.Size
+                                                            })
+                                                            .ToList();
         }
 
         return [];
@@ -337,6 +163,7 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
         }
 
         var segments = link.Split('/');
+
         if (segments is not [_, _, _, _, var torrentIdStr, var fileIdStrOrZip])
         {
             throw new ArgumentException($"Invalid link format: {link}", nameof(link));
@@ -426,6 +253,7 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
             else
             {
                 logger.LogTrace("Updating status for {TorrentName} from {OldStatus} to {NewStatus}", torrent.RdName, torrent.RdStatus, rdTorrent.Status);
+
                 torrent.RdStatus = rdTorrent.Status switch
                 {
                     "allocating" => TorrentStatus.Processing,
@@ -482,7 +310,7 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
         }
         else
         {
-            var torrentId = await GetClient().Torrents.GetHashInfoAsync(torrent.Hash, skipCache: true);
+            var torrentId = await GetClient().Torrents.GetHashInfoAsync(torrent.Hash, true);
             id = torrentId?.Id;
         }
 
@@ -490,6 +318,7 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
         {
             return null;
         }
+
         var downloadableFiles = torrent.Files.Where(file => fileFilter.IsDownloadable(torrent, file.Path, file.Bytes)).ToList();
 
         if (downloadableFiles.Count == torrent.Files.Count && torrent.DownloadClient != Data.Enums.DownloadClient.Symlink && Settings.Get.Provider.PreferZippedDownloads)
@@ -525,6 +354,192 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
         return Task.FromResult(download.FileName);
     }
 
+    protected virtual ITorBoxNetClient GetClient()
+    {
+        try
+        {
+            var apiKey = Settings.Get.Provider.ApiKey;
+
+            if (String.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new("TorBox API Key not set in the settings");
+            }
+
+            var httpClient = httpClientFactory.CreateClient(DiConfig.TORBOX_CLIENT);
+            var torBoxNetClient = new TorBoxNetClient(null, httpClient);
+            torBoxNetClient.UseApiAuthentication(apiKey);
+
+            // Get the server time to fix up the timezones on results
+            if (_offset == null)
+            {
+                var serverTime = DateTimeOffset.UtcNow;
+                _offset = serverTime.Offset;
+            }
+
+            return torBoxNetClient;
+        }
+        catch (AggregateException ae)
+        {
+            foreach (var inner in ae.InnerExceptions)
+            {
+                logger.LogError(inner, $"The connection to TorBox has failed: {inner.Message}");
+            }
+
+            throw;
+        }
+        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+        {
+            logger.LogError(ex, $"The connection to TorBox has timed out: {ex.Message}");
+
+            throw;
+        }
+        catch (TaskCanceledException ex)
+        {
+            logger.LogError(ex, $"The connection to TorBox has timed out: {ex.Message}");
+
+            throw;
+        }
+    }
+
+    protected virtual async Task<IEnumerable<TorrentInfoResult>?> GetCurrentTorrents()
+    {
+        return await GetClient().Torrents.GetCurrentAsync(true);
+    }
+
+    protected virtual async Task<IEnumerable<TorrentInfoResult>?> GetQueuedTorrents()
+    {
+        return await GetClient().Torrents.GetQueuedAsync(true);
+    }
+
+    protected virtual async Task<IEnumerable<UsenetInfoResult>?> GetCurrentUsenet()
+    {
+        return await GetClient().Usenet.GetCurrentAsync(true);
+    }
+
+    protected virtual async Task<IEnumerable<UsenetInfoResult>?> GetQueuedUsenet()
+    {
+        return await GetClient().Usenet.GetQueuedAsync(true);
+    }
+
+    protected virtual async Task<Response<List<AvailableTorrent?>>> GetTorrentAvailability(String hash)
+    {
+        return await GetClient().Torrents.GetAvailabilityAsync(hash, true);
+    }
+
+    protected virtual async Task<Response<List<AvailableUsenet?>>> GetUsenetAvailability(String hash)
+    {
+        return await GetClient().Usenet.GetAvailabilityAsync(hash, true);
+    }
+
+    private DebridClientTorrent Map(TorrentInfoResult torrent)
+    {
+        return new()
+        {
+            Id = torrent.Hash,
+            Filename = torrent.Name,
+            OriginalFilename = torrent.Name,
+            Hash = torrent.Hash,
+            Bytes = torrent.Size,
+            OriginalBytes = torrent.Size,
+            Host = torrent.DownloadPresent.ToString(),
+            Split = 0,
+            Progress = (Int64)(torrent.Progress * 100.0),
+            Status = torrent.DownloadState,
+            Type = DownloadType.Torrent,
+            Added = ChangeTimeZone(torrent.CreatedAt)!.Value,
+            Files = (torrent.Files ?? []).Select(m => new DebridClientFile
+                                         {
+                                             Path = String.Join("/", m.Name.Split('/').Skip(1)),
+                                             Bytes = m.Size,
+                                             Id = m.Id,
+                                             Selected = true
+                                         })
+                                         .ToList(),
+            Links = [],
+            Ended = ChangeTimeZone(torrent.UpdatedAt),
+            Speed = torrent.DownloadSpeed,
+            Seeders = torrent.Seeds
+        };
+    }
+
+    private DebridClientTorrent Map(UsenetInfoResult usenet)
+    {
+        return new()
+        {
+            Id = usenet.Hash,
+            Filename = usenet.Name,
+            OriginalFilename = usenet.Name,
+            Hash = usenet.Hash,
+            Bytes = usenet.Size,
+            OriginalBytes = usenet.Size,
+            Host = usenet.DownloadPresent.ToString(),
+            Split = 0,
+            Progress = (Int64)(usenet.Progress * 100.0),
+            Status = usenet.DownloadState,
+            Type = DownloadType.Nzb,
+            Added = ChangeTimeZone(usenet.CreatedAt)!.Value,
+            Files = (usenet.Files ?? []).Select(m => new DebridClientFile
+                                        {
+                                            Path = String.Join("/", m.Name.Split('/').Skip(1)),
+                                            Bytes = m.Size,
+                                            Id = m.Id,
+                                            Selected = true
+                                        })
+                                        .ToList(),
+            Links = [],
+            Ended = ChangeTimeZone(usenet.UpdatedAt),
+            Speed = usenet.DownloadSpeed,
+            Seeders = 0
+        };
+    }
+
+    private async Task<String> HandleAddTorrentErrors(Func<Boolean, Task<String>> action)
+    {
+        try
+        {
+            return await action(false);
+        }
+        catch (RateLimitException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex.InnerException is RateLimitException rateLimitException)
+        {
+            throw rateLimitException;
+        }
+        catch (TorBoxException ex) when (ex.Error.Equals("active_limit", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
+        }
+        catch (Exception ex) when (ex.Message.Contains("slow_down", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
+        }
+    }
+
+    private async Task<String> HandleAddUsenetErrors(Func<Boolean, Task<String>> action)
+    {
+        try
+        {
+            return await action(false);
+        }
+        catch (RateLimitException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex.InnerException is RateLimitException rateLimitException)
+        {
+            throw rateLimitException;
+        }
+        catch (TorBoxException ex) when (ex.Error.Equals("active_limit", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
+        }
+        catch (Exception ex) when (ex.Message.Contains("slow_down", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
+        }
+    }
 
     private DateTimeOffset? ChangeTimeZone(DateTimeOffset? dateTimeOffset)
     {
@@ -540,7 +555,8 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
     {
         if (type == DownloadType.Nzb)
         {
-            var usenet = await GetClient().Usenet.GetHashInfoAsync(id, skipCache: true);
+            var usenet = await GetClient().Usenet.GetHashInfoAsync(id, true);
+
             if (usenet != null)
             {
                 return Map(usenet);
@@ -548,7 +564,7 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
         }
         else
         {
-            var result = await GetClient().Torrents.GetHashInfoAsync(id, skipCache: true);
+            var result = await GetClient().Torrents.GetHashInfoAsync(id, true);
 
             if (result != null)
             {
@@ -568,6 +584,7 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
             var innerFolder = Directory.GetDirectories(hashDir)[0];
 
             var moveDir = extractPath;
+
             if (!extractPath.EndsWith(torrent.RdName!))
             {
                 moveDir = hashDir;

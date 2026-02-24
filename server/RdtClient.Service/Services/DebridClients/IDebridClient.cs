@@ -12,6 +12,7 @@ public interface IDebridClient
     Task<String> AddNzbLink(String nzbLink);
     Task<String> AddNzbFile(Byte[] bytes, String? name);
     Task<IList<DebridClientAvailableFile>> GetAvailableFiles(String hash);
+
     /// <summary>
     ///     Tell the debrid provider which files to download.
     /// </summary>
@@ -21,6 +22,7 @@ public interface IDebridClient
     /// <param name="torrent">The torrent to select files for</param>
     /// <returns>Number of files selected</returns>
     Task<Int32?> SelectFiles(Torrent torrent);
+
     Task Delete(Torrent torrent);
     Task<String> Unrestrict(Torrent torrent, String link);
     Task<Torrent> UpdateData(Torrent torrent, DebridClientTorrent? torrentClientTorrent);

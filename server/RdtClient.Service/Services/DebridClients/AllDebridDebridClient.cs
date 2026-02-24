@@ -56,32 +56,7 @@ public class AllDebridDebridClient(ILogger<AllDebridDebridClient> logger, IAllDe
 {
     private static readonly Int64 SessionId = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     private static List<DebridClientTorrent> _cache = [];
-    private static Int64 _sessionCounter = 0;
-
-    private static DebridClientTorrent Map(Magnet torrent)
-    {
-        var files = GetFiles(torrent.Files);
-        return new()
-        {
-            Id = torrent.Id.ToString(),
-            Filename = torrent.Filename ?? "",
-            OriginalFilename = torrent.Filename,
-            Hash = torrent.Hash ?? "",
-            Bytes = torrent.Size ?? 0,
-            OriginalBytes = torrent.Size ?? 0,
-            Host = null,
-            Split = 0,
-            Progress = (Int64)Math.Round((torrent.Downloaded ?? 0) * 100.0 / (torrent.Size ?? 1)),
-            Status = torrent.Status,
-            StatusCode = torrent.StatusCode ?? 0,
-            Added = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(torrent.UploadDate ?? 0),
-            Files = files,
-            Links = [],
-            Ended = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(torrent.CompletionDate ?? 0),
-            Speed = torrent.DownloadSpeed,
-            Seeders = torrent.Seeders
-        };
-    }
+    private static Int64 _sessionCounter;
 
     public async Task<IList<DebridClientTorrent>> GetDownloads()
     {
@@ -141,7 +116,7 @@ public class AllDebridDebridClient(ILogger<AllDebridDebridClient> logger, IAllDe
             return resultId;
         }
         catch (Exception ex) when (ex.Message.Contains("slow_down", StringComparison.OrdinalIgnoreCase) ||
-                           ex.Message.Contains("rate limit exceeded", StringComparison.OrdinalIgnoreCase))
+                                   ex.Message.Contains("rate limit exceeded", StringComparison.OrdinalIgnoreCase))
         {
             throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
         }
@@ -163,7 +138,7 @@ public class AllDebridDebridClient(ILogger<AllDebridDebridClient> logger, IAllDe
             return resultId;
         }
         catch (Exception ex) when (ex.Message.Contains("slow_down", StringComparison.OrdinalIgnoreCase) ||
-                           ex.Message.Contains("rate limit exceeded", StringComparison.OrdinalIgnoreCase))
+                                   ex.Message.Contains("rate limit exceeded", StringComparison.OrdinalIgnoreCase))
         {
             throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
         }
@@ -306,12 +281,39 @@ public class AllDebridDebridClient(ILogger<AllDebridDebridClient> logger, IAllDe
         return Task.FromResult(download.FileName);
     }
 
+    private static DebridClientTorrent Map(Magnet torrent)
+    {
+        var files = GetFiles(torrent.Files);
+
+        return new()
+        {
+            Id = torrent.Id.ToString(),
+            Filename = torrent.Filename ?? "",
+            OriginalFilename = torrent.Filename,
+            Hash = torrent.Hash ?? "",
+            Bytes = torrent.Size ?? 0,
+            OriginalBytes = torrent.Size ?? 0,
+            Host = null,
+            Split = 0,
+            Progress = (Int64)Math.Round(((torrent.Downloaded ?? 0) * 100.0) / (torrent.Size ?? 1)),
+            Status = torrent.Status,
+            StatusCode = torrent.StatusCode ?? 0,
+            Added = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(torrent.UploadDate ?? 0),
+            Files = files,
+            Links = [],
+            Ended = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(torrent.CompletionDate ?? 0),
+            Speed = torrent.DownloadSpeed,
+            Seeders = torrent.Seeders
+        };
+    }
+
     private async Task<DebridClientTorrent> GetInfo(String torrentId)
     {
         var result = await allDebridNetClientFactory.GetClient().Magnet.StatusAsync(torrentId) ?? throw new($"Unable to find magnet with ID {torrentId}");
 
         return Map(result);
     }
+
     private static List<DebridClientFile> GetFiles(List<File>? files, String parentPath = "")
     {
         if (files == null)
@@ -325,7 +327,7 @@ public class AllDebridDebridClient(ILogger<AllDebridDebridClient> logger, IAllDe
                             ? file.FolderOrFileName
                             : Path.Combine(parentPath, file.FolderOrFileName);
 
-            var result = new List<DebridClientFile>();
+                        var result = new List<DebridClientFile>();
 
                         // If it's a file (has size)
                         if (file.Size.HasValue)

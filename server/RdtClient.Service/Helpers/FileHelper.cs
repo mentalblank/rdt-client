@@ -79,13 +79,14 @@ public static class FileHelper
     public static String RemoveInvalidFileNameChars(String filename)
     {
         var invalidChars = Path.GetInvalidFileNameChars()
-            .Concat(['/', '\\'])
-            .Distinct()
-            .ToArray();
+                               .Concat(['/', '\\'])
+                               .Distinct()
+                               .ToArray();
 
         var cleaned = String.Concat(filename.Split(invalidChars));
         cleaned = cleaned.Replace("..", "");
         cleaned = cleaned.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
         return cleaned;
     }
 

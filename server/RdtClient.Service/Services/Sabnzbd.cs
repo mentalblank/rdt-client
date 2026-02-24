@@ -18,62 +18,65 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
         {
             NoOfSlots = activeTorrents.Count,
             Slots = activeTorrents.Select((t, index) =>
-            {
-                var rdProgress = Math.Clamp(t.RdProgress ?? 0.0, 0.0, 100.0) / 100.0;
-                Double progress;
+                                  {
+                                      var rdProgress = Math.Clamp(t.RdProgress ?? 0.0, 0.0, 100.0) / 100.0;
+                                      Double progress;
 
-                var dlStats = t.Downloads.Select(m => torrents.GetDownloadStats(m.DownloadId)).ToList();
-                if (dlStats.Count > 0)
-                {
-                    var bytesDone = dlStats.Sum(m => m.BytesDone);
-                    var bytesTotal = dlStats.Sum(m => m.BytesTotal);
-                    var downloadProgress = bytesTotal > 0 ? Math.Clamp((Double)bytesDone / bytesTotal, 0.0, 1.0) : 0;
-                    progress = (rdProgress + downloadProgress) / 2.0;
-                }
-                else
-                {
-                    progress = rdProgress;
-                }
+                                      var dlStats = t.Downloads.Select(m => torrents.GetDownloadStats(m.DownloadId)).ToList();
 
-                var timeLeft = "0:00:00";
-                var startTime = t.Retry > t.Added ? t.Retry.Value : t.Added;
-                var elapsed = DateTimeOffset.UtcNow - startTime;
+                                      if (dlStats.Count > 0)
+                                      {
+                                          var bytesDone = dlStats.Sum(m => m.BytesDone);
+                                          var bytesTotal = dlStats.Sum(m => m.BytesTotal);
+                                          var downloadProgress = bytesTotal > 0 ? Math.Clamp((Double)bytesDone / bytesTotal, 0.0, 1.0) : 0;
+                                          progress = (rdProgress + downloadProgress) / 2.0;
+                                      }
+                                      else
+                                      {
+                                          progress = rdProgress;
+                                      }
 
-                if (progress is > 0 and < 1.0)
-                {
-                    var totalEstimatedTime = TimeSpan.FromTicks((Int64)(elapsed.Ticks / progress));
-                    var remaining = totalEstimatedTime - elapsed;
-                    if (remaining.TotalSeconds > 0)
-                    {
-                        timeLeft = $"{(Int32)remaining.TotalHours}:{remaining.Minutes:D2}:{remaining.Seconds:D2}";
-                    }
-                }
+                                      var timeLeft = "0:00:00";
+                                      var startTime = t.Retry > t.Added ? t.Retry.Value : t.Added;
+                                      var elapsed = DateTimeOffset.UtcNow - startTime;
 
-                return new SabnzbdQueueSlot
-                {
-                    Index = index,
-                    NzoId = t.Hash,
-                    Filename = t.RdName ?? t.Hash,
-                    Size = FileSizeHelper.FormatSize(dlStats.Sum(d => d.BytesTotal)),
-                    SizeLeft = FileSizeHelper.FormatSize(dlStats.Sum(d => d.BytesTotal - d.BytesDone)),
-                    Percentage = (progress * 100.0).ToString("0"),
+                                      if (progress is > 0 and < 1.0)
+                                      {
+                                          var totalEstimatedTime = TimeSpan.FromTicks((Int64)(elapsed.Ticks / progress));
+                                          var remaining = totalEstimatedTime - elapsed;
 
-                    Status = t.RdStatus switch
-                    {
-                        TorrentStatus.Queued => "Queued",
-                        TorrentStatus.Processing => "Downloading",
-                        TorrentStatus.WaitingForFileSelection => "Downloading",
-                        TorrentStatus.Downloading => "Downloading",
-                        TorrentStatus.Uploading => "Downloading",
-                        TorrentStatus.Finished => "Completed",
-                        TorrentStatus.Error => "Failed",
-                        _ => "Downloading"
-                    },
-                    Category = t.Category ?? "*",
-                    Priority = "Normal",
-                    TimeLeft = timeLeft
-                };
-            }).ToList()
+                                          if (remaining.TotalSeconds > 0)
+                                          {
+                                              timeLeft = $"{(Int32)remaining.TotalHours}:{remaining.Minutes:D2}:{remaining.Seconds:D2}";
+                                          }
+                                      }
+
+                                      return new SabnzbdQueueSlot
+                                      {
+                                          Index = index,
+                                          NzoId = t.Hash,
+                                          Filename = t.RdName ?? t.Hash,
+                                          Size = FileSizeHelper.FormatSize(dlStats.Sum(d => d.BytesTotal)),
+                                          SizeLeft = FileSizeHelper.FormatSize(dlStats.Sum(d => d.BytesTotal - d.BytesDone)),
+                                          Percentage = (progress * 100.0).ToString("0"),
+
+                                          Status = t.RdStatus switch
+                                          {
+                                              TorrentStatus.Queued => "Queued",
+                                              TorrentStatus.Processing => "Downloading",
+                                              TorrentStatus.WaitingForFileSelection => "Downloading",
+                                              TorrentStatus.Downloading => "Downloading",
+                                              TorrentStatus.Uploading => "Downloading",
+                                              TorrentStatus.Finished => "Completed",
+                                              TorrentStatus.Error => "Failed",
+                                              _ => "Downloading"
+                                          },
+                                          Category = t.Category ?? "*",
+                                          Priority = "Normal",
+                                          TimeLeft = timeLeft
+                                      };
+                                  })
+                                  .ToList()
         };
 
         return queue;
@@ -91,29 +94,30 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
             NoOfSlots = completedTorrents.Count,
             TotalSlots = completedTorrents.Count,
             Slots = completedTorrents.Select(t =>
-            {
-                var path = savePath;
+                                     {
+                                         var path = savePath;
 
-                if (!String.IsNullOrWhiteSpace(t.Category))
-                {
-                    path = Path.Combine(path, t.Category);
-                }
+                                         if (!String.IsNullOrWhiteSpace(t.Category))
+                                         {
+                                             path = Path.Combine(path, t.Category);
+                                         }
 
-                if (!String.IsNullOrWhiteSpace(t.RdName))
-                {
-                    path = Path.Combine(path, t.RdName);
-                }
+                                         if (!String.IsNullOrWhiteSpace(t.RdName))
+                                         {
+                                             path = Path.Combine(path, t.RdName);
+                                         }
 
-                return new SabnzbdHistorySlot
-                {
-                    NzoId = t.Hash,
-                    Name = t.RdName ?? t.Hash,
-                    Size = FileSizeHelper.FormatSize(t.Downloads.Sum(d => d.BytesTotal)),
-                    Status = String.IsNullOrWhiteSpace(t.Error) ? "Completed" : "Failed",
-                    Category = t.Category ?? "Default",
-                    Path = path
-                };
-            }).ToList()
+                                         return new SabnzbdHistorySlot
+                                         {
+                                             NzoId = t.Hash,
+                                             Name = t.RdName ?? t.Hash,
+                                             Size = FileSizeHelper.FormatSize(t.Downloads.Sum(d => d.BytesTotal)),
+                                             Status = String.IsNullOrWhiteSpace(t.Error) ? "Completed" : "Failed",
+                                             Category = t.Category ?? "Default",
+                                             Path = path
+                                         };
+                                     })
+                                     .ToList()
         };
 
         return history;
@@ -142,6 +146,7 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
         };
 
         var result = await torrents.AddNzbFileToDebridQueue(fileBytes, fileName, torrent);
+
         return result.Hash;
     }
 
@@ -168,6 +173,7 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
         };
 
         var result = await torrents.AddNzbLinkToDebridQueue(url, torrent);
+
         return result.Hash;
     }
 
@@ -179,7 +185,7 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
         {
             return;
         }
-        
+
         switch (Settings.Get.Integrations.Default.FinishedAction)
         {
             case TorrentFinishedAction.RemoveAllTorrents:
@@ -229,11 +235,12 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
         var categoryList = GetCategories();
 
         var categories = categoryList.Select((c, i) => new SabnzbdCategory
-        {
-            Name = c,
-            Order = i,
-            Dir = c == "*" ? "" : Path.Combine(savePath, c)
-        }).ToList();
+                                     {
+                                         Name = c,
+                                         Order = i,
+                                         Dir = c == "*" ? "" : Path.Combine(savePath, c)
+                                     })
+                                     .ToList();
 
         var config = new SabnzbdConfig
         {

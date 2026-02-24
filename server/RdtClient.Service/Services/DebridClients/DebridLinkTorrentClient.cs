@@ -14,78 +14,6 @@ namespace RdtClient.Service.Services.DebridClients;
 
 public class DebridLinkClient(ILogger<DebridLinkClient> logger, IHttpClientFactory httpClientFactory, IDownloadableFileFilter fileFilter) : IDebridClient
 {
-    private DebridLinkFrNETClient GetClient()
-    {
-        try
-        {
-            var apiKey = Settings.Get.Provider.ApiKey;
-
-            if (String.IsNullOrWhiteSpace(apiKey))
-            {
-                throw new("DebridLink API Key not set in the settings");
-            }
-
-            var httpClient = httpClientFactory.CreateClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(Settings.Get.Provider.Timeout);
-
-            var debridLinkClient = new DebridLinkFrNETClient(apiKey, httpClient);
-
-            return debridLinkClient;
-        }
-        catch (AggregateException ae)
-        {
-            foreach (var inner in ae.InnerExceptions)
-            {
-                logger.LogError(inner, $"The connection to DebridLink has failed: {inner.Message}");
-            }
-
-            throw;
-        }
-        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
-        {
-            logger.LogError(ex, $"The connection to DebridLink has timed out: {ex.Message}");
-
-            throw;
-        }
-        catch (TaskCanceledException ex)
-        {
-            logger.LogError(ex, $"The connection to DebridLink has timed out: {ex.Message}");
-
-            throw; 
-        }
-    }
-
-    private DebridClientTorrent Map(Torrent torrent)
-    {
-        return new()
-        {
-            Id = torrent.Id ?? "",
-            Filename = torrent.Name ?? "",
-            OriginalFilename = torrent.Name ?? "",
-            Hash = torrent.HashString ?? "",
-            Bytes = torrent.TotalSize,
-            OriginalBytes = 0,
-            Host = torrent.ServerId ?? "",
-            Split = 0,
-            Progress = torrent.DownloadPercent,
-            Status = torrent.Status.ToString(),
-            Added = DateTimeOffset.FromUnixTimeSeconds(torrent.Created),
-            Files = (torrent.Files ?? []).Select((m, i) => new DebridClientFile
-                                         {
-                                             Path = m.Name ?? "",
-                                             Bytes = m.Size,
-                                             Id = i,
-                                             Selected = true,
-                                             DownloadLink = m.DownloadUrl
-                                         })
-                                         .ToList(),
-            Links = torrent.Files?.Select(m => m.DownloadUrl.ToString()).ToList(),
-            Ended = null,
-            Speed = torrent.UploadSpeed,
-            Seeders = torrent.PeersConnected,
-        };
-    }
-
     public async Task<IList<DebridClientTorrent>> GetDownloads()
     {
         var page = 0;
@@ -128,7 +56,7 @@ public class DebridLinkClient(ILogger<DebridLinkClient> logger, IHttpClientFacto
             return result.Id ?? "";
         }
         catch (Exception ex) when (ex.Message.Contains("slow_down", StringComparison.OrdinalIgnoreCase) ||
-                           ex.Message.Contains("rate limit exceeded", StringComparison.OrdinalIgnoreCase))
+                                   ex.Message.Contains("rate limit exceeded", StringComparison.OrdinalIgnoreCase))
         {
             throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
         }
@@ -143,7 +71,7 @@ public class DebridLinkClient(ILogger<DebridLinkClient> logger, IHttpClientFacto
             return result.Id ?? "";
         }
         catch (Exception ex) when (ex.Message.Contains("slow_down", StringComparison.OrdinalIgnoreCase) ||
-                           ex.Message.Contains("rate limit exceeded", StringComparison.OrdinalIgnoreCase))
+                                   ex.Message.Contains("rate limit exceeded", StringComparison.OrdinalIgnoreCase))
         {
             throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
         }
@@ -294,6 +222,78 @@ public class DebridLinkClient(ILogger<DebridLinkClient> logger, IHttpClientFacto
         Debug.Assert(download.FileName != null);
 
         return Task.FromResult(download.FileName);
+    }
+
+    private DebridLinkFrNETClient GetClient()
+    {
+        try
+        {
+            var apiKey = Settings.Get.Provider.ApiKey;
+
+            if (String.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new("DebridLink API Key not set in the settings");
+            }
+
+            var httpClient = httpClientFactory.CreateClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(Settings.Get.Provider.Timeout);
+
+            var debridLinkClient = new DebridLinkFrNETClient(apiKey, httpClient);
+
+            return debridLinkClient;
+        }
+        catch (AggregateException ae)
+        {
+            foreach (var inner in ae.InnerExceptions)
+            {
+                logger.LogError(inner, $"The connection to DebridLink has failed: {inner.Message}");
+            }
+
+            throw;
+        }
+        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+        {
+            logger.LogError(ex, $"The connection to DebridLink has timed out: {ex.Message}");
+
+            throw;
+        }
+        catch (TaskCanceledException ex)
+        {
+            logger.LogError(ex, $"The connection to DebridLink has timed out: {ex.Message}");
+
+            throw;
+        }
+    }
+
+    private DebridClientTorrent Map(Torrent torrent)
+    {
+        return new()
+        {
+            Id = torrent.Id ?? "",
+            Filename = torrent.Name ?? "",
+            OriginalFilename = torrent.Name ?? "",
+            Hash = torrent.HashString ?? "",
+            Bytes = torrent.TotalSize,
+            OriginalBytes = 0,
+            Host = torrent.ServerId ?? "",
+            Split = 0,
+            Progress = torrent.DownloadPercent,
+            Status = torrent.Status.ToString(),
+            Added = DateTimeOffset.FromUnixTimeSeconds(torrent.Created),
+            Files = (torrent.Files ?? []).Select((m, i) => new DebridClientFile
+                                         {
+                                             Path = m.Name ?? "",
+                                             Bytes = m.Size,
+                                             Id = i,
+                                             Selected = true,
+                                             DownloadLink = m.DownloadUrl
+                                         })
+                                         .ToList(),
+            Links = torrent.Files?.Select(m => m.DownloadUrl.ToString()).ToList(),
+            Ended = null,
+            Speed = torrent.UploadSpeed,
+            Seeders = torrent.PeersConnected
+        };
     }
 
     private async Task<DebridClientTorrent> GetInfo(String torrentId)

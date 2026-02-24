@@ -14,6 +14,7 @@ public class RateLimitHandlerTest
         {
             InnerHandler = new MockHttpMessageHandler(HttpStatusCode.TooManyRequests, 3600)
         };
+
         var client = new HttpClient(handler);
 
         // Act & Assert
@@ -30,6 +31,7 @@ public class RateLimitHandlerTest
         {
             InnerHandler = new MockHttpMessageHandler(HttpStatusCode.TooManyRequests, null)
         };
+
         var client = new HttpClient(handler);
 
         // Act & Assert
@@ -42,10 +44,12 @@ public class RateLimitHandlerTest
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var response = new HttpResponseMessage(statusCode);
+
             if (retryAfterSeconds.HasValue)
             {
-                response.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(retryAfterSeconds.Value));
+                response.Headers.RetryAfter = new(TimeSpan.FromSeconds(retryAfterSeconds.Value));
             }
+
             return Task.FromResult(response);
         }
     }

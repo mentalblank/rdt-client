@@ -169,7 +169,7 @@ public class UnpackClient(Download download, String destinationPath)
                                    {
                                        Progess = (Int32)Math.Round(d);
                                    },
-                                   cancellationToken: cancellationToken);
+                                   cancellationToken);
 
         archive.Dispose();
 

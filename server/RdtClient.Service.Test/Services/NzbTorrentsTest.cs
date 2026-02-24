@@ -9,16 +9,16 @@ namespace RdtClient.Service.Test.Services;
 
 public class NzbTorrentsTest
 {
-    private readonly Mocks _mocks;
     private readonly MockFileSystem _fileSystem;
+    private readonly Mocks _mocks;
     private readonly TorrentsService _torrents;
 
     public NzbTorrentsTest()
     {
         _mocks = new();
         _fileSystem = new();
-        _torrents = new(
-                        _mocks.TorrentsLoggerMock.Object,
+
+        _torrents = new(_mocks.TorrentsLoggerMock.Object,
                         _mocks.TorrentDataMock.Object,
                         _mocks.DownloadsMock.Object,
                         _mocks.ProcessFactoryMock.Object,
@@ -28,8 +28,7 @@ public class NzbTorrentsTest
                         null!,
                         null!,
                         null!,
-                        null!
-                       );
+                        null!);
     }
 
     [Fact]
@@ -37,21 +36,26 @@ public class NzbTorrentsTest
     {
         // Arrange
         var nzbLink = "http://example.com/test.nzb";
+
         var torrent = new Torrent
         {
             DownloadClient = DownloadClient.Bezzad
         };
 
         _mocks.TorrentDataMock.Setup(t => t.GetByHash(It.IsAny<String>())).ReturnsAsync((Torrent)null!);
-        _mocks.TorrentDataMock.Setup(t => t.Add(
-            null,
-            It.IsAny<String>(),
-            nzbLink,
-            false,
-            DownloadType.Nzb,
-            torrent.DownloadClient,
-            It.IsAny<Torrent>()
-        )).ReturnsAsync(new Torrent { Hash = "mockHash", RdName = "test.nzb" });
+
+        _mocks.TorrentDataMock.Setup(t => t.Add(null,
+                                                It.IsAny<String>(),
+                                                nzbLink,
+                                                false,
+                                                DownloadType.Nzb,
+                                                torrent.DownloadClient,
+                                                It.IsAny<Torrent>()))
+              .ReturnsAsync(new Torrent
+              {
+                  Hash = "mockHash",
+                  RdName = "test.nzb"
+              });
 
         // Act
         var result = await _torrents.AddNzbLinkToDebridQueue(nzbLink, torrent);
@@ -60,15 +64,15 @@ public class NzbTorrentsTest
         Assert.NotNull(result);
         Assert.Equal("test.nzb", torrent.RdName);
         Assert.Equal(TorrentStatus.Queued, torrent.RdStatus);
-        _mocks.TorrentDataMock.Verify(t => t.Add(
-            null,
-            It.IsAny<String>(),
-            nzbLink,
-            false,
-            DownloadType.Nzb,
-            torrent.DownloadClient,
-            torrent
-        ), Times.Once);
+
+        _mocks.TorrentDataMock.Verify(t => t.Add(null,
+                                                 It.IsAny<String>(),
+                                                 nzbLink,
+                                                 false,
+                                                 DownloadType.Nzb,
+                                                 torrent.DownloadClient,
+                                                 torrent),
+                                      Times.Once);
     }
 
     [Fact]
@@ -86,23 +90,30 @@ public class NzbTorrentsTest
     public async Task AddNzbFileToDebridQueue_ValidFile_AddsToQueue()
     {
         // Arrange
-        var nzbContent = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\r\n<nzb xmlns=\"http://www.newzbin.com/DTD/2003/nzb\">\r\n <head>\r\n  <meta type=\"title\">Test NZB Title</meta>\r\n </head>\r\n</nzb>";
+        var nzbContent =
+            "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\r\n<nzb xmlns=\"http://www.newzbin.com/DTD/2003/nzb\">\r\n <head>\r\n  <meta type=\"title\">Test NZB Title</meta>\r\n </head>\r\n</nzb>";
+
         var bytes = Encoding.UTF8.GetBytes(nzbContent);
+
         var torrent = new Torrent
         {
             DownloadClient = DownloadClient.Bezzad
         };
 
         _mocks.TorrentDataMock.Setup(t => t.GetByHash(It.IsAny<String>())).ReturnsAsync((Torrent)null!);
-        _mocks.TorrentDataMock.Setup(t => t.Add(
-            null,
-            It.IsAny<String>(),
-            It.IsAny<String>(),
-            true,
-            DownloadType.Nzb,
-            torrent.DownloadClient,
-            It.IsAny<Torrent>()
-        )).ReturnsAsync(new Torrent { Hash = "mockHash", RdName = "Test NZB Title" });
+
+        _mocks.TorrentDataMock.Setup(t => t.Add(null,
+                                                It.IsAny<String>(),
+                                                It.IsAny<String>(),
+                                                true,
+                                                DownloadType.Nzb,
+                                                torrent.DownloadClient,
+                                                It.IsAny<Torrent>()))
+              .ReturnsAsync(new Torrent
+              {
+                  Hash = "mockHash",
+                  RdName = "Test NZB Title"
+              });
 
         // Act
         var result = await _torrents.AddNzbFileToDebridQueue(bytes, "filename.nzb", torrent);
@@ -111,15 +122,15 @@ public class NzbTorrentsTest
         Assert.NotNull(result);
         Assert.Equal("Test NZB Title", torrent.RdName);
         Assert.Equal(TorrentStatus.Queued, torrent.RdStatus);
-        _mocks.TorrentDataMock.Verify(t => t.Add(
-            null,
-            It.IsAny<String>(),
-            Convert.ToBase64String(bytes),
-            true,
-            DownloadType.Nzb,
-            torrent.DownloadClient,
-            torrent
-        ), Times.Once);
+
+        _mocks.TorrentDataMock.Verify(t => t.Add(null,
+                                                 It.IsAny<String>(),
+                                                 Convert.ToBase64String(bytes),
+                                                 true,
+                                                 DownloadType.Nzb,
+                                                 torrent.DownloadClient,
+                                                 torrent),
+                                      Times.Once);
     }
 
     [Fact]

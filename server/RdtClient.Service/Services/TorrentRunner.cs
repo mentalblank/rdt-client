@@ -16,6 +16,10 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
     public static readonly ConcurrentDictionary<Guid, DownloadClient> ActiveDownloadClients = new();
     public static readonly ConcurrentDictionary<Guid, UnpackClient> ActiveUnpackClients = new();
 
+    public static Boolean IsPausedForLowDiskSpace { get; set; }
+
+    public static DateTimeOffset NextDequeueTime { get; private set; } = DateTimeOffset.MinValue;
+
     public static (Int64 Speed, Int64 BytesTotal, Int64 BytesDone) GetStats(Guid downloadId)
     {
         if (ActiveDownloadClients.TryGetValue(downloadId, out var downloadClient))
@@ -30,10 +34,6 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
 
         return (0, 0, 0);
     }
-
-    public static Boolean IsPausedForLowDiskSpace { get; set; }
-
-    public static DateTimeOffset NextDequeueTime { get; private set; } = DateTimeOffset.MinValue;
 
     public async Task Initialize()
     {
@@ -359,7 +359,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                 {
                     NextDequeueTime = DateTimeOffset.MinValue;
 
-                    await remoteService.UpdateRateLimitStatus(new RateLimitStatus
+                    await remoteService.UpdateRateLimitStatus(new()
                     {
                         NextDequeueTime = null,
                         SecondsRemaining = 0
@@ -568,6 +568,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                         catch (Exception ex)
                         {
                             LogError($"Unable to start download: {ex.Message}", download, torrent);
+
                             continue;
                         }
 
@@ -755,7 +756,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
 
         Log($"Rate-limit reached, pausing dequeuing for {retryAfter.TotalMinutes} minutes (until {NextDequeueTime}): {message}");
 
-        await remoteService.UpdateRateLimitStatus(new RateLimitStatus
+        await remoteService.UpdateRateLimitStatus(new()
         {
             NextDequeueTime = NextDequeueTime,
             SecondsRemaining = retryAfter.TotalSeconds

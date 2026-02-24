@@ -182,6 +182,7 @@ public class DownloadHelperTest
         };
 
         String fileRelativePath;
+
         if (OSHelper.IsLinux)
         {
             fileRelativePath = "inside/lots/of/subdirectories/file.txt";
@@ -226,6 +227,7 @@ public class DownloadHelperTest
         };
 
         String fileRelativePath;
+
         if (OSHelper.IsLinux)
         {
             fileRelativePath = "inside/lots/of/subdirectories/file.txt";

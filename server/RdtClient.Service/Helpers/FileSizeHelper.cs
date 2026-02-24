@@ -9,7 +9,11 @@ public static class FileSizeHelper
             return "0 B";
         }
 
-        String[] units = { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
+        String[] units =
+        {
+            "B", "KB", "MB", "GB", "TB", "PB", "EB"
+        };
+
         var unitIndex = 0;
         Double size = bytes.Value;
 

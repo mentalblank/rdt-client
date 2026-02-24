@@ -81,11 +81,11 @@ public class UpdateChecker(ILogger<UpdateChecker> logger, IHttpClientFactory htt
 
     private async Task<T?> GitHubRequest<T>(String endpoint, CancellationToken cancellationToken)
     {
-            var httpClient = httpClientFactory.CreateClient();
-            httpClient.DefaultRequestHeaders.UserAgent.Add(new("RdtClient", CurrentVersion));
-            var response = await httpClient.GetStringAsync($"https://api.github.com{endpoint}", cancellationToken);
-            
-            return JsonConvert.DeserializeObject<T>(response);
+        var httpClient = httpClientFactory.CreateClient();
+        httpClient.DefaultRequestHeaders.UserAgent.Add(new("RdtClient", CurrentVersion));
+        var response = await httpClient.GetStringAsync($"https://api.github.com{endpoint}", cancellationToken);
+
+        return JsonConvert.DeserializeObject<T>(response);
     }
 }
 

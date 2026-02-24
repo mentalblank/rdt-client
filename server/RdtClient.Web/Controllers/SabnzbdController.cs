@@ -23,20 +23,28 @@ public class SabnzbdController(ILogger<SabnzbdController> logger, Sabnzbd sabnzb
 
         if (String.IsNullOrWhiteSpace(mode))
         {
-            return BadRequest(new SabnzbdResponse { Error = "No mode specified" });
+            return BadRequest(new SabnzbdResponse
+            {
+                Error = "No mode specified"
+            });
         }
 
         logger.LogWarning($"Sabnzbd API called (not implemented) - Method: {Request.Method}, Query: {Request.QueryString}");
+
         return NotFound(new SabnzbdResponse());
     }
-    
+
     [AllowAnonymous]
     [HttpGet]
     [SabnzbdMode("version")]
     public ActionResult Version()
     {
         logger.LogDebug("Sabnzbd mode: version");
-        return Ok(new SabnzbdResponse { Version = "4.4.0" });
+
+        return Ok(new SabnzbdResponse
+        {
+            Version = "4.4.0"
+        });
     }
 
     [HttpGet]
@@ -57,11 +65,19 @@ public class SabnzbdController(ILogger<SabnzbdController> logger, Sabnzbd sabnzb
                     Error = "No value specified for delete operation"
                 });
             }
+
             await sabnzbd.Delete(value ?? "");
-            return Ok(new SabnzbdResponse { Status = true });
+
+            return Ok(new SabnzbdResponse
+            {
+                Status = true
+            });
         }
 
-        return Ok(new SabnzbdResponse { Queue = await sabnzbd.GetQueue() });
+        return Ok(new SabnzbdResponse
+        {
+            Queue = await sabnzbd.GetQueue()
+        });
     }
 
     [HttpGet]
@@ -69,7 +85,11 @@ public class SabnzbdController(ILogger<SabnzbdController> logger, Sabnzbd sabnzb
     public async Task<ActionResult> History()
     {
         logger.LogDebug("Sabnzbd mode: history");
-        return Ok(new SabnzbdResponse { History = await sabnzbd.GetHistory() });
+
+        return Ok(new SabnzbdResponse
+        {
+            History = await sabnzbd.GetHistory()
+        });
     }
 
     [HttpGet]
@@ -77,7 +97,11 @@ public class SabnzbdController(ILogger<SabnzbdController> logger, Sabnzbd sabnzb
     public ActionResult GetConfig()
     {
         logger.LogDebug("Sabnzbd mode: get_config");
-        return Ok(new SabnzbdResponse { Config = sabnzbd.GetConfig() });
+
+        return Ok(new SabnzbdResponse
+        {
+            Config = sabnzbd.GetConfig()
+        });
     }
 
     [HttpGet]
@@ -85,7 +109,11 @@ public class SabnzbdController(ILogger<SabnzbdController> logger, Sabnzbd sabnzb
     public ActionResult GetCats()
     {
         logger.LogDebug("Sabnzbd mode: get_cats");
-        return Ok(new SabnzbdResponse { Categories = sabnzbd.GetCategories() });
+
+        return Ok(new SabnzbdResponse
+        {
+            Categories = sabnzbd.GetCategories()
+        });
     }
 
     [HttpGet]
@@ -101,7 +129,12 @@ public class SabnzbdController(ILogger<SabnzbdController> logger, Sabnzbd sabnzb
         Int32? priority = Int32.TryParse(priorityStr, out var p) ? p : null;
 
         var result = await sabnzbd.AddUrl(url ?? "", category, priority);
-        return Ok(new SabnzbdResponse { Status = true, NzoIds = [result] });
+
+        return Ok(new SabnzbdResponse
+        {
+            Status = true,
+            NzoIds = [result]
+        });
     }
 
     [HttpPost]
@@ -109,12 +142,14 @@ public class SabnzbdController(ILogger<SabnzbdController> logger, Sabnzbd sabnzb
     public async Task<ActionResult> AddFile()
     {
         logger.LogDebug("Sabnzbd mode: addfile");
+
         if (!Request.HasFormContentType)
         {
             return BadRequest("Expected multipart/form-data");
         }
 
         var file = Request.Form.Files.FirstOrDefault();
+
         if (file == null)
         {
             return BadRequest("No file uploaded");
@@ -127,8 +162,12 @@ public class SabnzbdController(ILogger<SabnzbdController> logger, Sabnzbd sabnzb
         using var ms = new MemoryStream();
         await file.CopyToAsync(ms);
         var result = await sabnzbd.AddFile(ms.ToArray(), file.FileName, category, priority);
-        
-        return Ok(new SabnzbdResponse { Status = true, NzoIds = [result] });
+
+        return Ok(new SabnzbdResponse
+        {
+            Status = true,
+            NzoIds = [result]
+        });
     }
 
     [HttpGet]
@@ -136,16 +175,23 @@ public class SabnzbdController(ILogger<SabnzbdController> logger, Sabnzbd sabnzb
     public async Task<ActionResult> FullStatus()
     {
         logger.LogDebug("Sabnzbd mode: fullstatus");
-        return Ok(new SabnzbdResponse { Version = "4.4.0", Queue = await sabnzbd.GetQueue() });
+
+        return Ok(new SabnzbdResponse
+        {
+            Version = "4.4.0",
+            Queue = await sabnzbd.GetQueue()
+        });
     }
 
     private String? GetParam(String name)
     {
         var value = Request.Query[name].ToString();
+
         if (String.IsNullOrWhiteSpace(value) && Request.HasFormContentType)
         {
             value = Request.Form[name].ToString();
         }
+
         return value;
     }
 }

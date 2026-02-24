@@ -8,17 +8,17 @@ namespace RdtClient.Service.Test.Services;
 
 public class QBittorrentTest
 {
-    private readonly Mock<ILogger<QBittorrent>> _loggerMock;
-    private readonly Mock<Torrents> _torrentsMock;
     private readonly Mock<Authentication> _authenticationMock;
+    private readonly Mock<ILogger<QBittorrent>> _loggerMock;
     private readonly QBittorrent _qBittorrent;
+    private readonly Mock<Torrents> _torrentsMock;
 
     public QBittorrentTest()
     {
         _loggerMock = new();
         _torrentsMock = new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
         _authenticationMock = new(null!, null!, null!);
-        
+
         _qBittorrent = new(_loggerMock.Object, null!, _authenticationMock.Object, _torrentsMock.Object, null!);
     }
 
@@ -54,13 +54,14 @@ public class QBittorrentTest
         Assert.Equal("hash1", result[0].Hash);
         Assert.Equal("Torrent 1", result[0].Name);
     }
-    
+
     [Fact]
     public async Task TorrentInfo_ShouldReport100Percent_WhenDownloadIsComplete()
     {
         // Arrange
         var downloadId = Guid.NewGuid();
         var torrentId = Guid.NewGuid();
+
         var allTorrents = new List<Torrent>
         {
             new()
@@ -72,12 +73,17 @@ public class QBittorrentTest
                 Type = DownloadType.Torrent,
                 Downloads = new List<Download>
                 {
-                    new() { DownloadId = downloadId, TorrentId = torrentId }
+                    new()
+                    {
+                        DownloadId = downloadId,
+                        TorrentId = torrentId
+                    }
                 }
             }
         };
 
         _torrentsMock.Setup(m => m.Get()).ReturnsAsync(allTorrents);
+
         // Local download is also 100%
         _torrentsMock.Setup(m => m.GetDownloadStats(downloadId)).Returns((0, 1000, 1000));
 
@@ -95,6 +101,7 @@ public class QBittorrentTest
         // Arrange
         var downloadId = Guid.NewGuid();
         var torrentId = Guid.NewGuid();
+
         var allTorrents = new List<Torrent>
         {
             new()
@@ -106,12 +113,17 @@ public class QBittorrentTest
                 Type = DownloadType.Torrent,
                 Downloads = new List<Download>
                 {
-                    new() { DownloadId = downloadId, TorrentId = torrentId }
+                    new()
+                    {
+                        DownloadId = downloadId,
+                        TorrentId = torrentId
+                    }
                 }
             }
         };
 
         _torrentsMock.Setup(m => m.Get()).ReturnsAsync(allTorrents);
+
         // Local download is 80%
         _torrentsMock.Setup(m => m.GetDownloadStats(downloadId)).Returns((0, 1000, 800));
 
@@ -120,6 +132,7 @@ public class QBittorrentTest
 
         // Assert
         Assert.Single(result);
+
         // Current behavior is (1.0 + 0.8) / 2 = 0.9
         Assert.Equal(0.9f, result[0].Progress);
     }

@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.IO.Abstractions;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -10,8 +11,8 @@ using MonoTorrent;
 using RdtClient.Data.Data;
 using RdtClient.Data.Enums;
 using RdtClient.Data.Models.Data;
-using RdtClient.Data.Models.Internal;
 using RdtClient.Data.Models.DebridClient;
+using RdtClient.Data.Models.Internal;
 using RdtClient.Service.BackgroundServices;
 using RdtClient.Service.Helpers;
 using RdtClient.Service.Services.DebridClients;
@@ -40,6 +41,8 @@ public class Torrents(
         ReferenceHandler = ReferenceHandler.IgnoreCycles
     };
 
+    private static readonly SemaphoreSlim TorrentResetLock = new(1, 1);
+
     private IDebridClient DebridClient
     {
         get
@@ -55,8 +58,6 @@ public class Torrents(
             };
         }
     }
-
-    private static readonly SemaphoreSlim TorrentResetLock = new(1, 1);
 
     public virtual (Int64 Speed, Int64 BytesTotal, Int64 BytesDone) GetDownloadStats(Guid downloadId)
     {
@@ -99,18 +100,20 @@ public class Torrents(
     public virtual async Task<Torrent> AddNzbLinkToDebridQueue(String nzbLink, Torrent torrent)
     {
         torrent.RdStatus = TorrentStatus.Queued;
+
         try
         {
             var uri = new Uri(nzbLink);
             var lastSegment = uri.Segments.LastOrDefault()?.TrimEnd('/');
             torrent.RdName = !String.IsNullOrWhiteSpace(lastSegment) ? lastSegment : "Unknown NZB";
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             logger.LogError(ex, "{ex.Message}, trying to parse {nzbLink}", ex.Message, nzbLink);
-            throw new ($"{ex.Message}, trying to parse {nzbLink}");
+
+            throw new($"{ex.Message}, trying to parse {nzbLink}");
         }
-        
+
         var nzbHash = ComputeMd5Hash(nzbLink);
         var nzbNewTorrent = await AddQueued(nzbHash, nzbLink, false, DownloadType.Nzb, torrent);
         Log($"Adding {nzbLink} with hash {nzbHash} (nzb link) to queue");
@@ -124,14 +127,17 @@ public class Torrents(
     {
         torrent.RdName = fileName ?? "Unknown NZB";
         torrent.RdStatus = TorrentStatus.Queued;
+
         try
         {
             using var stream = new MemoryStream(bytes);
+
             var settings = new XmlReaderSettings
             {
                 DtdProcessing = DtdProcessing.Ignore,
                 XmlResolver = null
             };
+
             using var reader = XmlReader.Create(stream, settings);
             var doc = XDocument.Load(reader);
             var nzbNamespace = doc.Root?.GetDefaultNamespace() ?? XNamespace.None;
@@ -139,7 +145,8 @@ public class Torrents(
             var title = doc.Root?
                            .Elements(nzbNamespace + "head")
                            .Elements(nzbNamespace + "meta")
-                           .FirstOrDefault(x => x.Attribute("type")?.Value == "name")?
+                           .FirstOrDefault(x => x.Attribute("type")?.Value == "name")
+                           ?
                            .Value;
 
             if (String.IsNullOrWhiteSpace(title))
@@ -147,7 +154,8 @@ public class Torrents(
                 title = doc.Root?
                            .Elements(nzbNamespace + "head")
                            .Elements(nzbNamespace + "meta")
-                           .FirstOrDefault(x => x.Attribute("type")?.Value == "title")?
+                           .FirstOrDefault(x => x.Attribute("type")?.Value == "title")
+                           ?
                            .Value;
             }
 
@@ -156,9 +164,10 @@ public class Torrents(
                 torrent.RdName = title.Trim();
             }
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             logger.LogError(ex, "{ex.Message}, trying to parse NZB file contents", ex.Message);
+
             throw new($"{ex.Message}, trying to parse NZB file contents");
         }
 
@@ -649,7 +658,8 @@ public class Torrents(
                     {
                         Category = Settings.Get.Provider.Default.Category,
                         DownloadClient = Settings.Get.DownloadClient.Client,
-                        DownloadAction = Settings.Get.Provider.Default.OnlyDownloadAvailableFiles ? TorrentDownloadAction.DownloadAvailableFiles : TorrentDownloadAction.DownloadAll,
+                        DownloadAction =
+                            Settings.Get.Provider.Default.OnlyDownloadAvailableFiles ? TorrentDownloadAction.DownloadAvailableFiles : TorrentDownloadAction.DownloadAll,
                         HostDownloadAction = Settings.Get.Provider.Default.HostDownloadAction,
                         FinishedActionDelay = Settings.Get.Provider.Default.FinishedActionDelay,
                         FinishedAction = Settings.Get.Provider.Default.FinishedAction,
@@ -1056,24 +1066,27 @@ public class Torrents(
 
     private static String ComputeSha1Hash(String input)
     {
-        using var sha1 = System.Security.Cryptography.SHA1.Create();
+        using var sha1 = SHA1.Create();
         var bytes = Encoding.UTF8.GetBytes(input);
         var hashBytes = sha1.ComputeHash(bytes);
+
         return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
     }
 
     private static String ComputeMd5Hash(String input)
     {
-        using var md5 = System.Security.Cryptography.MD5.Create();
+        using var md5 = MD5.Create();
         var bytes = Encoding.UTF8.GetBytes(input);
         var hashBytes = md5.ComputeHash(bytes);
+
         return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
     }
 
     private static String ComputeMd5HashFromBytes(Byte[] bytes)
     {
-        using var md5 = System.Security.Cryptography.MD5.Create();
+        using var md5 = MD5.Create();
         var hashBytes = md5.ComputeHash(bytes);
+
         return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
     }
 }

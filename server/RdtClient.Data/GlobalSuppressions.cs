@@ -5,4 +5,4 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-[assembly: SuppressMessage("Style", "IDE0305:Simplify collection initialization", Justification = "Code style", Scope = "NamespaceAndDescendants", Target = "N:RdtClient.Web")]
+[assembly: SuppressMessage("Style", "IDE0305:Simplify collection initialization", Justification = "Code style", Scope = "NamespaceAndDescendants", Target = "N:RdtClient.Data")]

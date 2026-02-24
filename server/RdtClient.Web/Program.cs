@@ -5,9 +5,9 @@ using Microsoft.Extensions.Hosting.WindowsServices;
 using RdtClient.Data.Data;
 using RdtClient.Data.Models.Internal;
 using RdtClient.Service;
+using RdtClient.Service.Helpers;
 using RdtClient.Service.Middleware;
 using RdtClient.Service.Services;
-using RdtClient.Service.Helpers;
 using Serilog;
 using Serilog.Debugging;
 using Serilog.Events;
@@ -74,8 +74,16 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
        });
 
 builder.Services.AddAuthorizationBuilder()
-       .AddPolicy("AuthSetting", policyCorrectUser => { policyCorrectUser.Requirements.Add(new AuthSettingRequirement()); })
-       .AddPolicy("Sabnzbd", policyCorrectUser => { policyCorrectUser.Requirements.Add(new SabnzbdRequirement()); });
+       .AddPolicy("AuthSetting",
+                  policyCorrectUser =>
+                  {
+                      policyCorrectUser.Requirements.Add(new AuthSettingRequirement());
+                  })
+       .AddPolicy("Sabnzbd",
+                  policyCorrectUser =>
+                  {
+                      policyCorrectUser.Requirements.Add(new SabnzbdRequirement());
+                  });
 
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
        {

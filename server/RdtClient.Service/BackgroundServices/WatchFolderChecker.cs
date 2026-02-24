@@ -29,11 +29,13 @@ public class WatchFolderChecker(ILogger<WatchFolderChecker> logger, IServiceProv
             try
             {
                 var nextCheck = _prevCheck.AddSeconds(Math.Max(Settings.Get.Watch.Interval, 10));
+
                 if (DateTime.Now < nextCheck)
                 {
                     var delay = nextCheck - DateTime.Now;
                     await Task.Delay(delay, stoppingToken);
                 }
+
                 _prevCheck = DateTime.Now;
 
                 if (String.IsNullOrWhiteSpace(Settings.Get.Watch.Path))
@@ -53,7 +55,6 @@ public class WatchFolderChecker(ILogger<WatchFolderChecker> logger, IServiceProv
                 {
                     errorStorePath = Settings.Get.Watch.ErrorPath;
                 }
-
 
                 var torrentFiles = Directory.GetFiles(Settings.Get.Watch.Path, "*.*", SearchOption.TopDirectoryOnly);
 

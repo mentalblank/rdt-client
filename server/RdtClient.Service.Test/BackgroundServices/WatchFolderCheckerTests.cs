@@ -1,22 +1,23 @@
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RdtClient.Data.Data;
 using RdtClient.Data.Models.Data;
+using RdtClient.Data.Models.Internal;
 using RdtClient.Service.BackgroundServices;
 using RdtClient.Service.Services;
-using System.Reflection;
 
 namespace RdtClient.Service.Test.BackgroundServices;
 
 public class WatchFolderCheckerTests : IDisposable
 {
     private readonly Mock<ILogger<WatchFolderChecker>> _loggerMock;
+    private readonly Mock<IServiceProvider> _scopeServiceProviderMock;
     private readonly Mock<IServiceProvider> _serviceProviderMock;
     private readonly Mock<IServiceScope> _serviceScopeMock;
-    private readonly Mock<IServiceProvider> _scopeServiceProviderMock;
-    private readonly Mock<Torrents> _torrentsServiceMock;
     private readonly String _testPath;
+    private readonly Mock<Torrents> _torrentsServiceMock;
 
     public WatchFolderCheckerTests()
     {
@@ -63,7 +64,7 @@ public class WatchFolderCheckerTests : IDisposable
 
     private static void ResetSettings()
     {
-        var settings = new Data.Models.Internal.DbSettings
+        var settings = new DbSettings
         {
             Watch = new()
             {
@@ -104,13 +105,20 @@ public class WatchFolderCheckerTests : IDisposable
         var task = checker.StartAsync(cts.Token);
         await Task.Delay(500); // Give it some time to process
         await cts.CancelAsync();
-        try { await task; } catch (OperationCanceledException) { }
+
+        try
+        {
+            await task;
+        }
+        catch (OperationCanceledException)
+        {
+        }
 
         // Assert
-        _torrentsServiceMock.Verify(x => x.AddFileToDebridQueue(
-            It.Is<Byte[]>(b => b.SequenceEqual(content)),
-            It.IsAny<Torrent>()), Times.AtLeastOnce);
-        
+        _torrentsServiceMock.Verify(x => x.AddFileToDebridQueue(It.Is<Byte[]>(b => b.AsEnumerable().SequenceEqual(content)),
+                                                                It.IsAny<Torrent>()),
+                                    Times.AtLeastOnce);
+
         Assert.False(File.Exists(filePath));
         Assert.True(File.Exists(Path.Combine(_testPath, "processed", "test.torrent")));
     }
@@ -136,13 +144,20 @@ public class WatchFolderCheckerTests : IDisposable
         var task = checker.StartAsync(cts.Token);
         await Task.Delay(500);
         await cts.CancelAsync();
-        try { await task; } catch (OperationCanceledException) { }
+
+        try
+        {
+            await task;
+        }
+        catch (OperationCanceledException)
+        {
+        }
 
         // Assert
-        _torrentsServiceMock.Verify(x => x.AddMagnetToDebridQueue(
-            content,
-            It.IsAny<Torrent>()), Times.AtLeastOnce);
-        
+        _torrentsServiceMock.Verify(x => x.AddMagnetToDebridQueue(content,
+                                                                  It.IsAny<Torrent>()),
+                                    Times.AtLeastOnce);
+
         Assert.False(File.Exists(filePath));
         Assert.True(File.Exists(Path.Combine(_testPath, "processed", "test.magnet")));
     }
@@ -168,14 +183,21 @@ public class WatchFolderCheckerTests : IDisposable
         var task = checker.StartAsync(cts.Token);
         await Task.Delay(500);
         await cts.CancelAsync();
-        try { await task; } catch (OperationCanceledException) { }
+
+        try
+        {
+            await task;
+        }
+        catch (OperationCanceledException)
+        {
+        }
 
         // Assert
-        _torrentsServiceMock.Verify(x => x.AddNzbFileToDebridQueue(
-            It.Is<Byte[]>(b => b.SequenceEqual(content)),
-            "test.nzb",
-            It.IsAny<Torrent>()), Times.AtLeastOnce);
-        
+        _torrentsServiceMock.Verify(x => x.AddNzbFileToDebridQueue(It.Is<Byte[]>(b => b.AsEnumerable().SequenceEqual(content)),
+                                                                   "test.nzb",
+                                                                   It.IsAny<Torrent>()),
+                                    Times.AtLeastOnce);
+
         Assert.False(File.Exists(filePath));
         Assert.True(File.Exists(Path.Combine(_testPath, "processed", "test.nzb")));
     }
@@ -196,18 +218,28 @@ public class WatchFolderCheckerTests : IDisposable
         var task = checker.StartAsync(cts.Token);
         await Task.Delay(500);
         await cts.CancelAsync();
-        try { await task; } catch (OperationCanceledException) { }
+
+        try
+        {
+            await task;
+        }
+        catch (OperationCanceledException)
+        {
+        }
 
         // Assert
         _torrentsServiceMock.Verify(x => x.AddFileToDebridQueue(It.IsAny<Byte[]>(), It.IsAny<Torrent>()), Times.Never);
         _torrentsServiceMock.Verify(x => x.AddMagnetToDebridQueue(It.IsAny<String>(), It.IsAny<Torrent>()), Times.Never);
         _torrentsServiceMock.Verify(x => x.AddNzbFileToDebridQueue(It.IsAny<Byte[]>(), It.IsAny<String>(), It.IsAny<Torrent>()), Times.Never);
-        
+
         Assert.True(File.Exists(filePath));
     }
 
     private class MockScopeFactory(IServiceScope scope) : IServiceScopeFactory
     {
-        public IServiceScope CreateScope() => scope;
+        public IServiceScope CreateScope()
+        {
+            return scope;
+        }
     }
 }

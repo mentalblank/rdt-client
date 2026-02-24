@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Moq;
+using RdtClient.Data.Data;
 using RdtClient.Data.Enums;
 using RdtClient.Data.Models.Data;
 using RdtClient.Data.Models.Internal;
@@ -9,9 +10,13 @@ namespace RdtClient.Service.Test.Services;
 
 public class SabnzbdTest
 {
+    private readonly AppSettings _appSettings = new()
+    {
+        Port = 6500
+    };
+
     private readonly Mock<ILogger<Sabnzbd>> _loggerMock = new();
     private readonly Mock<Torrents> _torrentsMock;
-    private readonly AppSettings _appSettings = new() { Port = 6500 };
 
     public SabnzbdTest()
     {
@@ -34,7 +39,10 @@ public class SabnzbdTest
                 Downloads = new List<Download>
                 {
                     new()
-                        { BytesTotal = 1000, BytesDone = 500 }
+                    {
+                        BytesTotal = 1000,
+                        BytesDone = 500
+                    }
                 }
             }
         };
@@ -52,6 +60,7 @@ public class SabnzbdTest
         Assert.Single(result.Slots);
         Assert.Equal("hash1", result.Slots[0].NzoId);
         Assert.Equal("Name 1", result.Slots[0].Filename);
+
         // (50% debrid + 50% download) / 2 = 50%
         Assert.Equal("50", result.Slots[0].Percentage);
     }
@@ -71,7 +80,10 @@ public class SabnzbdTest
                 Downloads = new List<Download>
                 {
                     new()
-                        { BytesTotal = 1000, BytesDone = 0 }
+                    {
+                        BytesTotal = 1000,
+                        BytesDone = 0
+                    }
                 }
             }
         };
@@ -94,6 +106,7 @@ public class SabnzbdTest
         // Arrange
         var now = DateTimeOffset.UtcNow;
         var added = now.AddMinutes(-10);
+
         var torrentList = new List<Torrent>
         {
             new()
@@ -113,6 +126,7 @@ public class SabnzbdTest
                 }
             }
         };
+
         // Overall progress = (1.0 + 0.0) / 2 = 0.5
         // Elapsed = 10 minutes
         // Total estimated = 10 / 0.5 = 20 minutes
@@ -130,7 +144,7 @@ public class SabnzbdTest
         var timeLeftParts = result.Slots[0].TimeLeft.Split(':');
         var hours = Int32.Parse(timeLeftParts[0]);
         var minutes = Int32.Parse(timeLeftParts[1]);
-        
+
         Assert.Equal(0, hours);
         Assert.InRange(minutes, 9, 11);
     }
@@ -142,6 +156,7 @@ public class SabnzbdTest
         var now = DateTimeOffset.UtcNow;
         var added = now.AddMinutes(-20);
         var retry = now.AddMinutes(-10);
+
         var torrentList = new List<Torrent>
         {
             new()
@@ -162,6 +177,7 @@ public class SabnzbdTest
                 }
             }
         };
+
         // Later of Added and Retry is Retry (-10 mins)
         // Overall progress = (1.0 + 0.0) / 2 = 0.5
         // Elapsed = 10 minutes
@@ -179,7 +195,7 @@ public class SabnzbdTest
         var timeLeftParts = result.Slots[0].TimeLeft.Split(':');
         var hours = Int32.Parse(timeLeftParts[0]);
         var minutes = Int32.Parse(timeLeftParts[1]);
-        
+
         Assert.Equal(0, hours);
         Assert.InRange(minutes, 9, 11);
     }
@@ -259,7 +275,7 @@ public class SabnzbdTest
     {
         // Arrange
         var savePath = @"C:\Downloads";
-        Data.Data.SettingData.Get.DownloadClient.MappedPath = savePath;
+        SettingData.Get.DownloadClient.MappedPath = savePath;
 
         var torrentList = new List<Torrent>
         {
@@ -292,7 +308,7 @@ public class SabnzbdTest
     {
         // Arrange
         var savePath = @"C:\Downloads";
-        Data.Data.SettingData.Get.DownloadClient.MappedPath = savePath;
+        SettingData.Get.DownloadClient.MappedPath = savePath;
 
         var torrentList = new List<Torrent>
         {
@@ -383,7 +399,7 @@ public class SabnzbdTest
 
         _torrentsMock.Setup(t => t.Get()).ReturnsAsync(torrentList);
 
-        Data.Data.SettingData.Get.General.Categories = "TV, Music, *";
+        SettingData.Get.General.Categories = "TV, Music, *";
 
         var sabnzbd = new Sabnzbd(_loggerMock.Object, _torrentsMock.Object, _appSettings);
 

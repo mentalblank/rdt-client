@@ -18,12 +18,14 @@ public class SabnzbdHandler(Authentication authentication, IHttpContextAccessor 
         if (context.User.Identity?.IsAuthenticated == true)
         {
             context.Succeed(requirement);
+
             return;
         }
 
         if (Settings.Get.General.AuthenticationType == AuthenticationType.None)
         {
             context.Succeed(requirement);
+
             return;
         }
 
@@ -34,6 +36,7 @@ public class SabnzbdHandler(Authentication authentication, IHttpContextAccessor 
             String? GetParam(String name)
             {
                 var value = request.Query[name].ToString();
+
                 if (String.IsNullOrWhiteSpace(value) && request.HasFormContentType)
                 {
                     value = request.Form[name].ToString();
@@ -48,20 +51,22 @@ public class SabnzbdHandler(Authentication authentication, IHttpContextAccessor 
             if (!String.IsNullOrWhiteSpace(maUsername) && !String.IsNullOrWhiteSpace(maPassword))
             {
                 var loginResult = await authentication.Login(maUsername, maPassword);
+
                 if (loginResult.Succeeded)
                 {
                     context.Succeed(requirement);
+
                     return;
                 }
 
                 // Invalid credentials provided
                 context.Fail();
+
                 return;
             }
 
             // Authentication required but missing credentials
             context.Fail();
-            return;
         }
     }
 }

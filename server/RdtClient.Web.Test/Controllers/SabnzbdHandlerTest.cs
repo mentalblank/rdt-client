@@ -1,6 +1,9 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Moq;
+using RdtClient.Data.Data;
 using RdtClient.Data.Enums;
 using RdtClient.Service.Middleware;
 using RdtClient.Service.Services;
@@ -10,22 +13,22 @@ namespace RdtClient.Web.Test.Controllers;
 public class SabnzbdHandlerTest
 {
     private readonly Mock<Authentication> _authenticationMock;
-    private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
     private readonly SabnzbdHandler _handler;
+    private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
 
     public SabnzbdHandlerTest()
     {
         _authenticationMock = new(null!, null!, null!);
         _httpContextAccessorMock = new();
         _handler = new(_authenticationMock.Object, _httpContextAccessorMock.Object);
-        Data.Data.SettingData.Get.General.AuthenticationType = AuthenticationType.UserNamePassword;
+        SettingData.Get.General.AuthenticationType = AuthenticationType.UserNamePassword;
     }
 
     [Fact]
     public async Task HandleAsync_AuthNone_Succeeds()
     {
         // Arrange
-        Data.Data.SettingData.Get.General.AuthenticationType = AuthenticationType.None;
+        SettingData.Get.General.AuthenticationType = AuthenticationType.None;
         var context = CreateContext();
 
         // Act
@@ -43,9 +46,9 @@ public class SabnzbdHandlerTest
         var httpContext = new DefaultHttpContext();
         httpContext.Request.QueryString = new("?ma_username=user&ma_password=pass");
         _httpContextAccessorMock.Setup(a => a.HttpContext).Returns(httpContext);
-        
+
         var context = CreateContext(httpContext);
-        _authenticationMock.Setup(a => a.Login("user", "pass")).ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
+        _authenticationMock.Setup(a => a.Login("user", "pass")).ReturnsAsync(SignInResult.Success);
 
         // Act
         await _handler.HandleAsync(context);
@@ -60,9 +63,9 @@ public class SabnzbdHandlerTest
         // Arrange
         Settings.Get.General.AuthenticationType = AuthenticationType.UserNamePassword;
         var httpContext = new DefaultHttpContext();
-        var claimsPrincipal = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity("TestAuth"));
+        var claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity("TestAuth"));
         httpContext.User = claimsPrincipal;
-        
+
         var context = CreateContext(httpContext);
 
         // Act
@@ -81,9 +84,9 @@ public class SabnzbdHandlerTest
         var httpContext = new DefaultHttpContext();
         httpContext.Request.QueryString = new("?ma_username=user&ma_password=wrong");
         _httpContextAccessorMock.Setup(a => a.HttpContext).Returns(httpContext);
-        
+
         var context = CreateContext(httpContext);
-        _authenticationMock.Setup(a => a.Login("user", "wrong")).ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Failed);
+        _authenticationMock.Setup(a => a.Login("user", "wrong")).ReturnsAsync(SignInResult.Failed);
 
         // Act
         await _handler.HandleAsync(context);
@@ -99,7 +102,7 @@ public class SabnzbdHandlerTest
         Settings.Get.General.AuthenticationType = AuthenticationType.UserNamePassword;
         var httpContext = new DefaultHttpContext();
         _httpContextAccessorMock.Setup(a => a.HttpContext).Returns(httpContext);
-        
+
         var context = CreateContext(httpContext);
 
         // Act
@@ -112,7 +115,8 @@ public class SabnzbdHandlerTest
     private AuthorizationHandlerContext CreateContext(HttpContext? httpContext = null)
     {
         var requirement = new SabnzbdRequirement();
-        var user = httpContext?.User ?? new System.Security.Claims.ClaimsPrincipal();
+        var user = httpContext?.User ?? new ClaimsPrincipal();
+
         return new([requirement], user, null);
     }
 }

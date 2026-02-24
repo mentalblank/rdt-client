@@ -224,6 +224,7 @@ public class QBittorrent(ILogger<QBittorrent> logger, Settings settings, Authent
             var bytesDone = (Int64)(bytesTotal * rdProgress);
 
             Double progress;
+
             if (torrent.Completed != null)
             {
                 progress = 1.0;
@@ -251,6 +252,7 @@ public class QBittorrent(ILogger<QBittorrent> logger, Settings settings, Authent
             }
 
             var remaining = TimeSpan.Zero;
+
             if (progress > 0 && progress < 1.0)
             {
                 var startTime = torrent.Retry > torrent.Added ? torrent.Retry.Value : torrent.Added;

@@ -1,8 +1,8 @@
 ﻿using RdtClient.Data.Enums;
 using RdtClient.Data.Models.Data;
 using RdtClient.Service.Helpers;
-using RdtClient.Service.Services.Downloaders;
 using RdtClient.Service.Services.DebridClients;
+using RdtClient.Service.Services.Downloaders;
 
 namespace RdtClient.Service.Services;
 

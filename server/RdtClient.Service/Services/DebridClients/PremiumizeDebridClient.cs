@@ -13,66 +13,6 @@ namespace RdtClient.Service.Services.DebridClients;
 
 public class PremiumizeDebridClient(ILogger<PremiumizeDebridClient> logger, IHttpClientFactory httpClientFactory, IDownloadableFileFilter fileFilter) : IDebridClient
 {
-    private PremiumizeNETClient GetClient()
-    {
-        try
-        {
-            var apiKey = Settings.Get.Provider.ApiKey;
-
-            if (String.IsNullOrWhiteSpace(apiKey))
-            {
-                throw new("Premiumize API Key not set in the settings");
-            }
-
-            var httpClient = httpClientFactory.CreateClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(10);
-
-            var premiumizeNetClient = new PremiumizeNETClient(apiKey, httpClient);
-
-            return premiumizeNetClient;
-        }
-        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
-        {
-            logger.LogError(ex, $"The connection to Premiumize has timed out: {ex.Message}");
-
-            throw;
-        }
-        catch (TaskCanceledException ex)
-        {
-            logger.LogError(ex, $"The connection to Premiumize has timed out: {ex.Message}");
-
-            throw; 
-        }
-    }
-
-    private static DebridClientTorrent Map(Transfer transfer)
-    {
-        return new()
-        {
-            Id = transfer.Id,
-            Filename = transfer.Name,
-            OriginalFilename = transfer.Name,
-            Hash = transfer.Src,
-            Bytes = 0,
-            OriginalBytes = 0,
-            Host = null,
-            Split = 0,
-            Progress = (Int64) ((transfer.Progress ?? 1.0) * 100.0),
-            Status = transfer.Status,
-            Message = transfer.Message,
-            StatusCode = 0,
-            Added = null,
-            Files = [],
-            Links =
-            [
-                transfer.FolderId
-            ],
-            Ended = null,
-            Speed = 0,
-            Seeders = 0
-        };
-    }
-
     public async Task<IList<DebridClientTorrent>> GetDownloads()
     {
         var results = await GetClient().Transfers.ListAsync();
@@ -107,7 +47,7 @@ public class PremiumizeDebridClient(ILogger<PremiumizeDebridClient> logger, IHtt
             return resultId;
         }
         catch (Exception ex) when (ex.Message.Contains("slow_down", StringComparison.OrdinalIgnoreCase) ||
-                           ex.Message.Contains("rate limit exceeded", StringComparison.OrdinalIgnoreCase))
+                                   ex.Message.Contains("rate limit exceeded", StringComparison.OrdinalIgnoreCase))
         {
             throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
         }
@@ -129,7 +69,7 @@ public class PremiumizeDebridClient(ILogger<PremiumizeDebridClient> logger, IHtt
             return resultId;
         }
         catch (Exception ex) when (ex.Message.Contains("slow_down", StringComparison.OrdinalIgnoreCase) ||
-                           ex.Message.Contains("rate limit exceeded", StringComparison.OrdinalIgnoreCase))
+                                   ex.Message.Contains("rate limit exceeded", StringComparison.OrdinalIgnoreCase))
         {
             throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
         }
@@ -279,6 +219,66 @@ public class PremiumizeDebridClient(ILogger<PremiumizeDebridClient> logger, IHtt
         Debug.Assert(download.FileName != null);
 
         return Task.FromResult(download.FileName);
+    }
+
+    private PremiumizeNETClient GetClient()
+    {
+        try
+        {
+            var apiKey = Settings.Get.Provider.ApiKey;
+
+            if (String.IsNullOrWhiteSpace(apiKey))
+            {
+                throw new("Premiumize API Key not set in the settings");
+            }
+
+            var httpClient = httpClientFactory.CreateClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(10);
+
+            var premiumizeNetClient = new PremiumizeNETClient(apiKey, httpClient);
+
+            return premiumizeNetClient;
+        }
+        catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+        {
+            logger.LogError(ex, $"The connection to Premiumize has timed out: {ex.Message}");
+
+            throw;
+        }
+        catch (TaskCanceledException ex)
+        {
+            logger.LogError(ex, $"The connection to Premiumize has timed out: {ex.Message}");
+
+            throw;
+        }
+    }
+
+    private static DebridClientTorrent Map(Transfer transfer)
+    {
+        return new()
+        {
+            Id = transfer.Id,
+            Filename = transfer.Name,
+            OriginalFilename = transfer.Name,
+            Hash = transfer.Src,
+            Bytes = 0,
+            OriginalBytes = 0,
+            Host = null,
+            Split = 0,
+            Progress = (Int64)((transfer.Progress ?? 1.0) * 100.0),
+            Status = transfer.Status,
+            Message = transfer.Message,
+            StatusCode = 0,
+            Added = null,
+            Files = [],
+            Links =
+            [
+                transfer.FolderId
+            ],
+            Ended = null,
+            Speed = 0,
+            Seeders = 0
+        };
     }
 
     private async Task<DebridClientTorrent> GetInfo(String id)

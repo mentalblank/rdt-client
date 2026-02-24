@@ -3,32 +3,36 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using RdtClient.Data.Data;
+using RdtClient.Data.Enums;
 using RdtClient.Data.Models.Sabnzbd;
 using RdtClient.Service.Services;
 using RdtClient.Web.Controllers;
+using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
 namespace RdtClient.Web.Test.Controllers;
 
 public class SabnzbdControllerTest
 {
-    private readonly Mock<Sabnzbd> _sabnzbdMock;
     private readonly Mock<Authentication> _authenticationMock;
     private readonly SabnzbdController _controller;
+    private readonly Mock<Sabnzbd> _sabnzbdMock;
 
     public SabnzbdControllerTest()
     {
-        Data.Data.SettingData.Get.General.AuthenticationType = Data.Enums.AuthenticationType.None;
-        Data.Data.SettingData.Get.Provider.ApiKey = "test-api-key";
+        SettingData.Get.General.AuthenticationType = AuthenticationType.None;
+        SettingData.Get.Provider.ApiKey = "test-api-key";
 
         var torrentsMock = new Mock<Torrents>(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
         var sabnzbdLoggerMock = new Mock<ILogger<Sabnzbd>>();
         _sabnzbdMock = new(sabnzbdLoggerMock.Object, torrentsMock.Object, null!);
         var loggerMock = new Mock<ILogger<SabnzbdController>>();
         _authenticationMock = new(null!, null!, null!);
-        
+
         _controller = new(loggerMock.Object, _sabnzbdMock.Object);
-        
+
         var httpContext = new DefaultHttpContext();
+
         _controller.ControllerContext = new()
         {
             HttpContext = httpContext
@@ -39,7 +43,11 @@ public class SabnzbdControllerTest
     public async Task GetQueue_ReturnsOk()
     {
         // Arrange
-        var queue = new SabnzbdQueue { NoOfSlots = 1 };
+        var queue = new SabnzbdQueue
+        {
+            NoOfSlots = 1
+        };
+
         _sabnzbdMock.Setup(s => s.GetQueue()).ReturnsAsync(queue);
 
         // Act
@@ -56,10 +64,15 @@ public class SabnzbdControllerTest
     public async Task GetQueue_Unauthorized_ReturnsOk_BecauseFilterIsSkippedInUnitTests()
     {
         // Arrange
-        Data.Data.SettingData.Get.General.AuthenticationType = Data.Enums.AuthenticationType.UserNamePassword;
-        var queue = new SabnzbdQueue { NoOfSlots = 1 };
+        SettingData.Get.General.AuthenticationType = AuthenticationType.UserNamePassword;
+
+        var queue = new SabnzbdQueue
+        {
+            NoOfSlots = 1
+        };
+
         _sabnzbdMock.Setup(s => s.GetQueue()).ReturnsAsync(queue);
-        
+
         // Act
         var result = await _controller.Queue();
 
@@ -73,14 +86,18 @@ public class SabnzbdControllerTest
     public async Task GetQueue_WithMaAuth_ReturnsOk()
     {
         // Arrange
-        Data.Data.SettingData.Get.General.AuthenticationType = Data.Enums.AuthenticationType.UserNamePassword;
+        SettingData.Get.General.AuthenticationType = AuthenticationType.UserNamePassword;
         var httpContext = new DefaultHttpContext();
         httpContext.Request.QueryString = new("?ma_username=user&ma_password=pass");
         _controller.ControllerContext.HttpContext = httpContext;
-        
-        _authenticationMock.Setup(a => a.Login("user", "pass")).ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
-        
-        var queue = new SabnzbdQueue { NoOfSlots = 1 };
+
+        _authenticationMock.Setup(a => a.Login("user", "pass")).ReturnsAsync(SignInResult.Success);
+
+        var queue = new SabnzbdQueue
+        {
+            NoOfSlots = 1
+        };
+
         _sabnzbdMock.Setup(s => s.GetQueue()).ReturnsAsync(queue);
 
         // Act
@@ -94,7 +111,11 @@ public class SabnzbdControllerTest
     public async Task GetHistory_ReturnsOk()
     {
         // Arrange
-        var history = new SabnzbdHistory { NoOfSlots = 1 };
+        var history = new SabnzbdHistory
+        {
+            NoOfSlots = 1
+        };
+
         _sabnzbdMock.Setup(s => s.GetHistory()).ReturnsAsync(history);
 
         // Act
@@ -125,7 +146,7 @@ public class SabnzbdControllerTest
     public void GetVersion_ReturnsOk()
     {
         // Arrange
-        Data.Data.SettingData.Get.General.AuthenticationType = Data.Enums.AuthenticationType.UserNamePassword;
+        SettingData.Get.General.AuthenticationType = AuthenticationType.UserNamePassword;
 
         // Act
         var result = _controller.Version();
@@ -140,8 +161,14 @@ public class SabnzbdControllerTest
     public void GetConfig_ReturnsOk()
     {
         // Arrange
-        var config = new SabnzbdConfig { Misc = new()
-            { Port = "6500" } };
+        var config = new SabnzbdConfig
+        {
+            Misc = new()
+            {
+                Port = "6500"
+            }
+        };
+
         _sabnzbdMock.Setup(s => s.GetConfig()).Returns(config);
 
         // Act
@@ -158,7 +185,12 @@ public class SabnzbdControllerTest
     public void GetCategories_ReturnsOk()
     {
         // Arrange
-        var categories = new List<String> { "*", "Default" };
+        var categories = new List<String>
+        {
+            "*",
+            "Default"
+        };
+
         _sabnzbdMock.Setup(s => s.GetCategories()).Returns(categories);
 
         // Act
@@ -200,10 +232,14 @@ public class SabnzbdControllerTest
         // Arrange
         var httpContext = new DefaultHttpContext();
         httpContext.Request.ContentType = "application/x-www-form-urlencoded";
+
         httpContext.Request.Form = new FormCollection(new()
         {
-            { "mode", "unknown_form" }
+            {
+                "mode", "unknown_form"
+            }
         });
+
         _controller.ControllerContext.HttpContext = httpContext;
 
         // Act
@@ -220,7 +256,7 @@ public class SabnzbdControllerTest
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Method = "POST";
         httpContext.Request.QueryString = new("?cat=radarr&priority=-100");
-        
+
         // Mocking multipart form data
         var fileMock = new Mock<IFormFile>();
         var content = "test content";
@@ -233,13 +269,19 @@ public class SabnzbdControllerTest
         fileMock.Setup(_ => _.OpenReadStream()).Returns(ms);
         fileMock.Setup(_ => _.FileName).Returns(fileName);
         fileMock.Setup(_ => _.Length).Returns(ms.Length);
+
         fileMock.Setup(_ => _.CopyToAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
                 .Callback<Stream, CancellationToken>((s, _) => ms.CopyTo(s))
                 .Returns(Task.CompletedTask);
 
         httpContext.Request.ContentType = "multipart/form-data; boundary=something";
-        httpContext.Request.Form = new FormCollection(new(), new FormFileCollection { fileMock.Object });
-        
+
+        httpContext.Request.Form = new FormCollection(new(),
+                                                      new FormFileCollection
+                                                      {
+                                                          fileMock.Object
+                                                      });
+
         _controller.ControllerContext.HttpContext = httpContext;
         _sabnzbdMock.Setup(s => s.AddFile(It.IsAny<Byte[]>(), fileName, "radarr", -100)).ReturnsAsync("nzo_id_123");
 

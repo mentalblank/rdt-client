@@ -9,24 +9,26 @@ using RdtClient.Data.Models.Internal;
 using RdtClient.Service.Services;
 using RdtClient.Service.Services.DebridClients;
 using TorBoxNET;
+using DownloadClient = RdtClient.Data.Enums.DownloadClient;
+using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace RdtClient.Service.Test.Services.TorrentClients;
 
 public class TorBoxDebridClientTest
 {
-    private readonly Mock<ILogger<TorBoxDebridClient>> _loggerMock;
-    private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
     private readonly Mock<IDownloadableFileFilter> _fileFilterMock;
+    private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
+    private readonly Mock<ILogger<TorBoxDebridClient>> _loggerMock;
 
     public TorBoxDebridClientTest()
     {
         _loggerMock = new();
         _httpClientFactoryMock = new();
         _fileFilterMock = new();
-        
+
         var httpClient = new HttpClient();
         _httpClientFactoryMock.Setup(m => m.CreateClient(It.IsAny<String>())).Returns(httpClient);
-        
+
         Settings.Get.Provider.ApiKey = "test-api-key";
         Settings.Get.Provider.Timeout = 100;
     }
@@ -37,11 +39,26 @@ public class TorBoxDebridClientTest
         // Arrange
         var torrents = new List<TorrentInfoResult>
         {
-            new() { Hash = "hash1", Name = "torrent1", Size = 1000, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            new()
+            {
+                Hash = "hash1",
+                Name = "torrent1",
+                Size = 1000,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
         };
+
         var nzbs = new List<UsenetInfoResult>
         {
-            new() { Hash = "hash2", Name = "nzb1", Size = 2000, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            new()
+            {
+                Hash = "hash2",
+                Name = "nzb1",
+                Size = 2000,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
         };
 
         var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object);
@@ -55,11 +72,11 @@ public class TorBoxDebridClientTest
 
         // Assert
         Assert.Equal(2, result.Count);
-        
+
         var torrentResult = result.FirstOrDefault(r => r.Id == "hash1");
         Assert.NotNull(torrentResult);
         Assert.Equal(DownloadType.Torrent, torrentResult.Type);
-        
+
         var nzbResult = result.FirstOrDefault(r => r.Id == "hash2");
         Assert.NotNull(nzbResult);
         Assert.Equal(DownloadType.Nzb, nzbResult.Type);
@@ -70,6 +87,7 @@ public class TorBoxDebridClientTest
     {
         // Arrange
         var hash = "test-hash";
+
         var availability = new Response<List<AvailableTorrent?>>
         {
             Data = new()
@@ -78,8 +96,16 @@ public class TorBoxDebridClientTest
                 {
                     Files = new()
                     {
-                        new() { Name = "file1.mkv", Size = 100 },
-                        new() { Name = "file2.txt", Size = 10 }
+                        new()
+                        {
+                            Name = "file1.mkv",
+                            Size = 100
+                        },
+                        new()
+                        {
+                            Name = "file2.txt",
+                            Size = 10
+                        }
                     }
                 }
             }
@@ -104,7 +130,12 @@ public class TorBoxDebridClientTest
     {
         // Arrange
         var hash = "test-hash";
-        var torrentAvailability = new Response<List<AvailableTorrent?>> { Data = new() };
+
+        var torrentAvailability = new Response<List<AvailableTorrent?>>
+        {
+            Data = new()
+        };
+
         var usenetAvailability = new Response<List<AvailableUsenet?>>
         {
             Data = new()
@@ -113,7 +144,11 @@ public class TorBoxDebridClientTest
                 {
                     Files = new()
                     {
-                        new() { Name = "file1.nzb", Size = 200 }
+                        new()
+                        {
+                            Name = "file1.nzb",
+                            Size = 200
+                        }
                     }
                 }
             }
@@ -137,8 +172,16 @@ public class TorBoxDebridClientTest
     {
         // Arrange
         var hash = "test-hash";
-        var torrentAvailability = new Response<List<AvailableTorrent?>> { Data = new() };
-        var usenetAvailability = new Response<List<AvailableUsenet?>> { Data = new() };
+
+        var torrentAvailability = new Response<List<AvailableTorrent?>>
+        {
+            Data = new()
+        };
+
+        var usenetAvailability = new Response<List<AvailableUsenet?>>
+        {
+            Data = new()
+        };
 
         var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object);
         clientMock.Protected().Setup<Task<Response<List<AvailableTorrent?>>>>("GetTorrentAvailability", hash).ReturnsAsync(torrentAvailability);
@@ -164,7 +207,7 @@ public class TorBoxDebridClientTest
         var torrentsApiMock = new Mock<ITorrentsApi>();
         var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object);
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Torrents).Returns(torrentsApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
 
@@ -188,7 +231,7 @@ public class TorBoxDebridClientTest
         var usenetApiMock = new Mock<IUsenetApi>();
         var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object);
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Usenet).Returns(usenetApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
 
@@ -208,17 +251,21 @@ public class TorBoxDebridClientTest
             RdId = "torrent-id",
             Type = DownloadType.Torrent
         };
+
         var link = "https://torbox.app/d/123/456";
 
         var torrentsApiMock = new Mock<ITorrentsApi>();
         var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object);
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Torrents).Returns(torrentsApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         torrentsApiMock.Setup(m => m.RequestDownloadAsync(123, 456, false, It.IsAny<CancellationToken>()))
-                       .ReturnsAsync(new Response<String> { Data = "https://unrestricted-link" });
+                       .ReturnsAsync(new Response<String>
+                       {
+                           Data = "https://unrestricted-link"
+                       });
 
         // Act
         var result = await clientMock.Object.Unrestrict(torrent, link);
@@ -237,17 +284,21 @@ public class TorBoxDebridClientTest
             RdId = "nzb-id",
             Type = DownloadType.Nzb
         };
+
         var link = "https://torbox.app/d/123/456";
 
         var usenetApiMock = new Mock<IUsenetApi>();
         var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object);
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Usenet).Returns(usenetApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         usenetApiMock.Setup(m => m.RequestDownloadAsync(123, 456, false, It.IsAny<CancellationToken>()))
-                     .ReturnsAsync(new Response<String> { Data = "https://unrestricted-link-nzb" });
+                     .ReturnsAsync(new Response<String>
+                     {
+                         Data = "https://unrestricted-link-nzb"
+                     });
 
         // Act
         var result = await clientMock.Object.Unrestrict(torrent, link);
@@ -261,17 +312,32 @@ public class TorBoxDebridClientTest
     public async Task AddNzbFile_CallsUsenetAddFileAsyncWithName()
     {
         // Arrange
-        var bytes = new Byte[] { 1, 2, 3 };
+        var bytes = new Byte[]
+        {
+            1, 2, 3
+        };
+
         var name = "test-nzb";
         var usenetApiMock = new Mock<IUsenetApi>();
-        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object) { CallBase = true };
+
+        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object)
+        {
+            CallBase = true
+        };
+
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Usenet).Returns(usenetApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         usenetApiMock.Setup(m => m.AddFileAsync(bytes, It.IsAny<Int32>(), name, It.IsAny<String?>(), It.IsAny<Boolean>(), It.IsAny<CancellationToken>()))
-                     .ReturnsAsync(new Response<UsenetAddResult> { Data = new UsenetAddResult { Hash = "new-hash" } });
+                     .ReturnsAsync(new Response<UsenetAddResult>
+                     {
+                         Data = new()
+                         {
+                             Hash = "new-hash"
+                         }
+                     });
 
         // Act
         var result = await clientMock.Object.AddNzbFile(bytes, name);
@@ -280,15 +346,27 @@ public class TorBoxDebridClientTest
         Assert.Equal("new-hash", result);
         usenetApiMock.Verify(m => m.AddFileAsync(bytes, It.IsAny<Int32>(), name, It.IsAny<String?>(), It.IsAny<Boolean>(), It.IsAny<CancellationToken>()), Times.Once);
     }
+
     [Fact]
     public async Task GetDownloadInfos_GeneratesCorrectFakedlLinks_ForIndividualFiles()
     {
         // Arrange
         var files = new List<DebridClientFile>
         {
-            new() { Id = 1, Path = "file1.mkv", Bytes = 1000 },
-            new() { Id = 2, Path = "file2.mkv", Bytes = 2000 }
+            new()
+            {
+                Id = 1,
+                Path = "file1.mkv",
+                Bytes = 1000
+            },
+            new()
+            {
+                Id = 2,
+                Path = "file2.mkv",
+                Bytes = 2000
+            }
         };
+
         var torrent = new Torrent
         {
             Hash = "test-hash",
@@ -298,12 +376,15 @@ public class TorBoxDebridClientTest
         var torrentsApiMock = new Mock<ITorrentsApi>();
         var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object);
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Torrents).Returns(torrentsApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         torrentsApiMock.Setup(m => m.GetHashInfoAsync("test-hash", true, It.IsAny<CancellationToken>()))
-                       .ReturnsAsync(new TorrentInfoResult { Id = 12345 });
+                       .ReturnsAsync(new TorrentInfoResult
+                       {
+                           Id = 12345
+                       });
 
         _fileFilterMock.Setup(m => m.IsDownloadable(torrent, It.IsAny<String>(), It.IsAny<Int64>())).Returns(true);
 
@@ -325,14 +406,20 @@ public class TorBoxDebridClientTest
         // Arrange
         var files = new List<DebridClientFile>
         {
-            new() { Id = 1, Path = "file1.mkv", Bytes = 1000 }
+            new()
+            {
+                Id = 1,
+                Path = "file1.mkv",
+                Bytes = 1000
+            }
         };
+
         var torrent = new Torrent
         {
             Hash = "test-hash",
             RdName = "TestTorrent",
             RdFiles = JsonConvert.SerializeObject(files),
-            DownloadClient = Data.Enums.DownloadClient.Aria2c
+            DownloadClient = DownloadClient.Aria2c
         };
 
         Settings.Get.Provider.PreferZippedDownloads = true;
@@ -340,12 +427,15 @@ public class TorBoxDebridClientTest
         var torrentsApiMock = new Mock<ITorrentsApi>();
         var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object);
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Torrents).Returns(torrentsApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         torrentsApiMock.Setup(m => m.GetHashInfoAsync("test-hash", true, It.IsAny<CancellationToken>()))
-                       .ReturnsAsync(new TorrentInfoResult { Id = 12345 });
+                       .ReturnsAsync(new TorrentInfoResult
+                       {
+                           Id = 12345
+                       });
 
         _fileFilterMock.Setup(m => m.IsDownloadable(torrent, It.IsAny<String>(), It.IsAny<Int64>())).Returns(true);
 
@@ -367,17 +457,21 @@ public class TorBoxDebridClientTest
         {
             Type = DownloadType.Torrent
         };
+
         var link = "https://torbox.app/fakedl/12345/6789";
 
         var torrentsApiMock = new Mock<ITorrentsApi>();
         var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object);
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Torrents).Returns(torrentsApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         torrentsApiMock.Setup(m => m.RequestDownloadAsync(12345, 6789, false, It.IsAny<CancellationToken>()))
-                       .ReturnsAsync(new Response<String> { Data = "https://real-download-link" });
+                       .ReturnsAsync(new Response<String>
+                       {
+                           Data = "https://real-download-link"
+                       });
 
         // Act
         var result = await clientMock.Object.Unrestrict(torrent, link);
@@ -395,17 +489,21 @@ public class TorBoxDebridClientTest
         {
             Type = DownloadType.Torrent
         };
+
         var link = "https://torbox.app/fakedl/12345/zip";
 
         var torrentsApiMock = new Mock<ITorrentsApi>();
         var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object);
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Torrents).Returns(torrentsApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         torrentsApiMock.Setup(m => m.RequestDownloadAsync(12345, 0, true, It.IsAny<CancellationToken>()))
-                       .ReturnsAsync(new Response<String> { Data = "https://real-zip-download-link" });
+                       .ReturnsAsync(new Response<String>
+                       {
+                           Data = "https://real-zip-download-link"
+                       });
 
         // Act
         var result = await clientMock.Object.Unrestrict(torrent, link);
@@ -414,14 +512,21 @@ public class TorBoxDebridClientTest
         Assert.Equal("https://real-zip-download-link", result);
         torrentsApiMock.Verify(m => m.RequestDownloadAsync(12345, 0, true, It.IsAny<CancellationToken>()), Times.Once);
     }
+
     [Fact]
     public async Task GetDownloadInfos_GeneratesCorrectFakedlLinks_ForUsenet()
     {
         // Arrange
         var files = new List<DebridClientFile>
         {
-            new() { Id = 1, Path = "file1.nzb", Bytes = 1000 }
+            new()
+            {
+                Id = 1,
+                Path = "file1.nzb",
+                Bytes = 1000
+            }
         };
+
         var torrent = new Torrent
         {
             Type = DownloadType.Nzb,
@@ -432,12 +537,19 @@ public class TorBoxDebridClientTest
         var usenetApiMock = new Mock<IUsenetApi>();
         var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object);
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Usenet).Returns(usenetApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         usenetApiMock.Setup(m => m.GetCurrentAsync(true, It.IsAny<CancellationToken>()))
-                     .ReturnsAsync(new List<UsenetInfoResult> { new() { Hash = "nzb-hash", Id = 98765 } });
+                     .ReturnsAsync(new List<UsenetInfoResult>
+                     {
+                         new()
+                         {
+                             Hash = "nzb-hash",
+                             Id = 98765
+                         }
+                     });
 
         _fileFilterMock.Setup(m => m.IsDownloadable(torrent, It.IsAny<String>(), It.IsAny<Int64>())).Returns(true);
 
@@ -460,17 +572,21 @@ public class TorBoxDebridClientTest
         {
             Type = DownloadType.Nzb
         };
+
         var link = "https://torbox.app/fakedl/98765/4321";
 
         var usenetApiMock = new Mock<IUsenetApi>();
         var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object);
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Usenet).Returns(usenetApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         usenetApiMock.Setup(m => m.RequestDownloadAsync(98765, 4321, false, It.IsAny<CancellationToken>()))
-                     .ReturnsAsync(new Response<String> { Data = "https://real-usenet-link" });
+                     .ReturnsAsync(new Response<String>
+                     {
+                         Data = "https://real-usenet-link"
+                     });
 
         // Act
         var result = await clientMock.Object.Unrestrict(torrent, link);
@@ -479,6 +595,7 @@ public class TorBoxDebridClientTest
         Assert.Equal("https://real-usenet-link", result);
         usenetApiMock.Verify(m => m.RequestDownloadAsync(98765, 4321, false, It.IsAny<CancellationToken>()), Times.Once);
     }
+
     [Fact]
     public async Task AddTorrentMagnet_ThrowsRateLimitException_OnActiveLimit()
     {
@@ -486,19 +603,33 @@ public class TorBoxDebridClientTest
         var magnetLink = "magnet:?xt=urn:btih:test";
         var torrentsApiMock = new Mock<ITorrentsApi>();
         var userApiMock = new Mock<IUserApi>();
-        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object) { CallBase = true };
+
+        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object)
+        {
+            CallBase = true
+        };
+
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Torrents).Returns(torrentsApiMock.Object);
         torBoxClientMock.Setup(m => m.User).Returns(userApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         userApiMock.Setup(m => m.GetAsync(true, It.IsAny<CancellationToken>()))
-                   .ReturnsAsync(new Response<User> { Data = new User { Settings = new UserSettings { SeedTorrents = 5 } } });
+                   .ReturnsAsync(new Response<User>
+                   {
+                       Data = new()
+                       {
+                           Settings = new()
+                           {
+                               SeedTorrents = 5
+                           }
+                       }
+                   });
 
         torrentsApiMock.Setup(m => m.AddMagnetAsync(magnetLink, 5, It.IsAny<Boolean>(), It.IsAny<String?>(), false, It.IsAny<CancellationToken>()))
                        .ThrowsAsync(new TorBoxException("active_limit", "Active limit reached"));
-        
+
         // Act & Assert
         await Assert.ThrowsAsync<RateLimitException>(() => clientMock.Object.AddTorrentMagnet(magnetLink));
         torrentsApiMock.Verify(m => m.AddMagnetAsync(magnetLink, 5, It.IsAny<Boolean>(), It.IsAny<String?>(), false, It.IsAny<CancellationToken>()), Times.Once);
@@ -512,18 +643,32 @@ public class TorBoxDebridClientTest
         var magnetLink = "magnet:?xt=urn:btih:test";
         var torrentsApiMock = new Mock<ITorrentsApi>();
         var userApiMock = new Mock<IUserApi>();
-        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object) { CallBase = true };
+
+        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object)
+        {
+            CallBase = true
+        };
+
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Torrents).Returns(torrentsApiMock.Object);
         torBoxClientMock.Setup(m => m.User).Returns(userApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         userApiMock.Setup(m => m.GetAsync(true, It.IsAny<CancellationToken>()))
-                   .ReturnsAsync(new Response<User> { Data = new User { Settings = new UserSettings { SeedTorrents = 5 } } });
+                   .ReturnsAsync(new Response<User>
+                   {
+                       Data = new()
+                       {
+                           Settings = new()
+                           {
+                               SeedTorrents = 5
+                           }
+                       }
+                   });
 
         torrentsApiMock.Setup(m => m.AddMagnetAsync(magnetLink, 5, It.IsAny<Boolean>(), It.IsAny<String?>(), false, It.IsAny<CancellationToken>()))
-                       .ThrowsAsync(new Exception("slow_down"));
+                       .ThrowsAsync(new("slow_down"));
 
         // Act & Assert
         await Assert.ThrowsAsync<RateLimitException>(() => clientMock.Object.AddTorrentMagnet(magnetLink));
@@ -536,15 +681,29 @@ public class TorBoxDebridClientTest
         var magnetLink = "magnet:?xt=urn:btih:test";
         var torrentsApiMock = new Mock<ITorrentsApi>();
         var userApiMock = new Mock<IUserApi>();
-        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object) { CallBase = true };
+
+        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object)
+        {
+            CallBase = true
+        };
+
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Torrents).Returns(torrentsApiMock.Object);
         torBoxClientMock.Setup(m => m.User).Returns(userApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         userApiMock.Setup(m => m.GetAsync(true, It.IsAny<CancellationToken>()))
-                   .ReturnsAsync(new Response<User> { Data = new User { Settings = new UserSettings { SeedTorrents = 5 } } });
+                   .ReturnsAsync(new Response<User>
+                   {
+                       Data = new()
+                       {
+                           Settings = new()
+                           {
+                               SeedTorrents = 5
+                           }
+                       }
+                   });
 
         torrentsApiMock.Setup(m => m.AddMagnetAsync(magnetLink, 5, It.IsAny<Boolean>(), It.IsAny<String?>(), false, It.IsAny<CancellationToken>()))
                        .ThrowsAsync(new RateLimitException("TorBox rate limit exceeded", TimeSpan.FromMinutes(60)));
@@ -561,18 +720,32 @@ public class TorBoxDebridClientTest
         var magnetLink = "magnet:?xt=urn:btih:test";
         var torrentsApiMock = new Mock<ITorrentsApi>();
         var userApiMock = new Mock<IUserApi>();
-        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object) { CallBase = true };
+
+        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object)
+        {
+            CallBase = true
+        };
+
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Torrents).Returns(torrentsApiMock.Object);
         torBoxClientMock.Setup(m => m.User).Returns(userApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         userApiMock.Setup(m => m.GetAsync(true, It.IsAny<CancellationToken>()))
-                   .ReturnsAsync(new Response<User> { Data = new User { Settings = new UserSettings { SeedTorrents = 5 } } });
+                   .ReturnsAsync(new Response<User>
+                   {
+                       Data = new()
+                       {
+                           Settings = new()
+                           {
+                               SeedTorrents = 5
+                           }
+                       }
+                   });
 
         torrentsApiMock.Setup(m => m.AddMagnetAsync(magnetLink, 5, It.IsAny<Boolean>(), It.IsAny<String?>(), false, It.IsAny<CancellationToken>()))
-                       .ThrowsAsync(new Exception("Wrapped", new RateLimitException("TorBox rate limit exceeded", TimeSpan.FromMinutes(60))));
+                       .ThrowsAsync(new("Wrapped", new RateLimitException("TorBox rate limit exceeded", TimeSpan.FromMinutes(60))));
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<RateLimitException>(() => clientMock.Object.AddTorrentMagnet(magnetLink));
@@ -583,18 +756,36 @@ public class TorBoxDebridClientTest
     public async Task AddTorrentFile_ThrowsRateLimitException_OnActiveLimit()
     {
         // Arrange
-        var bytes = new Byte[] { 1, 2, 3 };
+        var bytes = new Byte[]
+        {
+            1, 2, 3
+        };
+
         var torrentsApiMock = new Mock<ITorrentsApi>();
         var userApiMock = new Mock<IUserApi>();
-        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object) { CallBase = true };
+
+        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object)
+        {
+            CallBase = true
+        };
+
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Torrents).Returns(torrentsApiMock.Object);
         torBoxClientMock.Setup(m => m.User).Returns(userApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         userApiMock.Setup(m => m.GetAsync(true, It.IsAny<CancellationToken>()))
-                   .ReturnsAsync(new Response<User> { Data = new User { Settings = new UserSettings { SeedTorrents = 5 } } });
+                   .ReturnsAsync(new Response<User>
+                   {
+                       Data = new()
+                       {
+                           Settings = new()
+                           {
+                               SeedTorrents = 5
+                           }
+                       }
+                   });
 
         torrentsApiMock.Setup(m => m.AddFileAsync(bytes, 5, It.IsAny<Boolean>(), It.IsAny<String?>(), false, It.IsAny<CancellationToken>()))
                        .ThrowsAsync(new TorBoxException("active_limit", "Active limit reached"));
@@ -611,12 +802,17 @@ public class TorBoxDebridClientTest
         // Arrange
         var nzbLink = "https://example.com/test.nzb";
         var usenetApiMock = new Mock<IUsenetApi>();
-        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object) { CallBase = true };
+
+        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object)
+        {
+            CallBase = true
+        };
+
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Usenet).Returns(usenetApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         usenetApiMock.Setup(m => m.AddLinkAsync(nzbLink, It.IsAny<Int32>(), It.IsAny<String?>(), It.IsAny<String?>(), false, It.IsAny<CancellationToken>()))
                      .ThrowsAsync(new TorBoxException("active_limit", "Active limit reached"));
 
@@ -630,15 +826,24 @@ public class TorBoxDebridClientTest
     public async Task AddNzbFile_ThrowsRateLimitException_OnActiveLimit()
     {
         // Arrange
-        var bytes = new Byte[] { 1, 2, 3 };
+        var bytes = new Byte[]
+        {
+            1, 2, 3
+        };
+
         var name = "test.nzb";
         var usenetApiMock = new Mock<IUsenetApi>();
-        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object) { CallBase = true };
+
+        var clientMock = new Mock<TorBoxDebridClient>(_loggerMock.Object, _httpClientFactoryMock.Object, _fileFilterMock.Object)
+        {
+            CallBase = true
+        };
+
         var torBoxClientMock = new Mock<ITorBoxNetClient>();
-        
+
         torBoxClientMock.Setup(m => m.Usenet).Returns(usenetApiMock.Object);
         clientMock.Protected().Setup<ITorBoxNetClient>("GetClient").Returns(torBoxClientMock.Object);
-        
+
         usenetApiMock.Setup(m => m.AddFileAsync(bytes, It.IsAny<Int32>(), name, It.IsAny<String?>(), false, It.IsAny<CancellationToken>()))
                      .ThrowsAsync(new TorBoxException("active_limit", "Active limit reached"));
 
@@ -657,6 +862,7 @@ public class TorBoxDebridClientTest
             RdId = "test-rd-id",
             RdStatus = TorrentStatus.Downloading
         };
+
         var torrentClientTorrent = new DebridClientTorrent
         {
             Status = "failed (Aborted, cannot be completed - https://sabnzbd.org/not-complete)",
@@ -682,6 +888,7 @@ public class TorBoxDebridClientTest
             RdStatus = TorrentStatus.Downloading,
             RdName = "test-torrent"
         };
+
         var torrentClientTorrent = new DebridClientTorrent
         {
             Status = "some-unknown-status",
@@ -694,13 +901,11 @@ public class TorBoxDebridClientTest
         await clientMock.Object.UpdateData(torrent, torrentClientTorrent);
 
         // Assert
-        _loggerMock.Verify(
-            x => x.Log(
-                Microsoft.Extensions.Logging.LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("unmapped status") && v.ToString()!.Contains("some-unknown-status")),
-                It.IsAny<Exception>(),
-                It.Is<Func<It.IsAnyType, Exception?, String>>((v, t) => true)),
-            Times.Once);
+        _loggerMock.Verify(x => x.Log(LogLevel.Information,
+                                      It.IsAny<EventId>(),
+                                      It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("unmapped status") && v.ToString()!.Contains("some-unknown-status")),
+                                      It.IsAny<Exception>(),
+                                      It.Is<Func<It.IsAnyType, Exception?, String>>((v, t) => true)),
+                           Times.Once);
     }
 }
