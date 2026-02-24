@@ -9,7 +9,8 @@ namespace RdtClient.Data.Data;
 
 public class SettingData(DataContext dataContext, ILogger<SettingData> logger)
 {
-    public static DbSettings Get { get; } = new();
+    // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
+    public static DbSettings Get { get; private set; } = new();
 
     public static IList<SettingProperty> GetAll()
     {
