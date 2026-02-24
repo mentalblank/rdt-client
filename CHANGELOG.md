@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased
 
+## [2.0.124] - 2026-02-23
+### Added
+- Added /version/api for qBittorrent to support clients that still want to talk to the old API.
+- Improved rate limiting handling.
+
 ## [2.0.123] - 2026-02-21
 ### Changed
 - Reverted SharpCompress to 0.42.1 due to file locking issues.
