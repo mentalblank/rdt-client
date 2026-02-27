@@ -1,4 +1,5 @@
 ﻿using System.Web;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using RDNET;
@@ -173,6 +174,10 @@ public class RealDebridDebridClient(ILogger<RealDebridDebridClient> logger, IHtt
                 torrent.RdName = torrentClientTorrent.OriginalFilename;
             }
 
+            var trimRegex = Settings.Get.Integrations.Default.TrimRegex ?? "";
+            var rdNameExtStripped = Regex.Replace(torrent.RdName!, trimRegex, "");
+            torrent.RdName = rdNameExtStripped;
+
             if (torrentClientTorrent.Bytes > 0)
             {
                 torrent.RdSize = torrentClientTorrent.Bytes;
@@ -215,9 +220,9 @@ public class RealDebridDebridClient(ILogger<RealDebridDebridClient> logger, IHtt
         }
         catch (Exception ex)
         {
-            if (ex.Message == "Resource not found")
+            if (!String.IsNullOrEmpty(ex.Message))
             {
-                torrent.RdStatusRaw = "deleted";
+                torrent.RdStatusRaw = ex.Message;
             }
             else
             {
@@ -258,8 +263,7 @@ public class RealDebridDebridClient(ILogger<RealDebridDebridClient> logger, IHtt
             Log($"{link}", torrent);
         }
 
-        Log($"Torrent has {torrent.Files.Count(m => m.Selected)} selected files out of {torrent.Files.Count} files, found {downloadLinks.Count} links, torrent ended: {torrent.RdEnded}",
-            torrent);
+        Log($"Torrent has {torrent.Files.Count(m => m.Selected)} selected files out of {torrent.Files.Count} files, found {downloadLinks.Count} links, torrent ended: {torrent.RdEnded}", torrent);
 
         // Check if all the links are set that have been selected
         if (torrent.Files.Count(m => m.Selected) == downloadLinks.Count)

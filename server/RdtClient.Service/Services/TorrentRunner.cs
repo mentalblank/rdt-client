@@ -84,7 +84,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
     {
         if (String.IsNullOrWhiteSpace(Settings.Get.Provider.ApiKey))
         {
-            Log($"No RealDebridApiKey set in settings");
+            Log($"No debrid provider API key set in settings");
 
             return;
         }
@@ -664,7 +664,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                     Log($"Torrent reported an error: {torrent.RdStatusRaw}", torrent);
                     Log($"Torrent retry count {torrent.RetryCount}/{torrent.TorrentRetryAttempts}", torrent);
 
-                    Log($"Received provider error: {torrent.RdStatusRaw}, not processing further", torrent);
+                    Log($"Provider error: {torrent.RdStatusRaw}, not processing further", torrent);
 
                     await torrents.UpdateComplete(torrent.TorrentId, $"Debrid error: {torrent.RdStatusRaw}.", DateTimeOffset.UtcNow, true);
 
