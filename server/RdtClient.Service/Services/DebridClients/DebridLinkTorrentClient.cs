@@ -2,6 +2,7 @@
 using DebridLinkFrNET;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 using RdtClient.Data.Enums;
 using RdtClient.Data.Models.Data;
 using RdtClient.Data.Models.DebridClient;
@@ -128,6 +129,10 @@ public class DebridLinkClient(ILogger<DebridLinkClient> logger, IHttpClientFacto
             {
                 torrent.RdName = rdTorrent.OriginalFilename;
             }
+
+            var trimRegex = Settings.Get.Integrations.Default.TrimRegex ?? "";
+            var rdNameExtStripped = Regex.Replace(torrent.RdName!, trimRegex, "");
+            torrent.RdName = rdNameExtStripped;
 
             if (rdTorrent.Bytes > 0)
             {

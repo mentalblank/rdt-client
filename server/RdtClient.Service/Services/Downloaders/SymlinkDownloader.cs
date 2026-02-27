@@ -1,4 +1,5 @@
-﻿using RdtClient.Data.Enums;
+﻿using System.Diagnostics;
+using RdtClient.Data.Enums;
 using RdtClient.Service.Helpers;
 using Serilog;
 
@@ -121,6 +122,11 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
                     _logger.Debug($"Searching {rcloneMountPath} for {fileName} (attempt #{retryCount})...");
 
                     file = FindFile(rcloneMountPath, potentialFilePaths, fileName);
+
+                    if (!String.IsNullOrWhiteSpace(Settings.Get.General.RcloneRefreshCommand))
+                    {
+                        RefreshRclone();
+                    }
 
                     if (file == null && searchSubDirectories)
                     {
@@ -247,6 +253,28 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
             _logger.Error($"Error creating symbolic link from {sourcePath} to {symlinkPath}: {ex.Message}");
 
             return false;
+        }
+    }
+
+    private void RefreshRclone()
+    {
+        var processInfo = new ProcessStartInfo
+        {
+            FileName = "/usr/bin/rclone",
+            Arguments = Settings.Get.General.RcloneRefreshCommand,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false
+        };
+
+        using (var process = Process.Start(processInfo))
+        {
+            if (process != null)
+            {
+                process.WaitForExit();
+                var output = process.StandardOutput.ReadToEnd();
+                _logger.Debug($"rclone refresh output: {output}");
+            }
         }
     }
 }

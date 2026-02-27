@@ -230,7 +230,7 @@ public class TorrentsController(ILogger<TorrentsController> logger, Torrents tor
     {
         if (file == null || file.Length <= 0)
         {
-            return BadRequest("Invalid torrent file");
+            return BadRequest("Invalid file");
         }
 
         if (formData?.Torrent == null)
