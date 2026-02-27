@@ -5,7 +5,7 @@ using Serilog;
 
 namespace RdtClient.Service.Services.Downloaders;
 
-public class SymlinkDownloader(String uri, String destinationPath, String path, Provider? clientKind) : IDownloader
+public class SymlinkDownloader(String uri, String destinationPath, String path, Provider? clientKind, String rcloneMountPath) : IDownloader
 {
     private const Int32 MaxRetries = 10;
 
@@ -23,7 +23,7 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
         {
             var filePath = new FileInfo(path);
 
-            var rcloneMountPath = Settings.Get.DownloadClient.RcloneMountPath.TrimEnd('\\', '/');
+            rcloneMountPath = rcloneMountPath.TrimEnd('\\', '/');
             var searchSubDirectories = rcloneMountPath.EndsWith('*');
             rcloneMountPath = rcloneMountPath.TrimEnd('*').TrimEnd('\\', '/');
 

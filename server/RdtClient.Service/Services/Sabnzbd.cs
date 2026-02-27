@@ -147,7 +147,7 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
 
         var result = await torrents.AddNzbFileToDebridQueue(fileBytes, fileName, torrent);
 
-        return result.Hash;
+        return result.FirstOrDefault()?.Hash ?? "";
     }
 
     public virtual async Task<String> AddUrl(String url, String? category, Int32? priority)
@@ -174,7 +174,7 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
 
         var result = await torrents.AddNzbLinkToDebridQueue(url, torrent);
 
-        return result.Hash;
+        return result.FirstOrDefault()?.Hash ?? "";
     }
 
     public virtual async Task Delete(String hash)
