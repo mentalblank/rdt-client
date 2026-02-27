@@ -9,6 +9,7 @@ using RdtClient.Data.Models.Internal;
 using RdtClient.Service.Helpers;
 using File = AllDebridNET.File;
 using Torrent = RdtClient.Data.Models.Data.Torrent;
+using System.Text.RegularExpressions;
 
 namespace RdtClient.Service.Services.DebridClients;
 
@@ -198,6 +199,10 @@ public class AllDebridDebridClient(ILogger<AllDebridDebridClient> logger, IAllDe
                 torrent.RdName = torrentClientTorrent.Filename;
             }
 
+            var trimRegex = Settings.Get.Integrations.Default.TrimRegex ?? "";
+            var rdNameExtStripped = Regex.Replace(torrent.RdName!, trimRegex, "");
+            torrent.RdName = rdNameExtStripped;
+
             if (torrentClientTorrent.Bytes > 0)
             {
                 torrent.RdSize = torrentClientTorrent.Bytes;
@@ -322,10 +327,10 @@ public class AllDebridDebridClient(ILogger<AllDebridDebridClient> logger, IAllDe
         }
 
         return files.SelectMany(file =>
-                    {
-                        var currentPath = String.IsNullOrEmpty(parentPath)
-                            ? file.FolderOrFileName
-                            : Path.Combine(parentPath, file.FolderOrFileName);
+        {
+            var currentPath = String.IsNullOrEmpty(parentPath)
+                ? file.FolderOrFileName
+                : Path.Combine(parentPath, file.FolderOrFileName);
 
                         var result = new List<DebridClientFile>();
 

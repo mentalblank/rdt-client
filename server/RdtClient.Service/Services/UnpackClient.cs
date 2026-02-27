@@ -29,7 +29,12 @@ public class UnpackClient(Download download, String destinationPath)
 
             Task.Run(async delegate
             {
-                if (!_cancellationTokenSource.IsCancellationRequested)
+                if (_torrent.DownloadClient == Data.Enums.DownloadClient.Symlink && !Settings.Get.Provider.Default.DownloadCompressedSymlink)
+                {
+                    Error = $"Compressed file: {_torrent.RdName}";
+                    Finished = true;
+                }
+                else if (!_cancellationTokenSource.IsCancellationRequested)
                 {
                     await Unpack(filePath, _cancellationTokenSource.Token);
                 }
@@ -51,7 +56,7 @@ public class UnpackClient(Download download, String destinationPath)
     {
         try
         {
-            if (!File.Exists(filePath))
+            if (!File.Exists(filePath) || (_torrent.DownloadClient == Data.Enums.DownloadClient.Symlink && !Settings.Get.Provider.Default.DownloadCompressedSymlink))
             {
                 return;
             }
@@ -152,6 +157,8 @@ public class UnpackClient(Download download, String destinationPath)
         var fi = parts.Select(m => new FileInfo(m));
 
         var extension = Path.GetExtension(filePath);
+
+        if (_torrent.DownloadClient == Data.Enums.DownloadClient.Symlink && !Settings.Get.Provider.Default.DownloadCompressedSymlink) return;
 
         IArchive archive;
 

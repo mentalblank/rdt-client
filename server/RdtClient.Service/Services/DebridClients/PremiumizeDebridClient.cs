@@ -7,6 +7,7 @@ using RdtClient.Data.Models.Data;
 using RdtClient.Data.Models.DebridClient;
 using RdtClient.Data.Models.Internal;
 using RdtClient.Service.Helpers;
+using System.Text.RegularExpressions;
 using Torrent = RdtClient.Data.Models.Data.Torrent;
 
 namespace RdtClient.Service.Services.DebridClients;
@@ -123,6 +124,10 @@ public class PremiumizeDebridClient(ILogger<PremiumizeDebridClient> logger, IHtt
             {
                 torrent.RdName = torrentClientTorrent.Filename;
             }
+
+            var trimRegex = Settings.Get.Integrations.Default.TrimRegex ?? "";
+            var rdNameExtStripped = Regex.Replace(torrent.RdName!, trimRegex, "");
+            torrent.RdName = rdNameExtStripped;
 
             if (torrentClientTorrent.Bytes > 0)
             {
