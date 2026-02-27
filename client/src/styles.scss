@@ -1,2 +1,171 @@
-@forward "../node_modules/bulma/bulma.scss";
-@forward "../node_modules/@fortawesome/fontawesome-free/css/all.css";
+// Dark Mode Theme for RDTClient
+$dark-bg: #1a1a1a;
+$dark-card-bg: #2d2d2d;
+$dark-text: #e0e0e0;
+$dark-text-light: #b0b0b0;
+$dark-border: #444444;
+$dark-input-bg: #333333;
+$primary-color: #00d1b2;
+
+// Override Bulma variables BEFORE importing
+$body-background-color: $dark-bg;
+$text: $dark-text;
+$link: $primary-color;
+$title-color: $dark-text;
+$subtitle-color: $dark-text-light;
+$border: $dark-border;
+$input-background-color: $dark-input-bg;
+$input-color: $dark-text;
+$input-border-color: $dark-border;
+$table-background-color: $dark-bg;
+$table-color: $dark-text;
+$table-cell-border: 1px solid $dark-border;
+$table-head-cell-color: $dark-text;
+$box-background-color: $dark-card-bg;
+$box-color: $dark-text;
+$tabs-link-color: $dark-text-light;
+$tabs-link-active-color: $primary-color;
+$tabs-link-active-border-bottom-color: $primary-color;
+
+@import "../node_modules/bulma/bulma.scss";
+@import "../node_modules/@fortawesome/fontawesome-free/css/all.css";
+
+html, body {
+  background-color: $dark-bg !important;
+  color: $dark-text !important;
+}
+
+.box {
+  background-color: $dark-card-bg !important;
+  color: $dark-text !important;
+  border: 1px solid $dark-border !important;
+}
+
+.input, .textarea, .select select {
+  background-color: $dark-input-bg !important;
+  color: $dark-text !important;
+  border-color: $dark-border !important;
+
+  &:focus {
+    border-color: $primary-color !important;
+  }
+
+  &::placeholder {
+    color: #888 !important;
+  }
+}
+
+.label {
+  color: $dark-text !important;
+}
+
+.help {
+  color: $dark-text-light !important;
+}
+
+.table {
+  background-color: $dark-bg !important;
+  color: $dark-text !important;
+
+  thead {
+    th {
+      color: $dark-text !important;
+      border-bottom-color: $dark-border !important;
+    }
+  }
+
+  tr {
+    &:hover {
+      background-color: lighten($dark-bg, 5%) !important;
+    }
+  }
+
+  td {
+    border-bottom-color: $dark-border !important;
+    color: $dark-text !important;
+  }
+}
+
+.tabs {
+  li {
+    a {
+      color: $dark-text-light !important;
+      border-bottom-color: $dark-border !important;
+
+      &:hover {
+        color: $dark-text !important;
+        border-bottom-color: $dark-text !important;
+      }
+    }
+
+    &.is-active a {
+      color: $primary-color !important;
+      border-bottom-color: $primary-color !important;
+    }
+  }
+}
+
+.modal-card-head, .modal-card-foot {
+  background-color: $dark-card-bg !important;
+  border-color: $dark-border !important;
+}
+
+.modal-card-title {
+  color: $dark-text !important;
+}
+
+.modal-card-body {
+  background-color: $dark-bg !important;
+  color: $dark-text !important;
+}
+
+.navbar {
+  background-color: $dark-card-bg !important;
+  border-bottom: 1px solid $dark-border !important;
+
+  .navbar-item, .navbar-link {
+    color: $dark-text !important;
+
+    &:hover {
+      background-color: $dark-bg !important;
+      color: $primary-color !important;
+    }
+  }
+}
+
+.navbar-menu {
+    background-color: $dark-card-bg !important;
+}
+
+.dropdown-content {
+    background-color: $dark-card-bg !important;
+}
+
+.dropdown-item {
+    color: $dark-text !important;
+    &:hover {
+        background-color: $dark-bg !important;
+    }
+}
+
+// Custom styles for settings
+.dependent-setting {
+  border-left-color: $dark-border !important;
+}
+
+.checkbox {
+  background-color: lighten($dark-card-bg, 5%) !important;
+  color: $dark-text !important;
+  &:hover {
+      background-color: lighten($dark-card-bg, 8%) !important;
+  }
+}
+
+.notification.is-light {
+    background-color: #363636 !important;
+    color: #e0e0e0 !important;
+}
+
+.hero.is-dark {
+    background-color: $dark-bg !important;
+}

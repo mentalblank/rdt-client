@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-02-27
+### Added
+- Simultaneously enable and configure multiple debrid services (RealDebrid, TorBox, AllDebrid, etc.) with individual API keys.
+- Structured management interface for category-to-provider routing.
+- Explicit control over which provider to use for torrents without matching categories.
+- Integrated category selection dropdown when manually uploading torrents or magnet links.
+- Redesigned initial setup flow to support configuring multiple debrid accounts in one step.
+
+### Changed
+- Provider-specific fields are now grouped logically and only visible when the provider is enabled.
+- Backend routing refactored to prioritize enabled providers and respect user-defined fallbacks.
+- Extended credential redaction to automatically mask API keys for all supported debrid providers in system logs.
+- "Allow download of compressed files" is now disabled by default for the symlink downloader.
+
 ## [2.0.124] - 2026-02-23
 ### Added
 - Added /version/api for qBittorrent to support clients that still want to talk to the old API.

@@ -230,7 +230,7 @@ public class PremiumizeDebridClient(ILogger<PremiumizeDebridClient> logger, IHtt
     {
         try
         {
-            var apiKey = Settings.Get.Provider.ApiKey;
+            var apiKey = Settings.Get.Provider.PremiumizeApiKey;
 
             if (String.IsNullOrWhiteSpace(apiKey))
             {

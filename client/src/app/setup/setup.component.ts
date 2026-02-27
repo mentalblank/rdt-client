@@ -14,8 +14,13 @@ import { FormsModule } from '@angular/forms';
 export class SetupComponent {
   public userName: string;
   public password: string;
-  public provider = 0;
-  public token: string;
+  public providers: { id: number; name: string; token: string; enabled: boolean }[] = [
+    { id: 0, name: 'Real-Debrid', token: '', enabled: false },
+    { id: 1, name: 'AllDebrid', token: '', enabled: false },
+    { id: 2, name: 'Premiumize', token: '', enabled: false },
+    { id: 3, name: 'TorBox', token: '', enabled: false },
+    { id: 4, name: 'DebridLink', token: '', enabled: false },
+  ];
 
   public error: string;
   public working: boolean;
@@ -44,16 +49,33 @@ export class SetupComponent {
   }
 
   public setToken(): void {
-    this.authService.setupProvider(this.provider, this.token).subscribe({
-      next: () => {
+    const enabledProviders = this.providers.filter((p) => p.enabled && p.token);
+    if (enabledProviders.length === 0) {
+      this.error = 'Please enable at least one provider and provide an API token';
+      return;
+    }
+
+    this.working = true;
+    this.error = null;
+
+    const setupNextProvider = (index: number) => {
+      if (index >= enabledProviders.length) {
         this.step = 3;
         this.working = false;
-      },
-      error: (err: any) => {
-        this.working = false;
-        this.error = err.error;
-      },
-    });
+        return;
+      }
+
+      const p = enabledProviders[index];
+      this.authService.setupProvider(p.id, p.token).subscribe({
+        next: () => setupNextProvider(index + 1),
+        error: (err: any) => {
+          this.working = false;
+          this.error = err.error;
+        },
+      });
+    };
+
+    setupNextProvider(0);
   }
 
   public close(): void {

@@ -15,66 +15,100 @@
   <div [hidden]="activeTab !== i">
     <h3>{{ tab.description }}</h3>
     @for (setting of tab.settings; track setting.key) {
-      @if (setting.type === "Object") {
-        <h3 class="title is-3" style="margin-top: 1.2rem">{{ setting.displayName }}</h3>
+      @if (isSettingVisible(setting)) {
+        @if (setting.type === "Object") {
+          <h3 class="title is-3" style="margin-top: 1.2rem">{{ setting.displayName }}</h3>
+        }
+        <div class="field" [ngClass]="{ 'dependent-setting': isDependentSetting(setting) }" *ngIf="setting.key !== 'Provider:CategoryMapping'">
+          @if (setting.type !== "Boolean" && setting.type !== "Object") {
+            <label class="label">{{ setting.displayName }}</label>
+          }
+          @switch (setting.type) {
+            @case ("String") {
+              <div class="control">
+                <input class="input" type="text" [(ngModel)]="setting.value" />
+              </div>
+            }
+            @case ("Int32") {
+              <div class="control">
+                <input class="input" type="number" [(ngModel)]="setting.value" />
+              </div>
+            }
+            @case ("Boolean") {
+              <label class="checkbox">
+                <input type="checkbox" [(ngModel)]="setting.value" />
+                {{ setting.displayName }}
+              </label>
+            }
+            @case ("Enum") {
+              <div class="control select is-fullwidth">
+                <select [(ngModel)]="setting.value">
+                  @for (kvp of setting.enumValues | keyvalue; track kvp) {
+                    <option [value]="kvp.key">{{ kvp.value }}</option>
+                  }
+                </select>
+              </div>
+            }
+            @case ("Object") {}
+            @default {
+              <div class="control">Invalid setting type {{ setting.type }}</div>
+            }
+          }
+          <p class="help" [innerHtml]="setting.description | nl2br"></p>
+          @if (setting.key === "DownloadClient:Aria2cSecret") {
+            <button
+              class="button is-warning"
+              (click)="testAria2cConnection()"
+              [disabled]="saving"
+              [ngClass]="{ 'is-loading': saving }"
+            >
+              Test aria2 connection
+            </button>
+            @if (testAria2cConnectionError) {
+              <div class="notification is-danger is-light" style="margin-top: 1rem">
+                Could connect to Aria2 client<br />
+                {{ testAria2cConnectionError }}
+              </div>
+            }
+            @if (testAria2cConnectionSuccess) {
+              <div class="notification is-success is-light" style="margin-top: 1rem">
+                Found Aria2 client version {{ testAria2cConnectionSuccess }}
+              </div>
+            }
+          }
+        </div>
       }
-      <div class="field">
-        @if (setting.type !== "Boolean" && setting.type !== "Object") {
-          <label class="label">{{ setting.displayName }}</label>
-        }
-        @switch (setting.type) {
-          @case ("String") {
+    }
+    @if (tab.key === 'Provider') {
+      <div class="box category-mapping-box">
+        <h4 class="title is-4">Category Mapping</h4>
+        <p class="subtitle is-6">Map specific categories to different providers.</p>
+        
+        @for (mapping of categoryMappings; track $index) {
+          <div class="field has-addons">
+            <div class="control is-expanded">
+              <input class="input" type="text" [(ngModel)]="mapping.category" placeholder="Category (e.g. movies)" />
+            </div>
             <div class="control">
-              <input class="input" type="text" [(ngModel)]="setting.value" />
+              <div class="select">
+                <select [(ngModel)]="mapping.provider">
+                  @for (option of providerOptions; track option) {
+                    <option [value]="option">{{ option }}</option>
+                  }
+                </select>
+              </div>
             </div>
-          }
-          @case ("Int32") {
             <div class="control">
-              <input class="input" type="number" [(ngModel)]="setting.value" />
+              <button class="button is-danger" (click)="removeCategoryMapping($index)">
+                <i class="fas fa-trash"></i>
+              </button>
             </div>
-          }
-          @case ("Boolean") {
-            <label class="checkbox">
-              <input type="checkbox" [(ngModel)]="setting.value" />
-              {{ setting.displayName }}
-            </label>
-          }
-          @case ("Enum") {
-            <div class="control select is-fullwidth">
-              <select [(ngModel)]="setting.value">
-                @for (kvp of setting.enumValues | keyvalue; track kvp) {
-                  <option [value]="kvp.key">{{ kvp.value }}</option>
-                }
-              </select>
-            </div>
-          }
-          @case ("Object") {}
-          @default {
-            <div class="control">Invalid setting type {{ setting.type }}</div>
-          }
+          </div>
         }
-        <p class="help" [innerHtml]="setting.description | nl2br"></p>
-        @if (setting.key === "DownloadClient:Aria2cSecret") {
-          <button
-            class="button is-warning"
-            (click)="testAria2cConnection()"
-            [disabled]="saving"
-            [ngClass]="{ 'is-loading': saving }"
-          >
-            Test aria2 connection
-          </button>
-          @if (testAria2cConnectionError) {
-            <div class="notification is-danger is-light" style="margin-top: 1rem">
-              Could connect to Aria2 client<br />
-              {{ testAria2cConnectionError }}
-            </div>
-          }
-          @if (testAria2cConnectionSuccess) {
-            <div class="notification is-success is-light" style="margin-top: 1rem">
-              Found Aria2 client version {{ testAria2cConnectionSuccess }}
-            </div>
-          }
-        }
+        
+        <button class="button is-info is-small" (click)='addCategoryMapping()'>
+          <i class="fas fa-plus"></i>&nbsp;Add Mapping
+        </button>
       </div>
     }
   </div>
