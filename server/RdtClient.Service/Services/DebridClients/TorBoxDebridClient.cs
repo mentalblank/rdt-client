@@ -358,7 +358,7 @@ public class TorBoxDebridClient(ILogger<TorBoxDebridClient> logger, IHttpClientF
     {
         try
         {
-            var apiKey = Settings.Get.Provider.ApiKey;
+            var apiKey = Settings.Get.Provider.TorBoxApiKey;
 
             if (String.IsNullOrWhiteSpace(apiKey))
             {

@@ -185,8 +185,6 @@ public class QBittorrent(ILogger<QBittorrent> logger, Settings settings, Authent
 
     public async Task<IList<TorrentInfo>> TorrentInfo()
     {
-        var savePath = Settings.AppDefaultSavePath;
-
         var results = new List<TorrentInfo>();
 
         var allTorrents = await torrents.Get();
@@ -196,7 +194,7 @@ public class QBittorrent(ILogger<QBittorrent> logger, Settings settings, Authent
 
         foreach (var torrent in allTorrents)
         {
-            var downloadPath = savePath;
+            var downloadPath = Settings.GetAppDefaultSavePath(torrent.ClientKind);
 
             if (!String.IsNullOrWhiteSpace(torrent.Category))
             {
@@ -354,14 +352,14 @@ public class QBittorrent(ILogger<QBittorrent> logger, Settings settings, Authent
 
     public async Task<TorrentProperties?> TorrentProperties(String hash)
     {
-        var savePath = Settings.AppDefaultSavePath;
-
         var torrent = await torrents.GetByHash(hash);
 
         if (torrent == null || torrent.Type != DownloadType.Torrent)
         {
             return null;
         }
+
+        var savePath = Settings.GetAppDefaultSavePath(torrent.ClientKind);
 
         if (!String.IsNullOrWhiteSpace(torrent.Category))
         {

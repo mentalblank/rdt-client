@@ -56,7 +56,13 @@
             {{ torrent.rdName }}
           </td>
           <td>
-            {{ torrent.category }}
+            <div class="tags">
+              @for (tag of torrent.category?.split(","); track tag) {
+                @if (tag.trim().length > 0) {
+                  <span class="tag is-info">{{ tag.trim() }}</span>
+                }
+              }
+            </div>
           </td>
           <td>
             {{ torrent.priority }}

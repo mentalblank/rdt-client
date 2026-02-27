@@ -29,6 +29,7 @@ public class TorrentDto
     public Int32 DeleteOnError { get; set; }
     public Int32 Lifetime { get; set; }
     public String? Error { get; set; }
+    public Provider? ClientKind { get; set; }
     public String? RdId { get; set; }
     public String? RdName { get; set; }
     public Int64? RdSize { get; set; }

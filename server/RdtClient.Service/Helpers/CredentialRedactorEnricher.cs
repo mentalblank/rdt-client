@@ -11,11 +11,21 @@ public class CredentialRedactorEnricher : ILogEventEnricher
     {
         var sensitiveValues = new List<String>();
 
-        var apiKey = Settings.Get.Provider.ApiKey;
-
-        if (!String.IsNullOrWhiteSpace(apiKey) && apiKey.Length > 5)
+        var apiKeys = new List<String?>
         {
-            sensitiveValues.Add(apiKey);
+            Settings.Get.Provider.RealDebridApiKey,
+            Settings.Get.Provider.AllDebridApiKey,
+            Settings.Get.Provider.PremiumizeApiKey,
+            Settings.Get.Provider.DebridLinkApiKey,
+            Settings.Get.Provider.TorBoxApiKey
+        };
+
+        foreach (var apiKey in apiKeys)
+        {
+            if (!String.IsNullOrWhiteSpace(apiKey) && apiKey.Length > 5)
+            {
+                sensitiveValues.Add(apiKey);
+            }
         }
 
         var aria2Secret = Settings.Get.DownloadClient.Aria2cSecret;

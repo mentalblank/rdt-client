@@ -77,13 +77,30 @@ public class AuthController(Authentication authentication, Settings settings) : 
             return BadRequest();
         }
 
-        if (!String.IsNullOrEmpty(Settings.Get.Provider.ApiKey))
-        {
-            return StatusCode(401);
-        }
+        var provider = (Provider)request.Provider;
 
-        await settings.Update("Provider:Provider", request.Provider);
-        await settings.Update("Provider:ApiKey", request.Token);
+        var settingKey = provider switch
+        {
+            Provider.RealDebrid => "Provider:RealDebridApiKey",
+            Provider.AllDebrid => "Provider:AllDebridApiKey",
+            Provider.Premiumize => "Provider:PremiumizeApiKey",
+            Provider.DebridLink => "Provider:DebridLinkApiKey",
+            Provider.TorBox => "Provider:TorBoxApiKey",
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+        var enabledKey = provider switch
+        {
+            Provider.RealDebrid => "Provider:RealDebridEnabled",
+            Provider.AllDebrid => "Provider:AllDebridEnabled",
+            Provider.Premiumize => "Provider:PremiumizeEnabled",
+            Provider.DebridLink => "Provider:DebridLinkEnabled",
+            Provider.TorBox => "Provider:TorBoxEnabled",
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+        await settings.Update(settingKey, request.Token);
+        await settings.Update(enabledKey, true);
 
         return Ok();
     }

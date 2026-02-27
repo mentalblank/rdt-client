@@ -67,7 +67,11 @@ public class DownloadClient(Download download, Torrent torrent, String destinati
             {
                 Data.Enums.DownloadClient.Bezzad => new BezzadDownloader(download.Link, filePath),
                 Data.Enums.DownloadClient.Aria2c => new Aria2cDownloader(download.RemoteId, download.Link, filePath, downloadPath, category),
-                Data.Enums.DownloadClient.Symlink => new SymlinkDownloader(download.Link, filePath, downloadPath, torrent.ClientKind),
+                Data.Enums.DownloadClient.Symlink => new SymlinkDownloader(download.Link,
+                                                                          filePath,
+                                                                          downloadPath,
+                                                                          torrent.ClientKind,
+                                                                          GetRcloneMountPath(torrent.ClientKind)),
                 Data.Enums.DownloadClient.DownloadStation => await DownloadStationDownloader.Init(download.RemoteId, download.Link, filePath, downloadPath, category),
                 _ => throw new($"Unknown download client {Type}")
             };
@@ -107,6 +111,26 @@ public class DownloadClient(Download download, Torrent torrent, String destinati
 
             throw new($"An unexpected error occurred preparing download {download.Link} for torrent {torrent.RdName}: {ex.Message}");
         }
+    }
+
+    private static String GetRcloneMountPath(Provider? provider)
+    {
+        var path = provider switch
+        {
+            Provider.RealDebrid => Settings.Get.DownloadClient.RcloneMountPathRealDebrid,
+            Provider.AllDebrid => Settings.Get.DownloadClient.RcloneMountPathAllDebrid,
+            Provider.Premiumize => Settings.Get.DownloadClient.RcloneMountPathPremiumize,
+            Provider.DebridLink => Settings.Get.DownloadClient.RcloneMountPathDebridLink,
+            Provider.TorBox => Settings.Get.DownloadClient.RcloneMountPathTorBox,
+            _ => null
+        };
+
+        if (String.IsNullOrWhiteSpace(path))
+        {
+            path = Settings.Get.DownloadClient.RcloneMountPath;
+        }
+
+        return path;
     }
 
     public async Task Cancel()

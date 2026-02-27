@@ -39,14 +39,14 @@ public class TorrentData(DataContext dataContext) : ITorrentData
         return dbTorrent;
     }
 
-    public async Task<Torrent?> GetByHash(String hash)
+    public async Task<Torrent?> GetByHash(String hash, Provider? clientKind)
     {
         hash = hash.ToLower();
 
         var dbTorrent = await dataContext.Torrents
                                          .AsNoTracking()
                                          .Include(m => m.Downloads)
-                                         .FirstOrDefaultAsync(m => m.Hash == hash);
+                                         .FirstOrDefaultAsync(m => m.Hash == hash && m.ClientKind == clientKind);
 
         if (dbTorrent == null)
         {
@@ -67,7 +67,8 @@ public class TorrentData(DataContext dataContext) : ITorrentData
                                    Boolean isFile,
                                    DownloadType downloadType,
                                    DownloadClient downloadClient,
-                                   Torrent torrent)
+                                   Torrent torrent,
+                                   Provider? clientKind)
     {
         var newTorrent = new Torrent
         {
@@ -94,7 +95,8 @@ public class TorrentData(DataContext dataContext) : ITorrentData
             DeleteOnError = torrent.DeleteOnError,
             Lifetime = torrent.Lifetime,
             RdStatus = torrent.RdStatus,
-            RdName = torrent.RdName
+            RdName = torrent.RdName,
+            ClientKind = clientKind
         };
 
         await dataContext.Torrents.AddAsync(newTorrent);

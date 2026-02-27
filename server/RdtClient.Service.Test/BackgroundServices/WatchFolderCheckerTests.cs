@@ -99,7 +99,7 @@ public class WatchFolderCheckerTests : IDisposable
 
         _torrentsServiceMock
             .Setup(x => x.AddFileToDebridQueue(It.IsAny<Byte[]>(), It.IsAny<Torrent>()))
-            .ReturnsAsync(new Torrent());
+            .ReturnsAsync([new Torrent()]);
 
         // Act
         var task = checker.StartAsync(cts.Token);
@@ -138,7 +138,7 @@ public class WatchFolderCheckerTests : IDisposable
 
         _torrentsServiceMock
             .Setup(x => x.AddMagnetToDebridQueue(It.IsAny<String>(), It.IsAny<Torrent>()))
-            .ReturnsAsync(new Torrent());
+            .ReturnsAsync([new Torrent()]);
 
         // Act
         var task = checker.StartAsync(cts.Token);
@@ -177,7 +177,7 @@ public class WatchFolderCheckerTests : IDisposable
 
         _torrentsServiceMock
             .Setup(x => x.AddNzbFileToDebridQueue(It.IsAny<Byte[]>(), It.IsAny<String>(), It.IsAny<Torrent>()))
-            .ReturnsAsync(new Torrent());
+            .ReturnsAsync([new Torrent()]);
 
         // Act
         var task = checker.StartAsync(cts.Token);

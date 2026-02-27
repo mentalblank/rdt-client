@@ -350,13 +350,16 @@ public class TorrentsTest
 
         var bytes = Encoding.UTF8.GetBytes(nzbContent);
 
+        mocks.TorrentDataMock.Setup(t => t.GetByHash(It.IsAny<String>(), It.IsAny<Provider?>())).ReturnsAsync((Torrent)null!);
+
         mocks.TorrentDataMock.Setup(t => t.Add(It.IsAny<String>(),
                                                It.IsAny<String>(),
                                                It.IsAny<String>(),
                                                true,
                                                DownloadType.Nzb,
                                                It.IsAny<DownloadClient>(),
-                                               It.IsAny<Torrent>()))
+                                               It.IsAny<Torrent>(),
+                                               It.IsAny<Provider?>()))
              .ReturnsAsync(new Torrent());
 
         var torrents = new TorrentsService(mocks.TorrentsLoggerMock.Object,
@@ -381,7 +384,8 @@ public class TorrentsTest
                                                 true,
                                                 DownloadType.Nzb,
                                                 It.IsAny<DownloadClient>(),
-                                                It.IsAny<Torrent>()),
+                                                It.IsAny<Torrent>(),
+                                                It.IsAny<Provider?>()),
                                      Times.Once);
     }
 
@@ -398,13 +402,16 @@ public class TorrentsTest
 
         var link = "http://example.com/test.nzb";
 
+        mocks.TorrentDataMock.Setup(t => t.GetByHash(It.IsAny<String>(), It.IsAny<Provider?>())).ReturnsAsync((Torrent)null!);
+
         mocks.TorrentDataMock.Setup(t => t.Add(It.IsAny<String>(),
                                                It.IsAny<String>(),
                                                It.IsAny<String>(),
                                                false,
                                                DownloadType.Nzb,
                                                It.IsAny<DownloadClient>(),
-                                               It.IsAny<Torrent>()))
+                                               It.IsAny<Torrent>(),
+                                               It.IsAny<Provider?>()))
              .ReturnsAsync(new Torrent());
 
         var torrents = new TorrentsService(mocks.TorrentsLoggerMock.Object,
@@ -429,7 +436,8 @@ public class TorrentsTest
                                                 false,
                                                 DownloadType.Nzb,
                                                 It.IsAny<DownloadClient>(),
-                                                It.IsAny<Torrent>()),
+                                                It.IsAny<Torrent>(),
+                                                It.IsAny<Provider?>()),
                                      Times.Once);
     }
 }

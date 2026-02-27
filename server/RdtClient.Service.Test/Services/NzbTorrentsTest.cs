@@ -42,7 +42,7 @@ public class NzbTorrentsTest
             DownloadClient = DownloadClient.Bezzad
         };
 
-        _mocks.TorrentDataMock.Setup(t => t.GetByHash(It.IsAny<String>())).ReturnsAsync((Torrent)null!);
+        _mocks.TorrentDataMock.Setup(t => t.GetByHash(It.IsAny<String>(), It.IsAny<Provider?>())).ReturnsAsync((Torrent)null!);
 
         _mocks.TorrentDataMock.Setup(t => t.Add(null,
                                                 It.IsAny<String>(),
@@ -50,7 +50,8 @@ public class NzbTorrentsTest
                                                 false,
                                                 DownloadType.Nzb,
                                                 torrent.DownloadClient,
-                                                It.IsAny<Torrent>()))
+                                                It.IsAny<Torrent>(),
+                                                It.IsAny<Provider?>()))
               .ReturnsAsync(new Torrent
               {
                   Hash = "mockHash",
@@ -62,6 +63,7 @@ public class NzbTorrentsTest
 
         // Assert
         Assert.NotNull(result);
+        Assert.Single(result);
         Assert.Equal("test.nzb", torrent.RdName);
         Assert.Equal(TorrentStatus.Queued, torrent.RdStatus);
 
@@ -71,7 +73,8 @@ public class NzbTorrentsTest
                                                  false,
                                                  DownloadType.Nzb,
                                                  torrent.DownloadClient,
-                                                 torrent),
+                                                 torrent,
+                                                 It.IsAny<Provider?>()),
                                       Times.Once);
     }
 
@@ -100,7 +103,7 @@ public class NzbTorrentsTest
             DownloadClient = DownloadClient.Bezzad
         };
 
-        _mocks.TorrentDataMock.Setup(t => t.GetByHash(It.IsAny<String>())).ReturnsAsync((Torrent)null!);
+        _mocks.TorrentDataMock.Setup(t => t.GetByHash(It.IsAny<String>(), It.IsAny<Provider?>())).ReturnsAsync((Torrent)null!);
 
         _mocks.TorrentDataMock.Setup(t => t.Add(null,
                                                 It.IsAny<String>(),
@@ -108,7 +111,8 @@ public class NzbTorrentsTest
                                                 true,
                                                 DownloadType.Nzb,
                                                 torrent.DownloadClient,
-                                                It.IsAny<Torrent>()))
+                                                It.IsAny<Torrent>(),
+                                                It.IsAny<Provider?>()))
               .ReturnsAsync(new Torrent
               {
                   Hash = "mockHash",
@@ -120,6 +124,7 @@ public class NzbTorrentsTest
 
         // Assert
         Assert.NotNull(result);
+        Assert.Single(result);
         Assert.Equal("Test NZB Title", torrent.RdName);
         Assert.Equal(TorrentStatus.Queued, torrent.RdStatus);
 
@@ -129,7 +134,8 @@ public class NzbTorrentsTest
                                                  true,
                                                  DownloadType.Nzb,
                                                  torrent.DownloadClient,
-                                                 torrent),
+                                                 torrent,
+                                                 It.IsAny<Provider?>()),
                                       Times.Once);
     }
 

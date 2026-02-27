@@ -29,7 +29,7 @@ public class TorBoxDebridClientTest
         var httpClient = new HttpClient();
         _httpClientFactoryMock.Setup(m => m.CreateClient(It.IsAny<String>())).Returns(httpClient);
 
-        Settings.Get.Provider.ApiKey = "test-api-key";
+        Settings.Get.Provider.TorBoxApiKey = "test-api-key";
         Settings.Get.Provider.Timeout = 100;
     }
 

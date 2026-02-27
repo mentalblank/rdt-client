@@ -233,7 +233,7 @@ public class DebridLinkClient(ILogger<DebridLinkClient> logger, IHttpClientFacto
     {
         try
         {
-            var apiKey = Settings.Get.Provider.ApiKey;
+            var apiKey = Settings.Get.Provider.DebridLinkApiKey;
 
             if (String.IsNullOrWhiteSpace(apiKey))
             {

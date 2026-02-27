@@ -110,6 +110,46 @@ public class DbSettingsDownloadClient
     [Description("Path where files are downloaded to on your host (i.e. D:\\Downloads). This path is used for *arr to find your downloads.")]
     public String MappedPath { get; set; } = "/mnt/symlinks";
 
+    [DisplayName("Download path RealDebrid")]
+    [Description("Provider specific download path for RealDebrid. If empty, the default Download path will be used.")]
+    public String? DownloadPathRealDebrid { get; set; }
+
+    [DisplayName("Mapped path RealDebrid")]
+    [Description("Provider specific mapped path for RealDebrid. If empty, the default Mapped path will be used.")]
+    public String? MappedPathRealDebrid { get; set; }
+
+    [DisplayName("Download path AllDebrid")]
+    [Description("Provider specific download path for AllDebrid. If empty, the default Download path will be used.")]
+    public String? DownloadPathAllDebrid { get; set; }
+
+    [DisplayName("Mapped path AllDebrid")]
+    [Description("Provider specific mapped path for AllDebrid. If empty, the default Mapped path will be used.")]
+    public String? MappedPathAllDebrid { get; set; }
+
+    [DisplayName("Download path Premiumize")]
+    [Description("Provider specific download path for Premiumize. If empty, the default Download path will be used.")]
+    public String? DownloadPathPremiumize { get; set; }
+
+    [DisplayName("Mapped path Premiumize")]
+    [Description("Provider specific mapped path for Premiumize. If empty, the default Mapped path will be used.")]
+    public String? MappedPathPremiumize { get; set; }
+
+    [DisplayName("Download path DebridLink")]
+    [Description("Provider specific download path for DebridLink. If empty, the default Download path will be used.")]
+    public String? DownloadPathDebridLink { get; set; }
+
+    [DisplayName("Mapped path DebridLink")]
+    [Description("Provider specific mapped path for DebridLink. If empty, the default Mapped path will be used.")]
+    public String? MappedPathDebridLink { get; set; }
+
+    [DisplayName("Download path TorBox")]
+    [Description("Provider specific download path for TorBox. If empty, the default Download path will be used.")]
+    public String? DownloadPathTorBox { get; set; }
+
+    [DisplayName("Mapped path TorBox")]
+    [Description("Provider specific mapped path for TorBox. If empty, the default Mapped path will be used.")]
+    public String? MappedPathTorBox { get; set; }
+
     [DisplayName("Download speed (in MB/s) (only used for the Internal Downloader)")]
     [Description("Maximum download speed in Megabytes per second. When set to 0 unlimited speed is used.")]
     public Int32 MaxSpeed { get; set; } = 0;
@@ -151,6 +191,26 @@ http://127.0.0.1:6800/jsonrpc.")]
     [Description("Path where Rclone is mounted. Required for Symlink Downloader. Suffix this path with a * to search subdirectories too.")]
     public String RcloneMountPath { get; set; } = "/mnt/remote/realdebrid/torrents/*";
 
+    [DisplayName("Rclone mount path RealDebrid")]
+    [Description("Provider specific path for RealDebrid. If empty, the default Rclone mount path will be used.")]
+    public String? RcloneMountPathRealDebrid { get; set; }
+
+    [DisplayName("Rclone mount path AllDebrid")]
+    [Description("Provider specific path for AllDebrid. If empty, the default Rclone mount path will be used.")]
+    public String? RcloneMountPathAllDebrid { get; set; }
+
+    [DisplayName("Rclone mount path Premiumize")]
+    [Description("Provider specific path for Premiumize. If empty, the default Rclone mount path will be used.")]
+    public String? RcloneMountPathPremiumize { get; set; }
+
+    [DisplayName("Rclone mount path DebridLink")]
+    [Description("Provider specific path for DebridLink. If empty, the default Rclone mount path will be used.")]
+    public String? RcloneMountPathDebridLink { get; set; }
+
+    [DisplayName("Rclone mount path TorBox")]
+    [Description("Provider specific path for TorBox. If empty, the default Rclone mount path will be used.")]
+    public String? RcloneMountPathTorBox { get; set; }
+
     [DisplayName("Synology DownloadStation URL")]
     [Description("The URL to the Synology DownloadStation. A common URL is http://127.0.0.1:5000")]
     public String DownloadStationUrl { get; set; } = "http://127.0.0.1:5000";
@@ -182,28 +242,48 @@ http://127.0.0.1:6800/jsonrpc.")]
 
 public class DbSettingsProvider
 {
-    [DisplayName("Provider")]
-    [Description(@"The following 4 providers are supported:
-<a href=""https://real-debrid.com/"" target=""_blank"" rel=""noopener"">https://real-debrid.com</a>
-<a href=""https://alldebrid.com/"" target=""_blank"" rel=""noopener"">https://alldebrid.com</a>
-<a href=""https://www.premiumize.me/"" target=""_blank"" rel=""noopener"">https://www.premiumize.me/</a>
-<a href=""https://debrid-link.com/"" target=""_blank"" rel=""noopener"">https://debrid-link.com/</a>
-<a href=""https://torbox.app/"" target=""_blank"" rel=""noopener"">https://torbox.app/</a>
-At this point only 1 provider can be used at the time.")]
-    public Provider Provider { get; set; } = Provider.RealDebrid;
+    [DisplayName("RealDebrid Enabled")]
+    public Boolean RealDebridEnabled { get; set; } = false;
 
-    [DisplayName("API Key")]
-    [Description(@"You can find your API key here:
-<a href=""https://real-debrid.com/apitoken"" target=""_blank"" rel=""noopener"">https://real-debrid.com/apitoken</a>
-or
-<a href=""https://alldebrid.com/apikeys/"" target=""_blank"" rel=""noopener"">https://alldebrid.com/apikeys/</a>
-or
-<a href=""https://www.premiumize.me/account/"" target=""_blank"" rel=""noopener"">https://www.premiumize.me/account/</a>
-or
-<a href=""https://torbox.app/settings/"" target=""_blank"" rel=""noopener"">https://torbox.app/settings/</a>
-or
-<a href=""https://debrid-link.com/webapp/apikey"" target=""_blank"" rel=""noopener"">https://debrid-link.com/webapp/apikey</a>")]
-    public String ApiKey { get; set; } = "";
+    [DisplayName("RealDebrid API Key")]
+    [Description(@"You can find your API key here: <a href=""https://real-debrid.com/apitoken"" target=""_blank"" rel=""noopener"">https://real-debrid.com/apitoken</a>")]
+    public String RealDebridApiKey { get; set; } = "";
+
+    [DisplayName("AllDebrid Enabled")]
+    public Boolean AllDebridEnabled { get; set; } = false;
+
+    [DisplayName("AllDebrid API Key")]
+    [Description(@"You can find your API key here: <a href=""https://alldebrid.com/apikeys/"" target=""_blank"" rel=""noopener"">https://alldebrid.com/apikeys/</a>")]
+    public String AllDebridApiKey { get; set; } = "";
+
+    [DisplayName("Premiumize Enabled")]
+    public Boolean PremiumizeEnabled { get; set; } = false;
+
+    [DisplayName("Premiumize API Key")]
+    [Description(@"You can find your API key here: <a href=""https://www.premiumize.me/account/"" target=""_blank"" rel=""noopener"">https://www.premiumize.me/account/</a>")]
+    public String PremiumizeApiKey { get; set; } = "";
+
+    [DisplayName("Debrid-Link Enabled")]
+    public Boolean DebridLinkEnabled { get; set; } = false;
+
+    [DisplayName("Debrid-Link API Key")]
+    [Description(@"You can find your API key here: <a href=""https://debrid-link.com/webapp/apikey"" target=""_blank"" rel=""noopener"">https://debrid-link.com/webapp/apikey</a>")]
+    public String DebridLinkApiKey { get; set; } = "";
+
+    [DisplayName("TorBox Enabled")]
+    public Boolean TorBoxEnabled { get; set; } = false;
+
+    [DisplayName("TorBox API Key")]
+    [Description(@"You can find your API key here: <a href=""https://torbox.app/settings/"" target=""_blank"" rel=""noopener"">https://torbox.app/settings/</a>")]
+    public String TorBoxApiKey { get; set; } = "";
+
+    [DisplayName("Fallback Provider")]
+    [Description("This provider will be used when no category mapping matches or is found.")]
+    public Provider FallbackProvider { get; set; } = Provider.RealDebrid;
+
+    [DisplayName("Category mapping")]
+    [Description("Mapping of category to provider, separate multiple categories with a comma and separate the mapping with a colon. Use * for default provider. Example: movies:RealDebrid, tv:AllDebrid, *:RealDebrid. If a category is mapped to multiple providers, separated by a +, the torrent will be added to all of them. Example: both:RealDebrid+AllDebrid")]
+    public String? CategoryMapping { get; set; } = "*:RealDebrid";
 
     /// <summary>
     ///     API hostname to use <b>for Real Debrid only</b>
@@ -234,7 +314,7 @@ or
 
     [DisplayName("Prefer zipped downloads")]
     [Description("Torbox only. When selected, rdt-client will try to download the entire torrent as a .zip from TorBox and unpack it instead of downloading each file individually.")]
-    public Boolean PreferZippedDownloads { get; set; } = false;
+    public Boolean PreferZippedDownloads { get; set; } = true;
 
     [DisplayName("Auto Import Defaults")]
     public DbSettingsDefaultsWithCategory Default { get; set; } = new();
@@ -300,7 +380,7 @@ public class DbSettingsDefaults
 
     [DisplayName("[Symlink Only] Allow download of compressed files")]
     [Description("When selected and using the symlink downloader, it will allow the download of compressed files from your debrid provider.")]
-    public Boolean DownloadCompressedSymlink { get; set; } = true;
+    public Boolean DownloadCompressedSymlink { get; set; } = false;
 
     [DisplayName("Minimum file size to download")]
     [Description("Files that are smaller than this setting are skipped and not downloaded. When set to 0 all files are downloaded. When downloading from Radarr or Sonarr it's recommended to keep this setting at atleast a few MB to avoid the debrid provider having to re-download the torrent.")]

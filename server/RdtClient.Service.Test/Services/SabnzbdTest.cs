@@ -337,6 +337,42 @@ public class SabnzbdTest
     }
 
     [Fact]
+    public async Task GetHistory_ShouldReturnProviderSpecificPath()
+    {
+        // Arrange
+        var defaultPath = @"C:\Downloads";
+        var rdPath = @"D:\RDDownloads";
+        SettingData.Get.DownloadClient.MappedPath = defaultPath;
+        SettingData.Get.DownloadClient.MappedPathRealDebrid = rdPath;
+
+        var torrentList = new List<Torrent>
+        {
+            new()
+            {
+                Hash = "hash1",
+                RdName = "NZB 1",
+                Category = "radarr",
+                Type = DownloadType.Nzb,
+                ClientKind = Provider.RealDebrid,
+                Completed = DateTimeOffset.UtcNow,
+                Downloads = new List<Download>()
+            }
+        };
+
+        _torrentsMock.Setup(t => t.Get()).ReturnsAsync(torrentList);
+
+        var sabnzbd = new Sabnzbd(_loggerMock.Object, _torrentsMock.Object, _appSettings);
+
+        // Act
+        var result = await sabnzbd.GetHistory();
+
+        // Assert
+        Assert.Single(result.Slots);
+        var expectedPath = Path.Combine(rdPath, "radarr", "NZB 1");
+        Assert.Equal(expectedPath, result.Slots[0].Path);
+    }
+
+    [Fact]
     public async Task GetHistory_ShouldReturnFailedStatus_WhenTorrentHasError()
     {
         // Arrange

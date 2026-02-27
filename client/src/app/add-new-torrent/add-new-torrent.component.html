@@ -220,8 +220,13 @@
 
     <div class="field">
       <label class="label">Category</label>
-      <div class="control">
-        <input class="input" type="text" [(ngModel)]="category" />
+      <div class="control select is-fullwidth">
+        <select [(ngModel)]="category">
+          <option [ngValue]="null">No Category</option>
+          @for (cat of availableCategories; track cat) {
+            <option [value]="cat">{{ cat }}</option>
+          }
+        </select>
       </div>
       <p class="help">The category becomes a sub-folder in your main download path.</p>
     </div>

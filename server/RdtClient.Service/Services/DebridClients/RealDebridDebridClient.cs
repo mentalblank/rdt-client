@@ -318,7 +318,7 @@ public class RealDebridDebridClient(ILogger<RealDebridDebridClient> logger, IHtt
     {
         try
         {
-            var apiKey = Settings.Get.Provider.ApiKey;
+            var apiKey = Settings.Get.Provider.RealDebridApiKey;
 
             if (String.IsNullOrWhiteSpace(apiKey))
             {

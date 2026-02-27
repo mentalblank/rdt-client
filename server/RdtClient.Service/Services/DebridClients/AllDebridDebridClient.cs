@@ -24,7 +24,7 @@ public class AllDebridNetClientFactory(ILogger<AllDebridNetClientFactory> logger
     {
         try
         {
-            var apiKey = Settings.Get.Provider.ApiKey;
+            var apiKey = Settings.Get.Provider.AllDebridApiKey;
 
             if (String.IsNullOrWhiteSpace(apiKey))
             {

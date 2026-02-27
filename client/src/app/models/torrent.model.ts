@@ -30,6 +30,7 @@ export class Torrent {
   public priority: number;
   public type: DownloadType;
   public error: string;
+  public clientKind: number;
 
   public rdId: string;
   public rdName: string;

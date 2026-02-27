@@ -52,7 +52,16 @@
           </div>
           <div class="field">
             <label class="label">Category</label>
-            {{ torrent.category || "(no category set)" }}
+            <div class="tags">
+              @for (tag of torrent.category?.split(","); track tag) {
+                @if (tag.trim().length > 0) {
+                  <span class="tag is-info">{{ tag.trim() }}</span>
+                }
+              }
+              @if (!torrent.category) {
+                (no category set)
+              }
+            </div>
           </div>
           <div class="field">
             <label class="label">Downloader</label>

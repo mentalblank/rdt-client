@@ -43,20 +43,113 @@ public class Torrents(
 
     private static readonly SemaphoreSlim TorrentResetLock = new(1, 1);
 
-    private IDebridClient DebridClient
+    private IDebridClient GetDebridClient(Provider? provider)
     {
-        get
+        return provider switch
         {
-            return Settings.Get.Provider.Provider switch
-            {
-                Provider.Premiumize => premiumizeDebridClient,
-                Provider.RealDebrid => realDebridDebridClient,
-                Provider.AllDebrid => allDebridDebridClient,
-                Provider.DebridLink => debridLinkClient,
-                Provider.TorBox => torBoxDebridClient,
-                _ => throw new("Invalid Provider")
-            };
+            Provider.Premiumize => premiumizeDebridClient,
+            Provider.RealDebrid => realDebridDebridClient,
+            Provider.AllDebrid => allDebridDebridClient,
+            Provider.DebridLink => debridLinkClient,
+            Provider.TorBox => torBoxDebridClient,
+            _ => throw new($"Invalid Provider {provider}")
+        };
+    }
+
+    private List<Provider> GetDefaultProviders()
+    {
+        var providers = new List<Provider>();
+        
+        var fallbackProvider = Settings.Get.Provider.FallbackProvider;
+        var fallbackEnabled = fallbackProvider switch
+        {
+            Provider.RealDebrid => Settings.Get.Provider.RealDebridEnabled,
+            Provider.AllDebrid => Settings.Get.Provider.AllDebridEnabled,
+            Provider.Premiumize => Settings.Get.Provider.PremiumizeEnabled,
+            Provider.DebridLink => Settings.Get.Provider.DebridLinkEnabled,
+            Provider.TorBox => Settings.Get.Provider.TorBoxEnabled,
+            _ => false
+        };
+
+        if (fallbackEnabled)
+        {
+            providers.Add(fallbackProvider);
+            return providers;
         }
+
+        if (Settings.Get.Provider.RealDebridEnabled) providers.Add(Provider.RealDebrid);
+        if (Settings.Get.Provider.AllDebridEnabled) providers.Add(Provider.AllDebrid);
+        if (Settings.Get.Provider.PremiumizeEnabled) providers.Add(Provider.Premiumize);
+        if (Settings.Get.Provider.DebridLinkEnabled) providers.Add(Provider.DebridLink);
+        if (Settings.Get.Provider.TorBoxEnabled) providers.Add(Provider.TorBox);
+
+        if (providers.Count == 0)
+        {
+            if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.RealDebridApiKey)) providers.Add(Provider.RealDebrid);
+            else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.AllDebridApiKey)) providers.Add(Provider.AllDebrid);
+            else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.PremiumizeApiKey)) providers.Add(Provider.Premiumize);
+            else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.DebridLinkApiKey)) providers.Add(Provider.DebridLink);
+            else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.TorBoxApiKey)) providers.Add(Provider.TorBox);
+        }
+
+        if (providers.Count == 0)
+        {
+            providers.Add(fallbackProvider);
+        }
+
+        return providers;
+    }
+
+    private List<Provider> GetProvidersForCategory(String? category)
+    {
+        var providers = new List<Provider>();
+        var mapping = Settings.Get.Provider.CategoryMapping;
+
+        if (String.IsNullOrWhiteSpace(mapping))
+        {
+            return GetDefaultProviders();
+        }
+
+        var mappings = mapping.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        var categories = (category ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(c => c.Trim().ToLower()).ToList();
+
+        if (categories.Count == 0)
+        {
+            categories.Add("");
+        }
+
+        foreach (var cat in categories)
+        {
+            var matched = false;
+            foreach (var m in mappings)
+            {
+                var parts = m.Split(':', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length != 2) continue;
+
+                var mappingCat = parts[0].Trim().ToLower();
+                var mappingProviders = parts[1].Trim();
+
+                if (mappingCat == cat || (mappingCat == "*" && !matched))
+                {
+                    var providerNames = mappingProviders.Split('+', StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var providerName in providerNames)
+                    {
+                        if (Enum.TryParse<Provider>(providerName.Trim(), true, out var provider))
+                        {
+                            providers.Add(provider);
+                            matched = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (providers.Count == 0)
+        {
+            return GetDefaultProviders();
+        }
+
+        return providers.Distinct().ToList();
     }
 
     public virtual (Int64 Speed, Int64 BytesTotal, Int64 BytesDone) GetDownloadStats(Guid downloadId)
@@ -71,9 +164,11 @@ public class Torrents(
         return torrents;
     }
 
-    public virtual async Task<Torrent?> GetByHash(String hash)
+    public virtual async Task<Torrent?> GetByHash(String hash, Provider? clientKind = null)
     {
-        var torrent = await torrentData.GetByHash(hash);
+        clientKind ??= (Provider?)GetDefaultProviders().FirstOrDefault() ?? Provider.RealDebrid;
+
+        var torrent = await torrentData.GetByHash(hash, clientKind.Value);
 
         if (torrent != null)
         {
@@ -85,19 +180,24 @@ public class Torrents(
 
     public async Task UpdateCategory(String hash, String? category)
     {
-        var torrent = await torrentData.GetByHash(hash);
-
-        if (torrent == null)
+        var providers = GetProvidersForCategory(category);
+        
+        foreach (var provider in providers)
         {
-            return;
+            var torrent = await torrentData.GetByHash(hash, provider);
+
+            if (torrent == null)
+            {
+                continue;
+            }
+
+            Log($"Update category to {category}", torrent);
+
+            await torrentData.UpdateCategory(torrent.TorrentId, category);
         }
-
-        Log($"Update category to {category}", torrent);
-
-        await torrentData.UpdateCategory(torrent.TorrentId, category);
     }
 
-    public virtual async Task<Torrent> AddNzbLinkToDebridQueue(String nzbLink, Torrent torrent)
+    public virtual async Task<IList<Torrent>> AddNzbLinkToDebridQueue(String nzbLink, Torrent torrent)
     {
         torrent.RdStatus = TorrentStatus.Queued;
 
@@ -115,15 +215,21 @@ public class Torrents(
         }
 
         var nzbHash = ComputeMd5Hash(nzbLink);
-        var nzbNewTorrent = await AddQueued(nzbHash, nzbLink, false, DownloadType.Nzb, torrent);
-        Log($"Adding {nzbLink} with hash {nzbHash} (nzb link) to queue");
+        var providers = GetProvidersForCategory(torrent.Category);
+        var results = new List<Torrent>();
 
-        await CopyAddedTorrent(nzbNewTorrent);
+        foreach (var provider in providers)
+        {
+            var nzbNewTorrent = await AddQueued(nzbHash, nzbLink, false, DownloadType.Nzb, torrent, provider);
+            Log($"Adding {nzbLink} with hash {nzbHash} (nzb link) to queue for {provider}");
+            await CopyAddedTorrent(nzbNewTorrent);
+            results.Add(nzbNewTorrent);
+        }
 
-        return nzbNewTorrent;
+        return results;
     }
 
-    public virtual async Task<Torrent> AddNzbFileToDebridQueue(Byte[] bytes, String? fileName, Torrent torrent)
+    public virtual async Task<IList<Torrent>> AddNzbFileToDebridQueue(Byte[] bytes, String? fileName, Torrent torrent)
     {
         torrent.RdName = fileName ?? "Unknown NZB";
         torrent.RdStatus = TorrentStatus.Queued;
@@ -173,15 +279,21 @@ public class Torrents(
 
         var nzbHash = ComputeMd5HashFromBytes(bytes);
         var nzbFileAsBase64 = Convert.ToBase64String(bytes);
-        var nzbNewTorrent = await AddQueued(nzbHash, nzbFileAsBase64, true, DownloadType.Nzb, torrent);
-        Log($"Adding {nzbHash} (nzb file) to queue", nzbNewTorrent);
+        var providers = GetProvidersForCategory(torrent.Category);
+        var results = new List<Torrent>();
 
-        await CopyAddedTorrent(nzbNewTorrent);
+        foreach (var provider in providers)
+        {
+            var nzbNewTorrent = await AddQueued(nzbHash, nzbFileAsBase64, true, DownloadType.Nzb, torrent, provider);
+            Log($"Adding {nzbHash} (nzb file) to queue for {provider}", nzbNewTorrent);
+            await CopyAddedTorrent(nzbNewTorrent);
+            results.Add(nzbNewTorrent);
+        }
 
-        return nzbNewTorrent;
+        return results;
     }
 
-    public virtual async Task<Torrent> AddMagnetToDebridQueue(String magnetLink, Torrent torrent)
+    public virtual async Task<IList<Torrent>> AddMagnetToDebridQueue(String magnetLink, Torrent torrent)
     {
         var enriched = await enricher.EnrichMagnetLink(magnetLink);
         MagnetLink magnet;
@@ -228,15 +340,21 @@ public class Torrents(
         torrent.RdName = magnet.Name;
 
         var hash = magnet.InfoHashes.V1OrV2.ToHex();
-        var newTorrent = await AddQueued(hash, enriched, false, DownloadType.Torrent, torrent);
+        var providers = GetProvidersForCategory(torrent.Category);
+        var results = new List<Torrent>();
 
-        Log($"Adding {hash} (magnet link) to queue", newTorrent);
-        await CopyAddedTorrent(newTorrent);
+        foreach (var provider in providers)
+        {
+            var newTorrent = await AddQueued(hash, enriched, false, DownloadType.Torrent, torrent, provider);
+            Log($"Adding {hash} (magnet link) to queue for {provider}", newTorrent);
+            await CopyAddedTorrent(newTorrent);
+            results.Add(newTorrent);
+        }
 
-        return newTorrent;
+        return results;
     }
 
-    public virtual async Task<Torrent> AddFileToDebridQueue(Byte[] bytes, Torrent torrent)
+    public virtual async Task<IList<Torrent>> AddFileToDebridQueue(Byte[] bytes, Torrent torrent)
     {
         var enriched = await enricher.EnrichTorrentBytes(bytes);
 
@@ -300,14 +418,18 @@ public class Torrents(
         torrent.RdName = monoTorrent.Name;
 
         var hash = monoTorrent.InfoHashes.V1OrV2.ToHex();
+        var providers = GetProvidersForCategory(torrent.Category);
+        var results = new List<Torrent>();
 
-        var newTorrent = await AddQueued(hash, fileAsBase64, true, DownloadType.Torrent, torrent);
+        foreach (var provider in providers)
+        {
+            var newTorrent = await AddQueued(hash, fileAsBase64, true, DownloadType.Torrent, torrent, provider);
+            Log($"Adding {hash} (torrent file) to queue for {provider}", newTorrent);
+            await CopyAddedTorrent(newTorrent);
+            results.Add(newTorrent);
+        }
 
-        Log($"Adding {hash} (torrent file) to queue", newTorrent);
-
-        await CopyAddedTorrent(newTorrent);
-
-        return newTorrent;
+        return results;
     }
 
     private async Task CopyAddedTorrent(Torrent torrent)
@@ -388,14 +510,14 @@ public class Torrents(
             if (torrent.Type == DownloadType.Nzb)
             {
                 id = torrent.IsFile
-                    ? await DebridClient.AddNzbFile(Convert.FromBase64String(torrent.FileOrMagnet), torrent.RdName)
-                    : await DebridClient.AddNzbLink(torrent.FileOrMagnet);
+                    ? await GetDebridClient(torrent.ClientKind).AddNzbFile(Convert.FromBase64String(torrent.FileOrMagnet), torrent.RdName)
+                    : await GetDebridClient(torrent.ClientKind).AddNzbLink(torrent.FileOrMagnet);
             }
             else
             {
                 id = torrent.IsFile
-                    ? await DebridClient.AddTorrentFile(Convert.FromBase64String(torrent.FileOrMagnet))
-                    : await DebridClient.AddTorrentMagnet(torrent.FileOrMagnet);
+                    ? await GetDebridClient(torrent.ClientKind).AddTorrentFile(Convert.FromBase64String(torrent.FileOrMagnet))
+                    : await GetDebridClient(torrent.ClientKind).AddTorrentMagnet(torrent.FileOrMagnet);
             }
 
             await torrentData.UpdateRdId(torrent, id);
@@ -410,7 +532,8 @@ public class Torrents(
 
     public async Task<IList<DebridClientAvailableFile>> GetAvailableFiles(String hash)
     {
-        var result = await DebridClient.GetAvailableFiles(hash);
+        var provider = (Provider?)GetDefaultProviders().FirstOrDefault() ?? Provider.RealDebrid;
+        var result = await GetDebridClient(provider).GetAvailableFiles(hash);
 
         return result;
     }
@@ -424,7 +547,7 @@ public class Torrents(
             return;
         }
 
-        var selected = await DebridClient.SelectFiles(torrent);
+        var selected = await GetDebridClient(torrent.ClientKind).SelectFiles(torrent);
 
         if (selected == 0)
         {
@@ -441,7 +564,7 @@ public class Torrents(
             return;
         }
 
-        var downloadInfos = await DebridClient.GetDownloadInfos(torrent);
+        var downloadInfos = await GetDebridClient(torrent.ClientKind).GetDownloadInfos(torrent);
 
         if (downloadInfos == null)
         {
@@ -549,7 +672,7 @@ public class Torrents(
 
             try
             {
-                await DebridClient.Delete(torrent);
+                await GetDebridClient(torrent.ClientKind).Delete(torrent);
             }
             catch
             {
@@ -598,7 +721,7 @@ public class Torrents(
 
         Log("Unrestricting link", download, download.Torrent);
 
-        var unrestrictedLink = await DebridClient.Unrestrict(download.Torrent!, download.Path);
+        var unrestrictedLink = await GetDebridClient(download.Torrent!.ClientKind).Unrestrict(download.Torrent!, download.Path);
 
         await downloads.UpdateUnrestrictedLink(downloadId, unrestrictedLink);
 
@@ -612,7 +735,7 @@ public class Torrents(
 
         Log($"Retrieving filename for", download, download.Torrent!);
 
-        var fileName = await DebridClient.GetFileName(download);
+        var fileName = await GetDebridClient(download.Torrent!.ClientKind).GetFileName(download);
 
         await downloads.UpdateFileName(downloadId, fileName);
 
@@ -621,11 +744,20 @@ public class Torrents(
 
     public async Task<Profile> GetProfile()
     {
-        var user = await DebridClient.GetUser();
+        var provider = Provider.RealDebrid;
+        if (String.IsNullOrWhiteSpace(Settings.Get.Provider.RealDebridApiKey))
+        {
+            if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.AllDebridApiKey)) provider = Provider.AllDebrid;
+            else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.PremiumizeApiKey)) provider = Provider.Premiumize;
+            else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.DebridLinkApiKey)) provider = Provider.DebridLink;
+            else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.TorBoxApiKey)) provider = Provider.TorBox;
+        }
+
+        var user = await GetDebridClient(provider).GetUser();
 
         var profile = new Profile
         {
-            Provider = Enum.GetName(Settings.Get.Provider.Provider),
+            Provider = Enum.GetName(provider),
             UserName = user.Username,
             Expiration = user.Expiration,
             CurrentVersion = UpdateChecker.CurrentVersion,
@@ -641,61 +773,80 @@ public class Torrents(
     {
         await RealDebridUpdateLock.WaitAsync();
 
-        var torrents = await Get();
-
         try
         {
-            var rdTorrents = await DebridClient.GetDownloads();
+            var torrents = await Get();
 
-            foreach (var rdTorrent in rdTorrents)
+            var providers = new List<Provider>();
+            if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.RealDebridApiKey)) providers.Add(Provider.RealDebrid);
+            if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.AllDebridApiKey)) providers.Add(Provider.AllDebrid);
+            if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.PremiumizeApiKey)) providers.Add(Provider.Premiumize);
+            if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.DebridLinkApiKey)) providers.Add(Provider.DebridLink);
+            if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.TorBoxApiKey)) providers.Add(Provider.TorBox);
+
+            foreach (var provider in providers.Distinct())
             {
-                var torrent = torrents.FirstOrDefault(m => m.RdId == rdTorrent.Id);
-
-                // Auto import torrents only torrents that have their files selected
-                if (torrent == null && Settings.Get.Provider.AutoImport)
+                try
                 {
-                    var newTorrent = new Torrent
-                    {
-                        Category = Settings.Get.Provider.Default.Category,
-                        DownloadClient = Settings.Get.DownloadClient.Client,
-                        DownloadAction =
-                            Settings.Get.Provider.Default.OnlyDownloadAvailableFiles ? TorrentDownloadAction.DownloadAvailableFiles : TorrentDownloadAction.DownloadAll,
-                        HostDownloadAction = Settings.Get.Provider.Default.HostDownloadAction,
-                        FinishedActionDelay = Settings.Get.Provider.Default.FinishedActionDelay,
-                        FinishedAction = Settings.Get.Provider.Default.FinishedAction,
-                        DownloadMinSize = Settings.Get.Provider.Default.MinFileSize,
-                        IncludeRegex = Settings.Get.Provider.Default.IncludeRegex,
-                        ExcludeRegex = Settings.Get.Provider.Default.ExcludeRegex,
-                        TorrentRetryAttempts = Settings.Get.Provider.Default.TorrentRetryAttempts,
-                        DownloadRetryAttempts = Settings.Get.Provider.Default.DownloadRetryAttempts,
-                        DeleteOnError = Settings.Get.Provider.Default.DeleteOnError,
-                        Lifetime = Settings.Get.Provider.Default.TorrentLifetime,
-                        Priority = Settings.Get.Provider.Default.Priority > 0 ? Settings.Get.Provider.Default.Priority : null,
-                        RdId = rdTorrent.Id
-                    };
+                    var debridClient = GetDebridClient(provider);
+                    var rdTorrents = await debridClient.GetDownloads();
 
-                    if (newTorrent.RdStatus == TorrentStatus.WaitingForFileSelection)
+                    foreach (var rdTorrent in rdTorrents)
                     {
-                        continue;
+                        var torrent = torrents.FirstOrDefault(m => m.RdId == rdTorrent.Id && m.ClientKind == provider);
+
+                        // Auto import torrents only torrents that have their files selected
+                        if (torrent == null && Settings.Get.Provider.AutoImport)
+                        {
+                            var newTorrent = new Torrent
+                            {
+                                Category = Settings.Get.Provider.Default.Category,
+                                DownloadClient = Settings.Get.DownloadClient.Client,
+                                DownloadAction =
+                                    Settings.Get.Provider.Default.OnlyDownloadAvailableFiles ? TorrentDownloadAction.DownloadAvailableFiles : TorrentDownloadAction.DownloadAll,
+                                HostDownloadAction = Settings.Get.Provider.Default.HostDownloadAction,
+                                FinishedActionDelay = Settings.Get.Provider.Default.FinishedActionDelay,
+                                FinishedAction = Settings.Get.Provider.Default.FinishedAction,
+                                DownloadMinSize = Settings.Get.Provider.Default.MinFileSize,
+                                IncludeRegex = Settings.Get.Provider.Default.IncludeRegex,
+                                ExcludeRegex = Settings.Get.Provider.Default.ExcludeRegex,
+                                TorrentRetryAttempts = Settings.Get.Provider.Default.TorrentRetryAttempts,
+                                DownloadRetryAttempts = Settings.Get.Provider.Default.DownloadRetryAttempts,
+                                DeleteOnError = Settings.Get.Provider.Default.DeleteOnError,
+                                Lifetime = Settings.Get.Provider.Default.TorrentLifetime,
+                                Priority = Settings.Get.Provider.Default.Priority > 0 ? Settings.Get.Provider.Default.Priority : null,
+                                RdId = rdTorrent.Id,
+                                ClientKind = provider
+                            };
+
+                            if (newTorrent.RdStatus == TorrentStatus.WaitingForFileSelection)
+                            {
+                                continue;
+                            }
+
+                            torrent = await torrentData.Add(rdTorrent.Id, rdTorrent.Hash, null, false, DownloadType.Torrent, Settings.Get.DownloadClient.Client, newTorrent, provider);
+
+                            await UpdateTorrentClientData(torrent, rdTorrent);
+                        }
+                        else if (torrent != null)
+                        {
+                            await UpdateTorrentClientData(torrent, rdTorrent);
+                        }
                     }
 
-                    torrent = await torrentData.Add(rdTorrent.Id, rdTorrent.Hash, null, false, DownloadType.Torrent, Settings.Get.DownloadClient.Client, newTorrent);
+                    foreach (var torrent in torrents.Where(m => m.ClientKind == provider))
+                    {
+                        var rdTorrent = rdTorrents.FirstOrDefault(m => m.Id == torrent.RdId);
 
-                    await UpdateTorrentClientData(torrent, rdTorrent);
+                        if (rdTorrent == null && Settings.Get.Provider.AutoDelete && torrent.RdStatus != TorrentStatus.Queued)
+                        {
+                            await Delete(torrent.TorrentId, true, false, true);
+                        }
+                    }
                 }
-                else if (torrent != null)
+                catch (Exception ex)
                 {
-                    await UpdateTorrentClientData(torrent, rdTorrent);
-                }
-            }
-
-            foreach (var torrent in torrents)
-            {
-                var rdTorrent = rdTorrents.FirstOrDefault(m => m.Id == torrent.RdId);
-
-                if (rdTorrent == null && Settings.Get.Provider.AutoDelete && torrent.RdStatus != TorrentStatus.Queued)
-                {
-                    await Delete(torrent.TorrentId, true, false, true);
+                    logger.LogError(ex, $"Failed to update data for provider {provider}: {ex.Message}");
                 }
             }
         }
@@ -753,7 +904,7 @@ public class Torrents(
                 throw new($"Cannot re-add this torrent, original magnet or file not found");
             }
 
-            Torrent newTorrent;
+            IList<Torrent> newTorrents;
 
             if (torrent.Type == DownloadType.Nzb)
             {
@@ -761,11 +912,11 @@ public class Torrents(
                 {
                     var bytes = Convert.FromBase64String(torrent.FileOrMagnet!);
 
-                    newTorrent = await AddNzbFileToDebridQueue(bytes, torrent.RdName, torrent);
+                    newTorrents = await AddNzbFileToDebridQueue(bytes, torrent.RdName, torrent);
                 }
                 else
                 {
-                    newTorrent = await AddNzbLinkToDebridQueue(torrent.FileOrMagnet!, torrent);
+                    newTorrents = await AddNzbLinkToDebridQueue(torrent.FileOrMagnet!, torrent);
                 }
             }
             else
@@ -774,15 +925,18 @@ public class Torrents(
                 {
                     var bytes = Convert.FromBase64String(torrent.FileOrMagnet!);
 
-                    newTorrent = await AddFileToDebridQueue(bytes, torrent);
+                    newTorrents = await AddFileToDebridQueue(bytes, torrent);
                 }
                 else
                 {
-                    newTorrent = await AddMagnetToDebridQueue(torrent.FileOrMagnet!, torrent);
+                    newTorrents = await AddMagnetToDebridQueue(torrent.FileOrMagnet!, torrent);
                 }
             }
 
-            await torrentData.UpdateRetry(newTorrent.TorrentId, null, retryCount);
+            foreach (var newTorrent in newTorrents)
+            {
+                await torrentData.UpdateRetry(newTorrent.TorrentId, null, retryCount);
+            }
         }
         finally
         {
@@ -845,14 +999,19 @@ public class Torrents(
 
     public async Task UpdatePriority(String hash, Int32 priority)
     {
-        var torrent = await torrentData.GetByHash(hash);
-
-        if (torrent == null)
+        var providers = GetProvidersForCategory(null);
+        
+        foreach (var provider in providers)
         {
-            return;
-        }
+            var torrent = await torrentData.GetByHash(hash, provider);
 
-        await torrentData.UpdatePriority(torrent.TorrentId, priority);
+            if (torrent == null)
+            {
+                continue;
+            }
+
+            await torrentData.UpdatePriority(torrent.TorrentId, priority);
+        }
     }
 
     public async Task UpdateRetry(Guid torrentId, DateTimeOffset? datetime, Int32 retry)
@@ -881,7 +1040,7 @@ public class Torrents(
 
     private static String DownloadPath(Torrent torrent)
     {
-        var settingDownloadPath = Settings.Get.DownloadClient.DownloadPath;
+        var settingDownloadPath = Settings.GetDownloadPath(torrent.ClientKind);
 
         if (!String.IsNullOrWhiteSpace(torrent.Category))
         {
@@ -895,9 +1054,10 @@ public class Torrents(
                                           String fileOrMagnetContents,
                                           Boolean isFile,
                                           DownloadType downloadType,
-                                          Torrent torrent)
+                                          Torrent torrent,
+                                          Provider? clientKind)
     {
-        var existingTorrent = await torrentData.GetByHash(infoHash);
+        var existingTorrent = await torrentData.GetByHash(infoHash, clientKind);
 
         if (existingTorrent != null)
         {
@@ -910,7 +1070,8 @@ public class Torrents(
                                                isFile,
                                                downloadType,
                                                torrent.DownloadClient,
-                                               torrent);
+                                               torrent,
+                                               clientKind);
 
         return newTorrent;
     }
@@ -1024,7 +1185,7 @@ public class Torrents(
         {
             var originalTorrent = JsonSerializer.Serialize(torrent, JsonSerializerOptions);
 
-            await DebridClient.UpdateData(torrent, torrentClientTorrent);
+            await GetDebridClient(torrent.ClientKind).UpdateData(torrent, torrentClientTorrent);
 
             var newTorrent = JsonSerializer.Serialize(torrent, JsonSerializerOptions);
 
