@@ -87,15 +87,13 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
         var allTorrents = await torrents.Get();
         var completedTorrents = allTorrents.Where(t => t.Type == DownloadType.Nzb && t.Completed != null).ToList();
 
-        var savePath = Settings.AppDefaultSavePath;
-
         var history = new SabnzbdHistory
         {
             NoOfSlots = completedTorrents.Count,
             TotalSlots = completedTorrents.Count,
             Slots = completedTorrents.Select(t =>
                                      {
-                                         var path = savePath;
+                                         var path = Settings.GetAppDefaultSavePath(t.ClientKind);
 
                                          if (!String.IsNullOrWhiteSpace(t.Category))
                                          {
@@ -147,7 +145,7 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
 
         var result = await torrents.AddNzbFileToDebridQueue(fileBytes, fileName, torrent);
 
-        return result.Hash;
+        return result.FirstOrDefault()?.Hash ?? "";
     }
 
     public virtual async Task<String> AddUrl(String url, String? category, Int32? priority)
@@ -174,7 +172,7 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
 
         var result = await torrents.AddNzbLinkToDebridQueue(url, torrent);
 
-        return result.Hash;
+        return result.FirstOrDefault()?.Hash ?? "";
     }
 
     public virtual async Task Delete(String hash)

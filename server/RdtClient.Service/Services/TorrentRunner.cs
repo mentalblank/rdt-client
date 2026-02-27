@@ -43,7 +43,11 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
 
         if (settingsCopy != null)
         {
-            settingsCopy.Provider.ApiKey = "*****";
+            settingsCopy.Provider.RealDebridApiKey = "*****";
+            settingsCopy.Provider.AllDebridApiKey = "*****";
+            settingsCopy.Provider.PremiumizeApiKey = "*****";
+            settingsCopy.Provider.DebridLinkApiKey = "*****";
+            settingsCopy.Provider.TorBoxApiKey = "*****";
             settingsCopy.DownloadClient.Aria2cSecret = "*****";
             settingsCopy.DownloadClient.DownloadStationPassword = "*****";
 
@@ -82,7 +86,11 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
 
     public async Task Tick()
     {
-        if (String.IsNullOrWhiteSpace(Settings.Get.Provider.ApiKey))
+        if (String.IsNullOrWhiteSpace(Settings.Get.Provider.RealDebridApiKey) &&
+            String.IsNullOrWhiteSpace(Settings.Get.Provider.AllDebridApiKey) &&
+            String.IsNullOrWhiteSpace(Settings.Get.Provider.PremiumizeApiKey) &&
+            String.IsNullOrWhiteSpace(Settings.Get.Provider.DebridLinkApiKey) &&
+            String.IsNullOrWhiteSpace(Settings.Get.Provider.TorBoxApiKey))
         {
             Log($"No debrid provider API key set in settings");
 
@@ -527,7 +535,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                     download.DownloadStarted = DateTime.UtcNow;
                     await downloads.UpdateDownloadStarted(download.DownloadId, download.DownloadStarted);
 
-                    var downloadPath = settingDownloadPath;
+                    var downloadPath = Settings.GetDownloadPath(torrent.ClientKind);
 
                     if (!String.IsNullOrWhiteSpace(torrent.Category))
                     {
@@ -636,7 +644,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                     download.UnpackingStarted = DateTimeOffset.UtcNow;
                     await downloads.UpdateUnpackingStarted(download.DownloadId, download.UnpackingStarted);
 
-                    var downloadPath = settingDownloadPath;
+                    var downloadPath = Settings.GetDownloadPath(torrent.ClientKind);
 
                     if (!String.IsNullOrWhiteSpace(torrent.Category))
                     {

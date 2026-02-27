@@ -7,7 +7,7 @@ public interface ITorrentData
 {
     Task<IList<Torrent>> Get();
     Task<Torrent?> GetById(Guid torrentId);
-    Task<Torrent?> GetByHash(String hash);
+    Task<Torrent?> GetByHash(String hash, Provider? clientKind);
 
     Task<Torrent> Add(String? rdId,
                       String hash,
@@ -15,7 +15,8 @@ public interface ITorrentData
                       Boolean isFile,
                       DownloadType downloadType,
                       DownloadClient downloadClient,
-                      Torrent torrent);
+                      Torrent torrent,
+                      Provider? clientKind);
 
     Task UpdateRdData(Torrent torrent);
     Task UpdateRdId(Torrent torrent, String rdId);

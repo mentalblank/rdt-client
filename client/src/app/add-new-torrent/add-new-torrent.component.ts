@@ -49,6 +49,8 @@ export class AddNewTorrentComponent implements OnInit {
   public excludeRegexError: string;
   public regexSelected: TorrentFileAvailability[];
 
+  public availableCategories: string[] = [];
+
   private selectedFile: File;
 
   constructor(
@@ -76,6 +78,11 @@ export class AddNewTorrentComponent implements OnInit {
       }
     });
     this.settingsService.get().subscribe((settings) => {
+      const categoriesSetting = settings.find((m) => m.key === 'General:Categories');
+      if (categoriesSetting) {
+        this.availableCategories = (categoriesSetting.value as string).split(',').map((s) => s.trim());
+      }
+
       const providerSetting = settings.find((m) => m.key === 'Provider:Provider');
       this.provider = providerSetting.enumValues[providerSetting.value as number];
       this.downloadClient = settings.find((m) => m.key === 'DownloadClient:Client')?.value as number;

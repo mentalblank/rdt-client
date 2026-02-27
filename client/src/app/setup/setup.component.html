@@ -62,99 +62,72 @@
               <div class="notification is-primary">
                 To be able to use RDTClient you need a premium subscription to download torrents.
                 <br /><br />
-                Not premium yet? You have the choice of 5 providers:
-                <br />
-                <a href="https://real-debrid.com/" target="_blank" rel="noopener"
-                  >Use this link to sign up to Real-Debrid.</a
-                >
-                <br />
-                <a href="https://alldebrid.com/" target="_blank" rel="noopener"
-                  >Use this link to sign up to AllDebrid.</a
-                >
-                <br />
-                <a href="https://www.premiumize.me/" target="_blank" rel="noopener"
-                  >Use this link to sign up to Premiumize.</a
-                >
-                <br />
-                <a href="https://torbox.app/" target="_blank" rel="noopener">Use this link to sign up to TorBox.</a>
-                <br />
-                <a href="https://debrid-link.com/" target="_blank" rel="noopener"
-                  >Use this link to sign up to DebridLink.</a
-                >
+                Enable the providers you want to use and enter your API token.
               </div>
-              <div class="field">
-                <label class="label">Provider</label>
-                <div class="control select is-fullwidth">
-                  <select [(ngModel)]="provider">
-                    <option [ngValue]="0">Real-Debrid</option>
-                    <option [ngValue]="1">AllDebrid</option>
-                    <option [ngValue]="2">Premiumize</option>
-                    <option [ngValue]="3">TorBox</option>
-                    <option [ngValue]="4">DebridLink</option>
-                  </select>
+              @for (p of providers; track p.id) {
+                <div class="field box">
+                  <label class="checkbox">
+                    <input type="checkbox" [(ngModel)]="p.enabled" />
+                    <strong>{{ p.name }}</strong>
+                  </label>
+                  @if (p.enabled) {
+                    <div class="field" style="margin-top: 10px">
+                      <label class="label">API Private Token</label>
+                      <div class="control">
+                        <input type="text" class="input" [(ngModel)]="p.token" placeholder="Enter API Token" />
+                      </div>
+                      @if (p.id === 0) {
+                        <p class="help">
+                          Find your API key here:
+                          <a href="https://real-debrid.com/apitoken" target="_blank" rel="noopener"
+                            >https://real-debrid.com/apitoken</a
+                          >.
+                        </p>
+                      }
+                      @if (p.id === 1) {
+                        <p class="help">
+                          Find your API key here:
+                          <a href="https://alldebrid.com/apikeys/" target="_blank" rel="noopener"
+                            >https://alldebrid.com/apikeys/</a
+                          >.
+                        </p>
+                      }
+                      @if (p.id === 2) {
+                        <p class="help">
+                          Find your API key here:
+                          <a href="https://www.premiumize.me/account" target="_blank" rel="noopener"
+                            >https://www.premiumize.me/account</a
+                          >.
+                        </p>
+                      }
+                      @if (p.id === 3) {
+                        <p class="help">
+                          Find your API key here:
+                          <a href="https://torbox.app/settings" target="_blank" rel="noopener"
+                            >https://torbox.app/settings</a
+                          >.
+                        </p>
+                      }
+                      @if (p.id === 4) {
+                        <p class="help">
+                          Find your API key here:
+                          <a href="https://debrid-link.com/webapp/apikey" target="_blank" rel="noopener"
+                            >https://debrid-link.com/webapp/apikey</a
+                          >.
+                        </p>
+                      }
+                    </div>
+                  }
                 </div>
-              </div>
-              <div class="field">
-                <label for="debrid-api-token" class="label">API Private Token</label>
-                <div class="control">
-                  <input
-                    type="text"
-                    placeholder=""
-                    class="input"
-                    name="token"
-                    id="debrid-api-token"
-                    [(ngModel)]="token"
-                    required
-                  />
-                </div>
-                @if (provider === 0) {
-                  <p class="help">
-                    You can find your API key here:
-                    <a href="https://real-debrid.com/apitoken" target="_blank" rel="noopener"
-                      >https://real-debrid.com/apitoken</a
-                    >.
-                  </p>
-                }
-                @if (provider === 1) {
-                  <p class="help">
-                    You can find your API key here:
-                    <a href="https://alldebrid.com/apikeys/" target="_blank" rel="noopener"
-                      >https://alldebrid.com/apikeys/</a
-                    >.
-                  </p>
-                }
-                @if (provider === 2) {
-                  <p class="help">
-                    You can find your API key here:
-                    <a href="https://www.premiumize.me/account" target="_blank" rel="noopener"
-                      >https://www.premiumize.me/account</a
-                    >.
-                  </p>
-                }
-                @if (provider === 3) {
-                  <p class="help">
-                    You can find your API key here:
-                    <a href="https://torbox.app/settings" target="_blank" rel="noopener">https://torbox.app/settings</a
-                    >.
-                  </p>
-                }
-                @if (provider === 4) {
-                  <p class="help">
-                    You can find your API key here:
-                    <a href="https://debrid-link.com/webapp/apikey" target="_blank" rel="noopener"
-                      >https://debrid-link.com/webapp/apikey</a
-                    >.
-                  </p>
-                }
-              </div>
+              }
               <div class="field">
                 <button
-                  class="button is-success"
+                  class="button is-success is-fullwidth"
                   (click)="setToken()"
                   [ngClass]="{ 'is-loading': working }"
                   [disabled]="working"
                 >
-                  Setup
+                  Save and Finish
                 </button>
               </div>
 

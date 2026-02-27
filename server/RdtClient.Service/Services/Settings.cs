@@ -12,6 +12,51 @@ public class Settings(SettingData settingData)
 
     public static DbSettings Get => SettingData.Get;
 
+    public static String GetDownloadPath(Provider? provider)
+    {
+        var path = provider switch
+        {
+            Provider.RealDebrid => Get.DownloadClient.DownloadPathRealDebrid,
+            Provider.AllDebrid => Get.DownloadClient.DownloadPathAllDebrid,
+            Provider.Premiumize => Get.DownloadClient.DownloadPathPremiumize,
+            Provider.DebridLink => Get.DownloadClient.DownloadPathDebridLink,
+            Provider.TorBox => Get.DownloadClient.DownloadPathTorBox,
+            _ => null
+        };
+
+        if (String.IsNullOrWhiteSpace(path))
+        {
+            path = Get.DownloadClient.DownloadPath;
+
+            if (provider != null)
+            {
+                path = Path.Combine(path, provider.ToString()!);
+            }
+        }
+
+        return path;
+    }
+
+    public static String GetMappedPath(Provider? provider)
+    {
+        var path = provider switch
+        {
+            Provider.RealDebrid => Get.DownloadClient.MappedPathRealDebrid,
+            Provider.AllDebrid => Get.DownloadClient.MappedPathAllDebrid,
+            Provider.Premiumize => Get.DownloadClient.MappedPathPremiumize,
+            Provider.DebridLink => Get.DownloadClient.MappedPathDebridLink,
+            Provider.TorBox => Get.DownloadClient.MappedPathTorBox,
+            _ => null
+        };
+
+        if (String.IsNullOrWhiteSpace(path))
+        {
+            path = Get.DownloadClient.MappedPath;
+        }
+
+        return path;
+    }
+
     public static String AppDefaultSavePath
     {
         get
@@ -25,6 +70,18 @@ public class Settings(SettingData settingData)
 
             return downloadPath;
         }
+    }
+
+    public static String GetAppDefaultSavePath(Provider? provider)
+    {
+        var downloadPath = GetMappedPath(provider);
+
+        downloadPath = downloadPath.TrimEnd('\\')
+                                   .TrimEnd('/');
+
+        downloadPath += Path.DirectorySeparatorChar;
+
+        return downloadPath;
     }
 
     public async Task Update(IList<SettingProperty> settings)
