@@ -110,6 +110,46 @@ public class DbSettingsDownloadClient
     [Description("Path where files are downloaded to on your host (i.e. D:\\Downloads). This path is used for *arr to find your downloads.")]
     public String MappedPath { get; set; } = "/mnt/symlinks";
 
+    [DisplayName("Download path RealDebrid")]
+    [Description("Provider specific download path for RealDebrid. If empty, the default Download path will be used.")]
+    public String? DownloadPathRealDebrid { get; set; }
+
+    [DisplayName("Mapped path RealDebrid")]
+    [Description("Provider specific mapped path for RealDebrid. If empty, the default Mapped path will be used.")]
+    public String? MappedPathRealDebrid { get; set; }
+
+    [DisplayName("Download path AllDebrid")]
+    [Description("Provider specific download path for AllDebrid. If empty, the default Download path will be used.")]
+    public String? DownloadPathAllDebrid { get; set; }
+
+    [DisplayName("Mapped path AllDebrid")]
+    [Description("Provider specific mapped path for AllDebrid. If empty, the default Mapped path will be used.")]
+    public String? MappedPathAllDebrid { get; set; }
+
+    [DisplayName("Download path Premiumize")]
+    [Description("Provider specific download path for Premiumize. If empty, the default Download path will be used.")]
+    public String? DownloadPathPremiumize { get; set; }
+
+    [DisplayName("Mapped path Premiumize")]
+    [Description("Provider specific mapped path for Premiumize. If empty, the default Mapped path will be used.")]
+    public String? MappedPathPremiumize { get; set; }
+
+    [DisplayName("Download path DebridLink")]
+    [Description("Provider specific download path for DebridLink. If empty, the default Download path will be used.")]
+    public String? DownloadPathDebridLink { get; set; }
+
+    [DisplayName("Mapped path DebridLink")]
+    [Description("Provider specific mapped path for DebridLink. If empty, the default Mapped path will be used.")]
+    public String? MappedPathDebridLink { get; set; }
+
+    [DisplayName("Download path TorBox")]
+    [Description("Provider specific download path for TorBox. If empty, the default Download path will be used.")]
+    public String? DownloadPathTorBox { get; set; }
+
+    [DisplayName("Mapped path TorBox")]
+    [Description("Provider specific mapped path for TorBox. If empty, the default Mapped path will be used.")]
+    public String? MappedPathTorBox { get; set; }
+
     [DisplayName("Download speed (in MB/s) (only used for the Internal Downloader)")]
     [Description("Maximum download speed in Megabytes per second. When set to 0 unlimited speed is used.")]
     public Int32 MaxSpeed { get; set; } = 0;

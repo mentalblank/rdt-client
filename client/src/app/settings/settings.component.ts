@@ -224,19 +224,29 @@ export class SettingsComponent implements OnInit {
     const providerEnabledMappings: { [key: string]: string } = {
       'Provider:RealDebridApiKey': 'Provider:RealDebridEnabled',
       'Provider:ApiHostname': 'Provider:RealDebridEnabled',
+      'DownloadClient:DownloadPathRealDebrid': 'Provider:RealDebridEnabled',
+      'DownloadClient:MappedPathRealDebrid': 'Provider:RealDebridEnabled',
       'DownloadClient:RcloneMountPathRealDebrid': 'Provider:RealDebridEnabled',
 
       'Provider:AllDebridApiKey': 'Provider:AllDebridEnabled',
+      'DownloadClient:DownloadPathAllDebrid': 'Provider:AllDebridEnabled',
+      'DownloadClient:MappedPathAllDebrid': 'Provider:AllDebridEnabled',
       'DownloadClient:RcloneMountPathAllDebrid': 'Provider:AllDebridEnabled',
 
       'Provider:PremiumizeApiKey': 'Provider:PremiumizeEnabled',
+      'DownloadClient:DownloadPathPremiumize': 'Provider:PremiumizeEnabled',
+      'DownloadClient:MappedPathPremiumize': 'Provider:PremiumizeEnabled',
       'DownloadClient:RcloneMountPathPremiumize': 'Provider:PremiumizeEnabled',
 
       'Provider:DebridLinkApiKey': 'Provider:DebridLinkEnabled',
+      'DownloadClient:DownloadPathDebridLink': 'Provider:DebridLinkEnabled',
+      'DownloadClient:MappedPathDebridLink': 'Provider:DebridLinkEnabled',
       'DownloadClient:RcloneMountPathDebridLink': 'Provider:DebridLinkEnabled',
 
       'Provider:TorBoxApiKey': 'Provider:TorBoxEnabled',
       'Provider:PreferZippedDownloads': 'Provider:TorBoxEnabled',
+      'DownloadClient:DownloadPathTorBox': 'Provider:TorBoxEnabled',
+      'DownloadClient:MappedPathTorBox': 'Provider:TorBoxEnabled',
       'DownloadClient:RcloneMountPathTorBox': 'Provider:TorBoxEnabled',
     };
 
@@ -256,19 +266,29 @@ export class SettingsComponent implements OnInit {
     const providerEnabledMappings: { [key: string]: string } = {
       'Provider:RealDebridApiKey': 'Provider:RealDebridEnabled',
       'Provider:ApiHostname': 'Provider:RealDebridEnabled',
+      'DownloadClient:DownloadPathRealDebrid': 'Provider:RealDebridEnabled',
+      'DownloadClient:MappedPathRealDebrid': 'Provider:RealDebridEnabled',
       'DownloadClient:RcloneMountPathRealDebrid': 'Provider:RealDebridEnabled',
 
       'Provider:AllDebridApiKey': 'Provider:AllDebridEnabled',
+      'DownloadClient:DownloadPathAllDebrid': 'Provider:AllDebridEnabled',
+      'DownloadClient:MappedPathAllDebrid': 'Provider:AllDebridEnabled',
       'DownloadClient:RcloneMountPathAllDebrid': 'Provider:AllDebridEnabled',
 
       'Provider:PremiumizeApiKey': 'Provider:PremiumizeEnabled',
+      'DownloadClient:DownloadPathPremiumize': 'Provider:PremiumizeEnabled',
+      'DownloadClient:MappedPathPremiumize': 'Provider:PremiumizeEnabled',
       'DownloadClient:RcloneMountPathPremiumize': 'Provider:PremiumizeEnabled',
 
       'Provider:DebridLinkApiKey': 'Provider:DebridLinkEnabled',
+      'DownloadClient:DownloadPathDebridLink': 'Provider:DebridLinkEnabled',
+      'DownloadClient:MappedPathDebridLink': 'Provider:DebridLinkEnabled',
       'DownloadClient:RcloneMountPathDebridLink': 'Provider:DebridLinkEnabled',
 
       'Provider:TorBoxApiKey': 'Provider:TorBoxEnabled',
       'Provider:PreferZippedDownloads': 'Provider:TorBoxEnabled',
+      'DownloadClient:DownloadPathTorBox': 'Provider:TorBoxEnabled',
+      'DownloadClient:MappedPathTorBox': 'Provider:TorBoxEnabled',
       'DownloadClient:RcloneMountPathTorBox': 'Provider:TorBoxEnabled',
     };
 

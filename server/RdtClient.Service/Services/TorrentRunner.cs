@@ -535,12 +535,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                     download.DownloadStarted = DateTime.UtcNow;
                     await downloads.UpdateDownloadStarted(download.DownloadId, download.DownloadStarted);
 
-                    var downloadPath = settingDownloadPath;
-
-                    if (torrent.ClientKind != null)
-                    {
-                        downloadPath = Path.Combine(downloadPath, torrent.ClientKind.ToString()!);
-                    }
+                    var downloadPath = Settings.GetDownloadPath(torrent.ClientKind);
 
                     if (!String.IsNullOrWhiteSpace(torrent.Category))
                     {
@@ -649,12 +644,7 @@ public class TorrentRunner(ILogger<TorrentRunner> logger, Torrents torrents, Dow
                     download.UnpackingStarted = DateTimeOffset.UtcNow;
                     await downloads.UpdateUnpackingStarted(download.DownloadId, download.UnpackingStarted);
 
-                    var downloadPath = settingDownloadPath;
-
-                    if (torrent.ClientKind != null)
-                    {
-                        downloadPath = Path.Combine(downloadPath, torrent.ClientKind.ToString()!);
-                    }
+                    var downloadPath = Settings.GetDownloadPath(torrent.ClientKind);
 
                     if (!String.IsNullOrWhiteSpace(torrent.Category))
                     {

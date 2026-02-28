@@ -50,23 +50,55 @@ public class DiskSpaceMonitor(ILogger<DiskSpaceMonitor> logger, IServiceProvider
                     intervalMinutes = 1;
                 }
 
-                var downloadPath = Settings.Get.DownloadClient.DownloadPath;
-                logger.LogDebug($"Checking disk space for path: {downloadPath}");
+                var downloadPaths = new List<String>
+                                    {
+                                        Settings.Get.DownloadClient.DownloadPath,
+                                        Settings.Get.DownloadClient.DownloadPathRealDebrid!,
+                                        Settings.Get.DownloadClient.DownloadPathAllDebrid!,
+                                        Settings.Get.DownloadClient.DownloadPathPremiumize!,
+                                        Settings.Get.DownloadClient.DownloadPathDebridLink!,
+                                        Settings.Get.DownloadClient.DownloadPathTorBox!
+                                    }
+                                    .Where(p => !String.IsNullOrWhiteSpace(p))
+                                    .Distinct()
+                                    .ToList();
 
-                if (!Directory.Exists(downloadPath))
+                Double availableSpaceGB = -1;
+                String? limitingPath = null;
+
+                foreach (var path in downloadPaths)
                 {
-                    logger.LogWarning($"Download path does not exist: {downloadPath}");
+                    logger.LogDebug($"Checking disk space for path: {path}");
+
+                    if (!Directory.Exists(path))
+                    {
+                        logger.LogWarning($"Download path does not exist: {path}");
+
+                        continue;
+                    }
+
+                    var space = FileHelper.GetAvailableFreeSpaceGB(path);
+
+                    if (availableSpaceGB < 0 || space < availableSpaceGB)
+                    {
+                        availableSpaceGB = space;
+                        limitingPath = path;
+                    }
+                }
+
+                if (availableSpaceGB < 0)
+                {
+                    logger.LogWarning($"No valid download paths found to check disk space.");
                     await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
 
                     continue;
                 }
 
-                var availableSpaceGB = FileHelper.GetAvailableFreeSpaceGB(downloadPath);
-                logger.LogDebug($"Disk space check: {availableSpaceGB} GB available (threshold: {minimumFreeSpaceGB} GB, resume: {minimumFreeSpaceGB * 2} GB, isPaused: {_isPausedForLowDiskSpace})");
+                logger.LogDebug($"Disk space check: {availableSpaceGB} GB available on {limitingPath} (threshold: {minimumFreeSpaceGB} GB, resume: {minimumFreeSpaceGB * 2} GB, isPaused: {_isPausedForLowDiskSpace})");
 
                 if (availableSpaceGB == 0)
                 {
-                    logger.LogWarning($"Failed to get disk space for path: {downloadPath}");
+                    logger.LogWarning($"Failed to get disk space for path: {limitingPath}");
                 }
 
                 var shouldPause = availableSpaceGB > 0 && availableSpaceGB < minimumFreeSpaceGB;

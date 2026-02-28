@@ -1040,12 +1040,7 @@ public class Torrents(
 
     private static String DownloadPath(Torrent torrent)
     {
-        var settingDownloadPath = Settings.Get.DownloadClient.DownloadPath;
-
-        if (torrent.ClientKind != null)
-        {
-            settingDownloadPath = Path.Combine(settingDownloadPath, torrent.ClientKind.ToString()!);
-        }
+        var settingDownloadPath = Settings.GetDownloadPath(torrent.ClientKind);
 
         if (!String.IsNullOrWhiteSpace(torrent.Category))
         {

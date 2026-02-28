@@ -87,15 +87,13 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
         var allTorrents = await torrents.Get();
         var completedTorrents = allTorrents.Where(t => t.Type == DownloadType.Nzb && t.Completed != null).ToList();
 
-        var savePath = Settings.AppDefaultSavePath;
-
         var history = new SabnzbdHistory
         {
             NoOfSlots = completedTorrents.Count,
             TotalSlots = completedTorrents.Count,
             Slots = completedTorrents.Select(t =>
                                      {
-                                         var path = savePath;
+                                         var path = Settings.GetAppDefaultSavePath(t.ClientKind);
 
                                          if (!String.IsNullOrWhiteSpace(t.Category))
                                          {
