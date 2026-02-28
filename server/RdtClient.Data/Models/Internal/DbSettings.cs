@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using RdtClient.Data.Enums;
 
@@ -29,6 +29,116 @@ public class DbSettings
     [DisplayName("Watch")]
     [Description("The following settings only apply when a torrent gets through the watch folder.")]
     public DbSettingsWatch Watch { get; set; } = new();
+
+    [DisplayName("Usenet")]
+    [Description("The following settings only apply to the internal Usenet engine.")]
+    public DbSettingsUsenet Usenet { get; set; } = new();
+
+    [DisplayName("WebDav")]
+    [Description("The following settings only apply to the WebDav server.")]
+    public DbSettingsWebDav WebDav { get; set; } = new();
+}
+
+public class DbSettingsUsenet
+{
+    [DisplayName("Enabled")]
+    [Description("Enable the internal Usenet engine.")]
+    public Boolean Enabled { get; set; } = false;
+
+    [DisplayName("Host")]
+    [Description("The hostname of your Usenet provider.")]
+    public String Host { get; set; } = "";
+
+    [DisplayName("Port")]
+    [Description("The port of your Usenet provider (typically 563 for SSL or 119 for non-SSL).")]
+    public Int32 Port { get; set; } = 563;
+
+    [DisplayName("Use SSL")]
+    [Description("Connect to the Usenet provider using SSL/TLS.")]
+    public Boolean UseSsl { get; set; } = true;
+
+    [DisplayName("Username")]
+    [Description("The username for your Usenet provider.")]
+    public String Username { get; set; } = "";
+
+    [DisplayName("Password")]
+    [Description("The password for your Usenet provider.")]
+    public String Password { get; set; } = "";
+
+    [DisplayName("Maximum parallel downloads")]
+    [Description("Maximum amount of Usenet articles that get downloaded at the same time.")]
+    public Int32 MaxDownloadConnections { get; set; } = 15;
+
+    [DisplayName("Article cache size")]
+    [Description("Maximum amount of articles to keep in memory.")]
+    public Int32 ArticleBufferSize { get; set; } = 40;
+
+    [DisplayName("Download speed (in MB/s)")]
+    [Description("Maximum download speed in Megabytes per second. When set to 0 unlimited speed is used.")]
+    public Int32 MaxSpeed { get; set; } = 0;
+
+    [DisplayName("Mapped path")]
+    [Description("Path where the Usenet WebDav share is mounted on your host (i.e. D:\\Usenet). This path is used for *arr to find your downloads.")]
+    public String MappedPath { get; set; } = "";
+
+    [DisplayName("API Key")]
+    [Description("The API key used for Sabnzbd-compatible endpoints. Required for tools like Radarr and Sonarr.")]
+    public String ApiKey { get; set; } = Guid.NewGuid().ToString("N");
+
+    [DisplayName("Behavior for Duplicate NZBs")]
+    [Description("What should be done when the download folder for an NZB already exists?")]
+    public DuplicateNzbBehavior DuplicateNzbBehavior { get; set; } = DuplicateNzbBehavior.MarkFailed;
+
+    [DisplayName("Fail downloads for nzbs without video content")]
+    [Description("Whether to mark downloads as failed when no single video file is found inside the nzb.")]
+    public Boolean FailIfNoVideo { get; set; } = false;
+
+    [DisplayName("Perform article health check during downloads")]
+    [Description("Whether to check for the existence of all articles within an NZB during queue processing.")]
+    public Boolean PerformFullHealthCheck { get; set; } = false;
+
+    [DisplayName("Always send full History to Radarr/Sonarr")]
+    [Description("When enabled, this will ignore the History limit sent by radarr/sonarr and always reply with all History items.")]
+    public Boolean AlwaysSendFullHistory { get; set; } = false;
+
+    [DisplayName("Include files")]
+    [Description("Select only the files that are matching this regular expression. Only use this setting OR the Exclude files setting, not both.")]
+    public String? IncludeRegex { get; set; } = null;
+
+    [DisplayName("Exclude files")]
+    [Description("Ignore files that are matching this regular expression. Only use this setting OR the Include files setting, not both.")]
+    public String? ExcludeRegex { get; set; } = @"(?i)^.*\.(xml|ac3|sql|docx|arj|lzh|tar|gz|bat|bmp|cmd|cue|db|diz|dll|((dvd)?disc|par(t)?|py)\d*|exe|flac|gif|htm(l)?|ico(n)?|idx|info|ini|index|jp(e)?g|l(i)?nk|md5|m2ts|mp3|nfo|nzb|png|rar|readme|reg|sample|sfv|sql|srr|sub|srt|tag|tak|t(e)?xt|thumb|torrent|ts|url|vbs|webp|zip|zsh|padding_file|smallfile|_unpack|ade|adp|app|application|appref-ms|asp|aspx|asx|bas|bgi|cab|cer|chm|cmd|cnt|com|cpl|crt|csh|der|diagcab|fxp|gadget|grp|hlp|hpj|hta|htc|inf|ins|iso|isp|its|jar|jnlp|js|jse|ksh|lnk|mad|maf|mag|mam|maq|mar|mas|mat|mau|mav|maw|mcf|mda|mdb|mde|mdt|mdw|mdz|msc|msh|msh1|msh2|mshxml|msh1xml|msh2xml|msi|msp|mst|msu|ops|osd|pcd|pif|pl|plg|prf|prg|printerexport|ps1|ps1xml|ps2|ps2xml|psc1|psc2|psd1|psdm1|pst|py|pyc|pyo|pyw|pyz|pyzw|reg|scf|scr|sct|shb|shs|theme|tmp|vb|vbe|vbp|vbs|vhd|vhdx|vsmacros|vsw|webpnp|website|ws|wsc|wsf|wsh|xbap|xll|xnk|7z|bdjo|bdmv|bin|cci|clpi|crl|idx|m4a|mpls|msi|pdf|sig|tbl|xig|xrt|zipx)$";
+}
+
+public enum DuplicateNzbBehavior
+{
+    [Description("Mark download as failed")]
+    MarkFailed = 0,
+    [Description("Download again with suffix")]
+    DownloadAgain = 1
+}
+
+public class DbSettingsWebDav
+{
+    [DisplayName("Enabled")]
+    [Description("Enable the internal WebDav server.")]
+    public Boolean Enabled { get; set; } = false;
+
+    [DisplayName("Port")]
+    [Description("The port the WebDav server will listen on.")]
+    public Int32 Port { get; set; } = 5001;
+
+    [DisplayName("Username")]
+    [Description("The username to use for WebDav authentication.")]
+    public String Username { get; set; } = "admin";
+
+    [DisplayName("Password")]
+    [Description("The password to use for WebDav authentication.")]
+    public String Password { get; set; } = "admin";
+
+    [DisplayName("Enforce Read-Only")]
+    [Description("The WebDAV /dav/usenet folder will be readonly when checked.")]
+    public Boolean ReadOnly { get; set; } = false;
 }
 
 public class DbSettingsGeneral

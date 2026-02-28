@@ -7,10 +7,10 @@
           <span>Torrent</span>
         </a>
       </li>
-      <li [class.is-active]="type === 'nzb'">
-        <a (click)="changeType('nzb')">
-          <span class="icon is-small"><i class="fas fa-file-archive" aria-hidden="true"></i></span>
-          <span>NZB</span>
+      <li [class.is-active]="type === 'usenet'">
+        <a (click)="changeType('usenet')">
+          <span class="icon is-small"><i class="fas fa-layer-group" aria-hidden="true"></i></span>
+          <span>Usenet (Internal)</span>
         </a>
       </li>
     </ul>
@@ -52,7 +52,7 @@
     </div>
   </div>
 
-  <div [hidden]="type !== 'nzb'">
+  <div [hidden]="type !== 'usenet'">
     <div class="field">
       <label class="label">NZB file</label>
       <div class="file has-name">
@@ -72,15 +72,16 @@
     </div>
 
     <div class="field">
-      <label class="label">NZB Link</label>
-      <div class="control">
-        <textarea
-          class="textarea"
-          placeholder="Paste your NZB link here"
-          [(ngModel)]="nzbLink"
-          [disabled]="saving"
-        ></textarea>
+      <label class="label">Category</label>
+      <div class="control select is-fullwidth">
+        <select [(ngModel)]="category">
+          <option [ngValue]="null">No Category</option>
+          @for (cat of availableCategories; track cat) {
+            <option [value]="cat">{{ cat }}</option>
+          }
+        </select>
       </div>
+      <p class="help">The category helps organize your Usenet downloads.</p>
     </div>
   </div>
 
@@ -90,13 +91,13 @@
         @if (type === 'torrent') {
           <span>Add Torrent</span>
         } @else {
-          <span>Add NZB</span>
+          <span>Add Usenet Job</span>
         }
       </button>
     </div>
   </div>
 
-  <div>
+  <div [hidden]="type === 'usenet'">
     <div class="separator">Advanced settings</div>
 
     <div class="field">
@@ -243,7 +244,7 @@
   </div>
 </div>
 
-<div class="field">
+<div class="field" [hidden]="type === 'usenet'">
   <div>
     <div class="field">
       <label class="label">Automatic retry downloads</label>

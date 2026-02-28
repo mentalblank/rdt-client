@@ -25,8 +25,20 @@
           }
           @switch (setting.type) {
             @case ("String") {
-              <div class="control">
-                <input class="input" type="text" [(ngModel)]="setting.value" />
+              <div class="control" [ngClass]="{ 'has-icons-right': setting.key.endsWith(':ApiKey') }">
+                <input class="input" type="text" [(ngModel)]="setting.value" [readonly]="setting.key.endsWith(':ApiKey')" />
+                @if (setting.key.endsWith(':ApiKey')) {
+                  <div class="buttons mt-2">
+                    <button class="button is-small is-info" (click)="copyToClipboard($any(setting.value))">
+                      <span class="icon is-small"><i class="fas fa-copy"></i></span>
+                      <span>Copy</span>
+                    </button>
+                    <button class="button is-small is-warning" (click)="regenerateUsenetApiKey(setting)">
+                      <span class="icon is-small"><i class="fas fa-sync"></i></span>
+                      <span>Regenerate</span>
+                    </button>
+                  </div>
+                }
               </div>
             }
             @case ("Int32") {
@@ -73,6 +85,46 @@
             @if (testAria2cConnectionSuccess) {
               <div class="notification is-success is-light" style="margin-top: 1rem">
                 Found Aria2 client version {{ testAria2cConnectionSuccess }}
+              </div>
+            }
+          }
+          @if (setting.key === "Usenet:MaxSpeed") {
+            <button
+              class="button is-warning"
+              (click)="testUsenetConnection()"
+              [disabled]="saving"
+              [ngClass]="{ 'is-loading': saving }"
+            >
+              Test Usenet connection
+            </button>
+            @if (testUsenetConnectionError) {
+              <div class="notification is-danger is-light" style="margin-top: 1rem">
+                Could not connect to Usenet server<br />
+                {{ testUsenetConnectionError }}
+              </div>
+            }
+            @if (testUsenetConnectionSuccess) {
+              <div class="notification is-success is-light" style="margin-top: 1rem">Successfully connected to Usenet server!</div>
+            }
+          }
+          @if (setting.key === "WebDav:Password") {
+            <button
+              class="button is-warning"
+              (click)="testWebDavConnection()"
+              [disabled]="saving"
+              [ngClass]="{ 'is-loading': saving }"
+            >
+              Test WebDAV status
+            </button>
+            @if (testWebDavConnectionError) {
+              <div class="notification is-danger is-light" style="margin-top: 1rem">
+                WebDAV test failed<br />
+                {{ testWebDavConnectionError }}
+              </div>
+            }
+            @if (testWebDavConnectionSuccess) {
+              <div class="notification is-success is-light" style="margin-top: 1rem">
+                {{ testWebDavConnectionSuccess }}
               </div>
             }
           }

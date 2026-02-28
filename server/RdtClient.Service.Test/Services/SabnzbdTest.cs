@@ -20,7 +20,7 @@ public class SabnzbdTest
 
     public SabnzbdTest()
     {
-        _torrentsMock = new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
+        _torrentsMock = new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
         _torrentsMock.Setup(t => t.Get()).ReturnsAsync(new List<Torrent>());
     }
 
@@ -340,8 +340,8 @@ public class SabnzbdTest
     public async Task GetHistory_ShouldReturnProviderSpecificPath()
     {
         // Arrange
-        var defaultPath = @"C:\Downloads";
-        var rdPath = @"D:\RDDownloads";
+        var defaultPath = "/C/Downloads";
+        var rdPath = "/D/RDDownloads";
         SettingData.Get.DownloadClient.MappedPath = defaultPath;
         SettingData.Get.DownloadClient.MappedPathRealDebrid = rdPath;
 

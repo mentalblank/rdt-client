@@ -125,6 +125,7 @@ public class TorrentsTest
                                            null!,
                                            null!,
                                            null!,
+                                           null!,
                                            null!);
 
         mocks.ProcessMock.Setup(p => p.WaitForExit(It.IsAny<Int32>())).Returns(true);
@@ -191,6 +192,7 @@ public class TorrentsTest
                                            null!,
                                            null!,
                                            null!,
+                                           null!,
                                            null!);
 
         //Act
@@ -236,6 +238,7 @@ public class TorrentsTest
                                            fileSystemMock,
                                            mocks.EnricherMock.Object,
                                            null!, // Torrent Clients are not used by `RunTorrentComplete`, this is fine
+                                           null!,
                                            null!,
                                            null!,
                                            null!,
@@ -306,6 +309,7 @@ public class TorrentsTest
                                            null!,
                                            null!,
                                            null!,
+                                           null!,
                                            null!);
 
         mocks.ProcessMock.Setup(p => p.WaitForExit(It.IsAny<Int32>()))
@@ -332,112 +336,5 @@ public class TorrentsTest
         Assert.Matches("error-line 1", exitedWithOutputMessage);
         Assert.Matches("error-line 2", exitedWithOutputMessage);
         Assert.Matches("error-line 3", exitedWithOutputMessage);
-    }
-
-    [Fact]
-    public async Task AddNzbFileToDebridQueue_ShouldSetDownloadTypeNzb()
-    {
-        // Arrange
-        var mocks = new Mocks();
-
-        var torrent = new Torrent
-        {
-            TorrentId = Guid.NewGuid()
-        };
-
-        var nzbContent =
-            "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\r\n<nzb xmlns=\"http://www.newzbin.com/DTD/2003/nzb\">\r\n <head>\r\n  <meta type=\"title\">Test NZB Title</meta>\r\n </head>\r\n</nzb>";
-
-        var bytes = Encoding.UTF8.GetBytes(nzbContent);
-
-        mocks.TorrentDataMock.Setup(t => t.GetByHash(It.IsAny<String>(), It.IsAny<Provider?>())).ReturnsAsync((Torrent)null!);
-
-        mocks.TorrentDataMock.Setup(t => t.Add(It.IsAny<String>(),
-                                               It.IsAny<String>(),
-                                               It.IsAny<String>(),
-                                               true,
-                                               DownloadType.Nzb,
-                                               It.IsAny<DownloadClient>(),
-                                               It.IsAny<Torrent>(),
-                                               It.IsAny<Provider?>()))
-             .ReturnsAsync(new Torrent());
-
-        var torrents = new TorrentsService(mocks.TorrentsLoggerMock.Object,
-                                           mocks.TorrentDataMock.Object,
-                                           mocks.DownloadsMock.Object,
-                                           mocks.ProcessFactoryMock.Object,
-                                           new MockFileSystem(),
-                                           mocks.EnricherMock.Object,
-                                           null!,
-                                           null!,
-                                           null!,
-                                           null!,
-                                           null!);
-
-        // Act
-        await torrents.AddNzbFileToDebridQueue(bytes, "filename.nzb", torrent);
-
-        // Assert
-        mocks.TorrentDataMock.Verify(t => t.Add(null,
-                                                It.IsAny<String>(),
-                                                It.IsAny<String>(),
-                                                true,
-                                                DownloadType.Nzb,
-                                                It.IsAny<DownloadClient>(),
-                                                It.IsAny<Torrent>(),
-                                                It.IsAny<Provider?>()),
-                                     Times.Once);
-    }
-
-    [Fact]
-    public async Task AddNzbLinkToDebridQueue_ShouldSetDownloadTypeNzb()
-    {
-        // Arrange
-        var mocks = new Mocks();
-
-        var torrent = new Torrent
-        {
-            TorrentId = Guid.NewGuid()
-        };
-
-        var link = "http://example.com/test.nzb";
-
-        mocks.TorrentDataMock.Setup(t => t.GetByHash(It.IsAny<String>(), It.IsAny<Provider?>())).ReturnsAsync((Torrent)null!);
-
-        mocks.TorrentDataMock.Setup(t => t.Add(It.IsAny<String>(),
-                                               It.IsAny<String>(),
-                                               It.IsAny<String>(),
-                                               false,
-                                               DownloadType.Nzb,
-                                               It.IsAny<DownloadClient>(),
-                                               It.IsAny<Torrent>(),
-                                               It.IsAny<Provider?>()))
-             .ReturnsAsync(new Torrent());
-
-        var torrents = new TorrentsService(mocks.TorrentsLoggerMock.Object,
-                                           mocks.TorrentDataMock.Object,
-                                           mocks.DownloadsMock.Object,
-                                           mocks.ProcessFactoryMock.Object,
-                                           new MockFileSystem(),
-                                           mocks.EnricherMock.Object,
-                                           null!,
-                                           null!,
-                                           null!,
-                                           null!,
-                                           null!);
-
-        // Act
-        await torrents.AddNzbLinkToDebridQueue(link, torrent);
-
-        // Assert
-        mocks.TorrentDataMock.Verify(t => t.Add(null,
-                                                It.IsAny<String>(),
-                                                link,
-                                                false,
-                                                DownloadType.Nzb,
-                                                It.IsAny<DownloadClient>(),
-                                                It.IsAny<Torrent>(),
-                                                It.IsAny<Provider?>()),
-                                     Times.Once);
     }
 }

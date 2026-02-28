@@ -9,6 +9,7 @@ import { SettingsComponent } from './settings/settings.component';
 import { SetupComponent } from './setup/setup.component';
 import { TorrentTableComponent } from './torrent-table/torrent-table.component';
 import { TorrentComponent } from './torrent/torrent.component';
+import { UsenetComponent } from './usenet/usenet.component';
 
 const routes: Routes = [
   {
@@ -29,6 +30,10 @@ const routes: Routes = [
       {
         path: '',
         component: TorrentTableComponent,
+      },
+      {
+        path: 'usenet',
+        component: UsenetComponent,
       },
       {
         path: 'torrent/:id',

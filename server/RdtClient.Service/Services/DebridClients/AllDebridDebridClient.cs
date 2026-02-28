@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using AllDebridNET;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -143,16 +143,6 @@ public class AllDebridDebridClient(ILogger<AllDebridDebridClient> logger, IAllDe
         {
             throw new RateLimitException(ex.Message, TimeSpan.FromMinutes(2));
         }
-    }
-
-    public Task<String> AddNzbLink(String nzbLink)
-    {
-        throw new NotSupportedException();
-    }
-
-    public Task<String> AddNzbFile(Byte[] bytes, String? name)
-    {
-        throw new NotSupportedException();
     }
 
     public Task<IList<DebridClientAvailableFile>> GetAvailableFiles(String hash)

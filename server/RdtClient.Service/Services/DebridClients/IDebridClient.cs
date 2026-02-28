@@ -1,4 +1,4 @@
-﻿using RdtClient.Data.Models.Data;
+using RdtClient.Data.Models.Data;
 using RdtClient.Data.Models.DebridClient;
 
 namespace RdtClient.Service.Services.DebridClients;
@@ -9,8 +9,6 @@ public interface IDebridClient
     Task<DebridClientUser> GetUser();
     Task<String> AddTorrentMagnet(String magnetLink);
     Task<String> AddTorrentFile(Byte[] bytes);
-    Task<String> AddNzbLink(String nzbLink);
-    Task<String> AddNzbFile(Byte[] bytes, String? name);
     Task<IList<DebridClientAvailableFile>> GetAvailableFiles(String hash);
 
     /// <summary>

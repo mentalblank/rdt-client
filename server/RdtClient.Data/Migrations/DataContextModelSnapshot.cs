@@ -15,7 +15,7 @@ namespace RdtClient.Data.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.3");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -410,6 +410,117 @@ namespace RdtClient.Data.Migrations
                     b.ToTable("Torrents");
                 });
 
+            modelBuilder.Entity("RdtClient.Data.Models.Data.UsenetFile", b =>
+                {
+                    b.Property<Guid>("UsenetFileId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SegmentIds")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("UsenetJobId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UsenetFileId");
+
+                    b.HasIndex("UsenetJobId");
+
+                    b.ToTable("UsenetFiles");
+                });
+
+            modelBuilder.Entity("RdtClient.Data.Models.Data.UsenetJob", b =>
+                {
+                    b.Property<Guid>("UsenetJobId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("Added")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Category")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("Completed")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("JobName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NzbContents")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NzbFileName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("TotalSize")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("UsenetJobId");
+
+                    b.ToTable("UsenetJobs");
+                });
+
+            modelBuilder.Entity("RdtClient.Data.Models.Data.UsenetProvider", b =>
+                {
+                    b.Property<Guid>("UsenetProviderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MaxConnections")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Password")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("UseSsl")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Username")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UsenetProviderId");
+
+                    b.ToTable("UsenetProviders");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -472,9 +583,25 @@ namespace RdtClient.Data.Migrations
                     b.Navigation("Torrent");
                 });
 
+            modelBuilder.Entity("RdtClient.Data.Models.Data.UsenetFile", b =>
+                {
+                    b.HasOne("RdtClient.Data.Models.Data.UsenetJob", "UsenetJob")
+                        .WithMany("Files")
+                        .HasForeignKey("UsenetJobId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("UsenetJob");
+                });
+
             modelBuilder.Entity("RdtClient.Data.Models.Data.Torrent", b =>
                 {
                     b.Navigation("Downloads");
+                });
+
+            modelBuilder.Entity("RdtClient.Data.Models.Data.UsenetJob", b =>
+                {
+                    b.Navigation("Files");
                 });
 #pragma warning restore 612, 618
         }

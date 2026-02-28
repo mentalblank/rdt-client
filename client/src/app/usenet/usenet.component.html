@@ -1,0 +1,115 @@
+<div class="tabs is-centered is-boxed">
+  <ul>
+    <li [class.is-active]="tab === 'queue'">
+      <a (click)="changeTab('queue')">
+        <span class="icon is-small"><i class="fas fa-list" aria-hidden="true"></i></span>
+        <span>Queue</span>
+      </a>
+    </li>
+    <li [class.is-active]="tab === 'history'">
+      <a (click)="changeTab('history')">
+        <span class="icon is-small"><i class="fas fa-history" aria-hidden="true"></i></span>
+        <span>History</span>
+      </a>
+    </li>
+  </ul>
+</div>
+
+<div class="table-container">
+  <table class="table is-fullwidth is-hoverable">
+    <thead>
+      <tr>
+        <th>
+          <input
+            type="checkbox"
+            (click)="toggleSelectAll($event)"
+            [checked]="selectedJobs.length > 0 && selectedJobs.length === filteredJobs.length"
+          />
+        </th>
+        <th (click)="sort('jobName')" [class.sort-active]="sortProperty == 'jobName'" [class.sort-descending]="sortDirection == 'desc'">Name</th>
+        <th (click)="sort('category')" [class.sort-active]="sortProperty == 'category'" [class.sort-descending]="sortDirection == 'desc'">Category</th>
+        <th (click)="sort('fileCount')" [class.sort-active]="sortProperty == 'fileCount'" [class.sort-descending]="sortDirection == 'desc'">Files</th>
+        <th (click)="sort('totalSize')" [class.sort-active]="sortProperty == 'totalSize'" [class.sort-descending]="sortDirection == 'desc'">Size</th>
+        <th (click)="sort('added')" [class.sort-active]="sortProperty == 'added'" [class.sort-descending]="sortDirection == 'desc'">Requested</th>
+        <th (click)="sort('status')" [class.sort-active]="sortProperty == 'status'" [class.sort-descending]="sortDirection == 'desc'">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let job of filteredJobs">
+        <td>
+          <input
+            type="checkbox"
+            (click)="toggleSelect(job.hash)"
+            [checked]="selectedJobs.includes(job.hash)"
+          />
+        </td>
+        <td class="break-all">
+          {{ job.jobName }}
+        </td>
+        <td>
+          <div class="tags">
+            <span *ngIf="job.category" class="tag is-info">{{ job.category }}</span>
+          </div>
+        </td>
+        <td>
+          {{ job.fileCount | number }}
+        </td>
+        <td>
+          {{ job.totalSize | filesize }}
+        </td>
+        <td>
+          {{ job.added | date: "medium" }}
+        </td>
+        <td>
+          {{ getStatus(job.status) }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="flex-container">
+    <button *ngIf="filteredJobs.length > 0" class="button is-danger" (click)="showDeleteModal()" [disabled]="selectedJobs.length === 0">
+      Delete Selected
+    </button>
+    <button *ngIf="filteredJobs.length > 0" class="button is-danger" (click)="deleteAll()">
+      Clear {{ tab === 'queue' ? 'Queue' : 'History' }}
+    </button>
+  </div>
+</div>
+
+<div class="modal" [class.is-active]="isDeleteModalActive">
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">Delete selected jobs</p>
+      <button class="delete" aria-label="close" (click)="deleteCancel()"></button>
+    </header>
+    <section class="modal-card-body">
+      <p>Are you sure you want to delete these Usenet jobs?</p>
+      
+      <div class="field mt-4">
+        <div class="control">
+          <label class="checkbox">
+            <input type="checkbox" name="deleteData" [(ngModel)]="deleteData" />
+            Delete mounted files (from cache)
+          </label>
+        </div>
+      </div>
+
+      <div *ngIf="deleteError?.length" class="notification is-danger is-light">Error deleting jobs: {{ deleteError }}</div>
+    </section>
+    <footer class="modal-card-foot">
+      <button
+        class="button is-success"
+        (click)="deleteOk()"
+        [disabled]="deleting"
+        [class.is-loading]="deleting"
+      >
+        Delete selected
+      </button>
+      <button class="button" (click)="deleteCancel()" [disabled]="deleting" [class.is-loading]="deleting">
+        Cancel
+      </button>
+    </footer>
+  </div>
+</div>

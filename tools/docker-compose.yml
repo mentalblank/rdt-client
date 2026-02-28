@@ -3,9 +3,9 @@ services:
   rdtclient:
     restart: unless-stopped
     container_name: rdtclient
-    # build:
-    #     context: .
-    #     dockerfile: Dockerfile
+    build:
+        context: ..
+        dockerfile: Dockerfile
     image: mentalblank/rdtclient:latest
     hostname: rdtclient
     environment:
@@ -17,7 +17,7 @@ services:
         options:
             max-size: 10m
     ports:
-      - 6500/tcp
+      - 6500:6500
     healthcheck:
         test: curl --fail http://localhost:6500 || exit 1
         interval: 30s
@@ -41,7 +41,7 @@ services:
       traefik.http.routers.rdtclient.tls.options: securetls@file 
       traefik.http.services.rdtclient.loadbalancer.server.port: 6500 
     volumes:
-      - /opt/rdtclient:/CONFIG
+      - /opt/rdtclient:/config
       - /etc/localtime:/etc/localtime:ro
       - /mnt:/mnt
       - /opt/rdtclient/data:/data

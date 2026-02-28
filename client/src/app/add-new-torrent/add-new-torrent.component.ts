@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { TorrentService } from 'src/app/torrent.service';
+import { UsenetService } from 'src/app/usenet.service';
 import { DownloadType, Torrent, TorrentFileAvailability } from '../models/torrent.model';
 import { SettingsService } from '../settings.service';
 import { ActivatedRoute } from '@angular/router';
@@ -15,16 +16,15 @@ import { NgClass } from '@angular/common';
   standalone: true,
 })
 export class AddNewTorrentComponent implements OnInit {
-  public type: 'torrent' | 'nzb' = 'torrent';
+  public type: 'torrent' | 'usenet' = 'torrent';
   public fileName: string;
   public magnetLink: string;
-  public nzbLink: string;
   private currentTorrentFile: string;
 
   public provider: string;
   public downloadClient: number;
 
-  public category: string;
+  public category: string = '';
   public hostDownloadAction: number = 0;
   public downloadAction: number = 0;
   public finishedAction: number = 0;
@@ -36,7 +36,7 @@ export class AddNewTorrentComponent implements OnInit {
   public downloadRetryAttempts: number = 3;
   public torrentDeleteOnError: number = 0;
   public torrentLifetime: number = 0;
-  public priority: number;
+  public priority: number = 0;
 
   public availableFiles: TorrentFileAvailability[];
   public downloadFiles: { [key: string]: boolean } = {};
@@ -57,13 +57,14 @@ export class AddNewTorrentComponent implements OnInit {
     private router: Router,
     private torrentService: TorrentService,
     private settingsService: SettingsService,
+    private usenetService: UsenetService,
     private activatedRoute: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
     this.activatedRoute.queryParams.subscribe((params) => {
-      if (params['type'] === 'nzb') {
-        this.type = 'nzb';
+      if (params['type'] === 'usenet') {
+        this.type = 'usenet';
       } else if (params['type'] === 'torrent') {
         this.type = 'torrent';
       }
@@ -71,10 +72,6 @@ export class AddNewTorrentComponent implements OnInit {
       if (params['magnet']) {
         this.magnetLink = decodeURIComponent(params['magnet']);
         this.type = 'torrent';
-      }
-      if (params['nzb']) {
-        this.nzbLink = decodeURIComponent(params['nzb']);
-        this.type = 'nzb';
       }
     });
     this.settingsService.get().subscribe((settings) => {
@@ -117,7 +114,7 @@ export class AddNewTorrentComponent implements OnInit {
     }
   }
 
-  public changeType(type: 'torrent' | 'nzb'): void {
+  public changeType(type: 'torrent' | 'usenet'): void {
     this.type = type;
     this.fileName = null;
     this.selectedFile = null;
@@ -136,7 +133,9 @@ export class AddNewTorrentComponent implements OnInit {
 
     this.selectedFile = file;
 
-    this.checkFiles();
+    if (this.type === 'torrent') {
+      this.checkFiles();
+    }
   }
 
   public ok(): void {
@@ -200,25 +199,17 @@ export class AddNewTorrentComponent implements OnInit {
         this.error = 'No magnet or file uploaded';
         this.saving = false;
       }
-    } else {
-      if (this.nzbLink) {
-        this.torrentService.uploadNzbLink(this.nzbLink, torrent).subscribe({
-          next: () => this.router.navigate(['/']),
+    } else if (this.type === 'usenet') {
+      if (this.selectedFile) {
+        this.usenetService.uploadFile(this.selectedFile, this.category, this.priority).subscribe({
+          next: () => this.router.navigate(['/usenet']),
           error: (err) => {
-            this.error = err.error;
-            this.saving = false;
-          },
-        });
-      } else if (this.selectedFile) {
-        this.torrentService.uploadNzbFile(this.selectedFile, torrent).subscribe({
-          next: () => this.router.navigate(['/']),
-          error: (err) => {
-            this.error = err.error;
+            this.error = err.error?.message || err.error || err.message;
             this.saving = false;
           },
         });
       } else {
-        this.error = 'No NZB link or file uploaded';
+        this.error = 'No NZB file uploaded';
         this.saving = false;
       }
     }
@@ -231,7 +222,7 @@ export class AddNewTorrentComponent implements OnInit {
   }
 
   public checkFiles(): void {
-    if (this.type === 'nzb') {
+    if (this.type === 'usenet') {
       return;
     }
     if (this.magnetLink && this.magnetLink === this.currentTorrentFile) {

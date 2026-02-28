@@ -12,6 +12,10 @@ public class DataContext(DbContextOptions options) : IdentityDbContext(options)
     public DbSet<Setting> Settings { get; set; }
     public DbSet<Torrent> Torrents { get; set; }
 
+    public DbSet<UsenetJob> UsenetJobs { get; set; }
+    public DbSet<UsenetFile> UsenetFiles { get; set; }
+    public DbSet<UsenetProvider> UsenetProviders { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

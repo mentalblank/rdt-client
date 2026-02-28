@@ -16,7 +16,7 @@ public class QBittorrentTest
     public QBittorrentTest()
     {
         _loggerMock = new();
-        _torrentsMock = new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
+        _torrentsMock = new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
         _authenticationMock = new(null!, null!, null!);
 
         _qBittorrent = new(_loggerMock.Object, null!, _authenticationMock.Object, _torrentsMock.Object, null!);

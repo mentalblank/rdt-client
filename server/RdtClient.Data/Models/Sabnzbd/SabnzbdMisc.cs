@@ -15,4 +15,7 @@ public class SabnzbdMisc
 
     [JsonPropertyName("version")]
     public String Version { get; set; } = "4.4.0";
+
+    [JsonPropertyName("apikey")]
+    public String ApiKey { get; set; } = "";
 }

@@ -12,6 +12,7 @@ using RdtClient.Service.Helpers;
 using RdtClient.Service.Middleware;
 using RdtClient.Service.Services;
 using RdtClient.Service.Services.DebridClients;
+using RdtClient.Service.Services.Usenet;
 using RdtClient.Service.Wrappers;
 
 namespace RdtClient.Service;
@@ -45,6 +46,11 @@ public static class DiConfig
         services.AddScoped<Torrents>();
         services.AddScoped<TorrentRunner>();
         services.AddScoped<DebridLinkClient>();
+
+        services.AddScoped<UsenetQueueManager>();
+        services.AddScoped<UsenetSabnzbd>();
+        services.AddSingleton<UsenetStreamingClient>();
+        services.AddSingleton<INntpClient>(sp => sp.GetRequiredService<UsenetStreamingClient>());
 
         services.AddSingleton<IDownloadableFileFilter, DownloadableFileFilter>();
         services.AddSingleton<ITrackerListGrabber, TrackerListGrabber>();

@@ -8,6 +8,10 @@ using RdtClient.Service;
 using RdtClient.Service.Helpers;
 using RdtClient.Service.Middleware;
 using RdtClient.Service.Services;
+using RdtClient.Service.Services.Usenet.WebDav;
+using RdtClient.Service.Services.Usenet.WebDav.Base;
+using NWebDav.Server;
+using NWebDav.Server.Stores;
 using Serilog;
 using Serilog.Debugging;
 using Serilog.Events;
@@ -141,6 +145,15 @@ builder.Services.AddSignalR(hubOptions =>
     hubOptions.EnableDetailedErrors = true;
 });
 
+builder.Services.AddScoped<UsenetStore>();
+builder.Services.AddScoped<IStore>(sp => sp.GetRequiredService<UsenetStore>());
+builder.Services.AddScoped<GetAndHeadHandlerPatch>();
+builder.Services.AddNWebDav(opts =>
+{
+    opts.Handlers["GET"] = typeof(GetAndHeadHandlerPatch);
+    opts.Handlers["HEAD"] = typeof(GetAndHeadHandlerPatch);
+});
+
 builder.Host.UseWindowsService();
 
 DiConfig.Config(builder.Services, appSettings);
@@ -158,8 +171,6 @@ try
     }
 
     app.ConfigureExceptionHandler();
-
-    app.UseMiddleware<AuthorizeMiddleware>();
 
     app.Use(async (context, next) =>
     {
@@ -187,6 +198,13 @@ try
     app.UseAuthentication();
 
     app.UseAuthorization();
+
+    app.MapWhen(ctx => ctx.Request.Path.StartsWithSegments("/dav/usenet"), builder =>
+    {
+        builder.UseMiddleware<WebDavAuthorizeMiddleware>();
+        builder.UseMiddleware<AuthorizeMiddleware>();
+        builder.UseNWebDav();
+    });
 
     app.MapHub<RdtHub>("/hub");
 

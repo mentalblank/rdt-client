@@ -33,6 +33,12 @@ export class SettingsComponent implements OnInit {
   public testAria2cConnectionError: string = null;
   public testAria2cConnectionSuccess: string = null;
 
+  public testUsenetConnectionError: string = null;
+  public testUsenetConnectionSuccess: boolean = false;
+
+  public testWebDavConnectionError: string = null;
+  public testWebDavConnectionSuccess: string = null;
+
   public canRegisterMagnetHandler = false;
 
   public categoryMappings: { category: string; provider: string }[] = [];
@@ -207,6 +213,66 @@ export class SettingsComponent implements OnInit {
         this.saving = false;
       },
     });
+  }
+
+  public testUsenetConnection(): void {
+    const usenetTab = this.tabs.find((m) => m.key === 'Usenet');
+    const host = usenetTab.settings.find((m) => m.key === 'Usenet:Host').value as string;
+    const port = parseInt(usenetTab.settings.find((m) => m.key === 'Usenet:Port').value as string);
+    const useSsl = usenetTab.settings.find((m) => m.key === 'Usenet:UseSsl').value === 'True' || usenetTab.settings.find((m) => m.key === 'Usenet:UseSsl').value === true;
+    const username = usenetTab.settings.find((m) => m.key === 'Usenet:Username').value as string;
+    const password = usenetTab.settings.find((m) => m.key === 'Usenet:Password').value as string;
+
+    this.saving = true;
+    this.testUsenetConnectionError = null;
+    this.testUsenetConnectionSuccess = false;
+
+    this.settingsService.testUsenetConnection(host, port, useSsl, username, password).subscribe({
+      next: () => {
+        this.saving = false;
+        this.testUsenetConnectionSuccess = true;
+      },
+      error: (err) => {
+        this.testUsenetConnectionError = err.error?.message || err.error?.Message || err.error || err.message;
+        this.saving = false;
+      },
+    });
+  }
+
+  public testWebDavConnection(): void {
+    const webdavTab = this.tabs.find((m) => m.key === 'WebDav');
+    const enabled = webdavTab.settings.find((m) => m.key === 'WebDav:Enabled').value === 'True' || webdavTab.settings.find((m) => m.key === 'WebDav:Enabled').value === true;
+    const port = parseInt(webdavTab.settings.find((m) => m.key === 'WebDav:Port').value as string);
+
+    this.saving = true;
+    this.testWebDavConnectionError = null;
+    this.testWebDavConnectionSuccess = null;
+
+    this.settingsService.testWebDavConnection(enabled, port).subscribe({
+      next: (result: any) => {
+        this.saving = false;
+        this.testWebDavConnectionSuccess = result?.message || result?.Message || result;
+      },
+      error: (err) => {
+        this.testWebDavConnectionError = err.error?.message || err.error?.Message || err.error || err.message;
+        this.saving = false;
+      },
+    });
+  }
+
+  public copyToClipboard(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('API Key copied to clipboard!');
+    });
+  }
+
+  public regenerateUsenetApiKey(setting: any): void {
+    if (confirm('Are you sure you want to regenerate the Usenet API key? You will need to update it in all connected applications.')) {
+      const newKey = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      setting.value = newKey;
+    }
   }
 
   public registerMagnetHandler(): void {
