@@ -47,6 +47,21 @@ public class SabnzbdHandler(Authentication authentication, IHttpContextAccessor 
 
             var maUsername = GetParam("ma_username");
             var maPassword = GetParam("ma_password");
+            var apiKey = GetParam("apikey");
+
+            if (!String.IsNullOrWhiteSpace(apiKey))
+            {
+                if (apiKey == Settings.Get.Usenet.ApiKey)
+                {
+                    context.Succeed(requirement);
+
+                    return;
+                }
+
+                context.Fail();
+
+                return;
+            }
 
             if (!String.IsNullOrWhiteSpace(maUsername) && !String.IsNullOrWhiteSpace(maPassword))
             {

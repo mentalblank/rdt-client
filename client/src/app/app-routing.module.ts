@@ -9,6 +9,8 @@ import { SettingsComponent } from './settings/settings.component';
 import { SetupComponent } from './setup/setup.component';
 import { TorrentTableComponent } from './torrent-table/torrent-table.component';
 import { TorrentComponent } from './torrent/torrent.component';
+import { UsenetComponent } from './usenet/usenet.component';
+import { WebdavBrowserComponent } from './webdav-browser/webdav-browser.component';
 
 const routes: Routes = [
   {
@@ -29,6 +31,14 @@ const routes: Routes = [
       {
         path: '',
         component: TorrentTableComponent,
+      },
+      {
+        path: 'usenet',
+        component: UsenetComponent,
+      },
+      {
+        path: 'webdav',
+        component: WebdavBrowserComponent,
       },
       {
         path: 'torrent/:id',

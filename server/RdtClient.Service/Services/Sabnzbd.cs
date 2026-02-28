@@ -5,19 +5,21 @@ using RdtClient.Data.Models.Internal;
 using RdtClient.Data.Models.Sabnzbd;
 using RdtClient.Service.Helpers;
 
+using RdtClient.Service.Services.Usenet;
+
 namespace RdtClient.Service.Services;
 
-public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings appSettings)
+public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings appSettings, UsenetQueueManager usenetQueueManager)
 {
     public virtual async Task<SabnzbdQueue> GetQueue()
     {
         var allTorrents = await torrents.Get();
         var activeTorrents = allTorrents.Where(t => t.Type == DownloadType.Nzb && t.Completed == null).ToList();
+        
+        var usenetJobs = await usenetQueueManager.GetJobs();
+        var activeUsenetJobs = usenetJobs.Where(j => j.Completed == null).ToList();
 
-        var queue = new SabnzbdQueue
-        {
-            NoOfSlots = activeTorrents.Count,
-            Slots = activeTorrents.Select((t, index) =>
+        var slots = activeTorrents.Select((t, index) =>
                                   {
                                       var rdProgress = Math.Clamp(t.RdProgress ?? 0.0, 0.0, 100.0) / 100.0;
                                       Double progress;
@@ -76,22 +78,40 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
                                           TimeLeft = timeLeft
                                       };
                                   })
-                                  .ToList()
-        };
+                                  .ToList();
 
-        return queue;
+        var usenetSlots = activeUsenetJobs.Select((j, index) => new SabnzbdQueueSlot
+        {
+            Index = slots.Count + index,
+            NzoId = j.Hash,
+            Filename = j.JobName,
+            Size = FileSizeHelper.FormatSize(j.TotalSize),
+            SizeLeft = "0", // In streaming mode, we don't really have "size left" in the traditional sense
+            Percentage = "100", // Internal Usenet jobs are effectively "finished" immediately as they are available for streaming
+            Status = "Completed", 
+            Category = j.Category ?? "*",
+            Priority = j.Priority > 0 ? "High" : "Normal",
+            TimeLeft = "0:00:00"
+        });
+
+        slots.AddRange(usenetSlots);
+
+        return new SabnzbdQueue
+        {
+            NoOfSlots = slots.Count,
+            Slots = slots
+        };
     }
 
     public virtual async Task<SabnzbdHistory> GetHistory()
     {
         var allTorrents = await torrents.Get();
         var completedTorrents = allTorrents.Where(t => t.Type == DownloadType.Nzb && t.Completed != null).ToList();
+        
+        var usenetJobs = await usenetQueueManager.GetJobs();
+        var completedUsenetJobs = usenetJobs.Where(j => j.Completed != null).ToList();
 
-        var history = new SabnzbdHistory
-        {
-            NoOfSlots = completedTorrents.Count,
-            TotalSlots = completedTorrents.Count,
-            Slots = completedTorrents.Select(t =>
+        var slots = completedTorrents.Select(t =>
                                      {
                                          var path = Settings.GetAppDefaultSavePath(t.ClientKind);
 
@@ -115,10 +135,36 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
                                              Path = path
                                          };
                                      })
-                                     .ToList()
-        };
+                                     .ToList();
 
-        return history;
+        var usenetSlots = completedUsenetJobs.Select(j =>
+        {
+            var path = Settings.Get.Usenet.SymlinkPath ?? "";
+            if (!String.IsNullOrWhiteSpace(j.Category))
+            {
+                path = Path.Combine(path, j.Category);
+            }
+            path = Path.Combine(path, j.JobName);
+
+            return new SabnzbdHistorySlot
+            {
+                NzoId = j.Hash,
+                Name = j.JobName,
+                Size = FileSizeHelper.FormatSize(j.TotalSize),
+                Status = String.IsNullOrWhiteSpace(j.Error) ? "Completed" : "Failed",
+                Category = j.Category ?? "Default",
+                Path = path
+            };
+        });
+
+        slots.AddRange(usenetSlots);
+
+        return new SabnzbdHistory
+        {
+            NoOfSlots = slots.Count,
+            TotalSlots = slots.Count,
+            Slots = slots
+        };
     }
 
     public virtual async Task<String> AddFile(Byte[] fileBytes, String? fileName, String? category, Int32? priority)

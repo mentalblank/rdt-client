@@ -49,4 +49,27 @@ export class SettingsService {
       secret,
     });
   }
+
+  public testUsenetConnection(
+    host: string,
+    port: number,
+    useSsl: boolean,
+    username?: string,
+    password?: string,
+  ): Observable<void> {
+    return this.http.post<void>(`${this.baseHref}Api/Settings/TestUsenetConnection`, {
+      host,
+      port,
+      useSsl,
+      username,
+      password,
+    });
+  }
+
+  public testWebDavConnection(enabled: boolean, port: number): Observable<any> {
+    return this.http.post<any>(`${this.baseHref}Api/Settings/TestWebDavConnection`, {
+      enabled,
+      port,
+    });
+  }
 }

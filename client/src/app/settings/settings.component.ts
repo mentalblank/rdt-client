@@ -33,10 +33,18 @@ export class SettingsComponent implements OnInit {
   public testAria2cConnectionError: string = null;
   public testAria2cConnectionSuccess: string = null;
 
+  public testUsenetConnectionError: string = null;
+  public testUsenetConnectionSuccess: boolean = false;
+
+  public testWebDavConnectionError: string = null;
+  public testWebDavConnectionSuccess: string = null;
+
   public canRegisterMagnetHandler = false;
 
   public categoryMappings: { category: string; provider: string }[] = [];
   public providerOptions: string[] = ['RealDebrid', 'AllDebrid', 'Premiumize', 'DebridLink', 'TorBox'];
+
+  public groupedUsenetSettings: { title: string; settings: Setting[] }[] = [];
 
   constructor(private settingsService: SettingsService) {}
 
@@ -47,10 +55,49 @@ export class SettingsComponent implements OnInit {
 
   public reset(): void {
     this.settingsService.get().subscribe((settings) => {
-      this.tabs = settings.filter((m) => m.key.indexOf(':') === -1);
+      this.tabs = settings.filter((m) => m.key.indexOf(':') === -1 && m.key !== 'WebDav');
 
       for (let tab of this.tabs) {
         tab.settings = settings.filter((m) => m.key.indexOf(`${tab.key}:`) > -1);
+        if (tab.key === 'Usenet') {
+          const usenetSettings = tab.settings;
+          const webdavSettings = settings.filter((m) => m.key.indexOf('WebDav:') > -1);
+          
+          this.groupedUsenetSettings = [
+            {
+              title: 'API Key',
+              settings: usenetSettings.filter(s => s.key === 'Usenet:ApiKey')
+            },
+            {
+              title: 'Provider',
+              settings: usenetSettings.filter(s => ['Usenet:Host', 'Usenet:Port', 'Usenet:UseSsl', 'Usenet:Username', 'Usenet:Password'].includes(s.key))
+            },
+            {
+              title: 'Download Settings',
+              settings: usenetSettings.filter(s => [
+                'Usenet:MaxDownloadConnections',
+                'Usenet:ArticleBufferSize',
+                'Usenet:MaxSpeed',
+                'Usenet:MappedPath',
+                'Usenet:RcloneMountPath',
+                'Usenet:SymlinkPath',
+                'Usenet:DuplicateNzbBehavior',
+                'Usenet:FailIfNoVideo',
+                'Usenet:PerformFullHealthCheck',
+                'Usenet:AlwaysSendFullHistory'
+              ].includes(s.key))
+            },
+            {
+              title: 'Regex Filtering',
+              settings: usenetSettings.filter(s => ['Usenet:IncludeRegex', 'Usenet:ExcludeRegex'].includes(s.key))
+            },
+            {
+              title: 'WebDAV',
+              settings: webdavSettings
+            }
+          ];
+        }
+
         if (tab.key === 'Provider') {
           const groupOrder = ['RealDebrid', 'AllDebrid', 'Premiumize', 'DebridLink', 'TorBox', 'Other'];
           const getGroup = (key: string) => {
@@ -110,6 +157,19 @@ export class SettingsComponent implements OnInit {
     }
 
     const settingsToSave = this.tabs.flatMap((m) => m.settings).filter((m) => m.type !== 'Object');
+    
+    // Also include WebDAV settings which are now hidden from the main tabs
+    const usenetTab = this.tabs.find(t => t.key === 'Usenet');
+    if (usenetTab) {
+      const webdavGroup = this.groupedUsenetSettings.find(g => g.title === 'WebDAV');
+      if (webdavGroup) {
+        webdavGroup.settings.forEach(s => {
+          if (!settingsToSave.find(ts => ts.key === s.key)) {
+            settingsToSave.push(s);
+          }
+        });
+      }
+    }
 
     this.settingsService.update(settingsToSave).subscribe({
       next: () =>
@@ -207,6 +267,68 @@ export class SettingsComponent implements OnInit {
         this.saving = false;
       },
     });
+  }
+
+  public testUsenetConnection(): void {
+    const usenetTab = this.tabs.find((m) => m.key === 'Usenet');
+    const host = usenetTab.settings.find((m) => m.key === 'Usenet:Host').value as string;
+    const port = parseInt(usenetTab.settings.find((m) => m.key === 'Usenet:Port').value as string);
+    const useSsl = usenetTab.settings.find((m) => m.key === 'Usenet:UseSsl').value === 'True' || usenetTab.settings.find((m) => m.key === 'Usenet:UseSsl').value === true;
+    const username = usenetTab.settings.find((m) => m.key === 'Usenet:Username').value as string;
+    const password = usenetTab.settings.find((m) => m.key === 'Usenet:Password').value as string;
+
+    this.saving = true;
+    this.testUsenetConnectionError = null;
+    this.testUsenetConnectionSuccess = false;
+
+    this.settingsService.testUsenetConnection(host, port, useSsl, username, password).subscribe({
+      next: () => {
+        this.saving = false;
+        this.testUsenetConnectionSuccess = true;
+      },
+      error: (err) => {
+        this.testUsenetConnectionError = err.error?.message || err.error?.Message || err.error || err.message;
+        this.saving = false;
+      },
+    });
+  }
+
+  public testWebDavConnection(): void {
+    const webdavGroup = this.groupedUsenetSettings.find(g => g.title === 'WebDAV');
+    if (!webdavGroup) return;
+
+    const enabled = webdavGroup.settings.find((m) => m.key === 'WebDav:Enabled').value === 'True' || webdavGroup.settings.find((m) => m.key === 'WebDav:Enabled').value === true;
+    const port = parseInt(webdavGroup.settings.find((m) => m.key === 'WebDav:Port').value as string);
+
+    this.saving = true;
+    this.testWebDavConnectionError = null;
+    this.testWebDavConnectionSuccess = null;
+
+    this.settingsService.testWebDavConnection(enabled, port).subscribe({
+      next: (result: any) => {
+        this.saving = false;
+        this.testWebDavConnectionSuccess = result?.message || result?.Message || result;
+      },
+      error: (err) => {
+        this.testWebDavConnectionError = err.error?.message || err.error?.Message || err.error || err.message;
+        this.saving = false;
+      },
+    });
+  }
+
+  public copyToClipboard(text: string): void {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('API Key copied to clipboard!');
+    });
+  }
+
+  public regenerateUsenetApiKey(setting: any): void {
+    if (confirm('Are you sure you want to regenerate the Usenet API key? You will need to update it in all connected applications.')) {
+      const newKey = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      setting.value = newKey;
+    }
   }
 
   public registerMagnetHandler(): void {

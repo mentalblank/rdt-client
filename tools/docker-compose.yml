@@ -1,11 +1,10 @@
-version: "3"
 services:
   rdtclient:
     restart: unless-stopped
     container_name: rdtclient
-    # build:
-    #     context: .
-    #     dockerfile: Dockerfile
+    build:
+      context: ..
+      dockerfile: Dockerfile
     image: mentalblank/rdtclient:latest
     hostname: rdtclient
     environment:
@@ -13,17 +12,17 @@ services:
       - PGID=1000
       - TZ=Australia/Sydney
     logging:
-        driver: json-file
-        options:
-            max-size: 10m
+      driver: json-file
+      options:
+        max-size: 10m
     ports:
-      - 6500/tcp
+      - 6500:6500
     healthcheck:
-        test: curl --fail http://localhost:6500 || exit 1
-        interval: 30s
-        retries: 3
-        start_period: 30s
-        timeout: 30s
+      test: curl --fail http://localhost:6500 || exit 1
+      interval: 30s
+      retries: 3
+      start_period: 30s
+      timeout: 30s
     networks:
       - saltbox
     labels:
@@ -41,11 +40,58 @@ services:
       traefik.http.routers.rdtclient.tls.options: securetls@file 
       traefik.http.services.rdtclient.loadbalancer.server.port: 6500 
     volumes:
-      - /opt/rdtclient:/CONFIG
       - /etc/localtime:/etc/localtime:ro
-      - /mnt:/mnt
+      - /opt/rdtclient:/config
       - /opt/rdtclient/data:/data
       - /opt/rdtclient/data/db:/data/db
+      - /mnt:/mnt
+
+  rclone-rdt:
+    image: rclone/rclone:latest
+    container_name: rclone-rdt
+    restart: unless-stopped
+    environment:
+      PUID: 1000
+      PGID: 1000
+    volumes:
+      - /opt/rdtclient:/config
+      - /opt/rdtclient/rclone.conf:/config/rclone.conf
+      - /mnt:/mnt
+      - /mnt/remote/rdtclient:/data:rshared
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse:/dev/fuse:rwm
+    security_opt:
+      - apparmor=unconfined
+    networks:
+      - saltbox
+    command: >
+      mount rclone-rdt: /data
+      --config /config/rclone.conf
+      --allow-other
+      --allow-non-empty
+      --uid=1000
+      --gid=1000
+      --vfs-cache-mode=full
+      --vfs-cache-max-size=5G
+      --vfs-cache-max-age=180m
+      --buffer-size=1024
+      --dir-cache-time=1s
+      --use-cookies
+      --links
+      --vfs-fast-fingerprint
+      --async-read=true
+      --vfs-read-ahead=96M
+      --vfs-read-chunk-size=32M
+      --vfs-read-chunk-size-limit=32M
+      --cache-dir /mnt/remote/cache/rdtclient
+      --poll-interval=15s
+      --vfs-cache-poll-interval=15s
+      --timeout=10m
+      --use-mmap
+      --umask=002
+      --log-level=INFO
 
 networks:
   saltbox:

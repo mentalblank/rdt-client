@@ -14,69 +14,178 @@
 @for (tab of tabs; track tab.key; let i = $index) {
   <div [hidden]="activeTab !== i">
     <h3>{{ tab.description }}</h3>
-    @for (setting of tab.settings; track setting.key) {
-      @if (isSettingVisible(setting)) {
-        @if (setting.type === "Object") {
-          <h3 class="title is-3" style="margin-top: 1.2rem">{{ setting.displayName }}</h3>
-        }
-        <div class="field" [ngClass]="{ 'dependent-setting': isDependentSetting(setting) }" *ngIf="setting.key !== 'Provider:CategoryMapping'">
-          @if (setting.type !== "Boolean" && setting.type !== "Object") {
-            <label class="label">{{ setting.displayName }}</label>
-          }
-          @switch (setting.type) {
-            @case ("String") {
-              <div class="control">
-                <input class="input" type="text" [(ngModel)]="setting.value" />
-              </div>
+    @if (tab.key === 'Usenet') {
+      <div class="field">
+        <label class="checkbox">
+          <input type="checkbox" [(ngModel)]="tab.settings[0].value" />
+          {{ tab.settings[0].displayName }}
+        </label>
+        <p class="help">{{ tab.settings[0].description }}</p>
+      </div>
+
+      @for (group of groupedUsenetSettings; track group.title) {
+        <h4 class="title is-4 mt-5">{{ group.title }}</h4>
+        @for (setting of group.settings; track setting.key) {
+          <div class="field" *ngIf="setting.key !== 'Usenet:Enabled'">
+            @if (setting.type !== 'Boolean') {
+              <label class="label">{{ setting.displayName }}</label>
             }
-            @case ("Int32") {
-              <div class="control">
-                <input class="input" type="number" [(ngModel)]="setting.value" />
-              </div>
-            }
-            @case ("Boolean") {
-              <label class="checkbox">
-                <input type="checkbox" [(ngModel)]="setting.value" />
-                {{ setting.displayName }}
-              </label>
-            }
-            @case ("Enum") {
-              <div class="control select is-fullwidth">
-                <select [(ngModel)]="setting.value">
-                  @for (kvp of setting.enumValues | keyvalue; track kvp) {
-                    <option [value]="kvp.key">{{ kvp.value }}</option>
+            @switch (setting.type) {
+              @case ("String") {
+                <div class="control" [ngClass]="{ 'has-icons-right': setting.key.endsWith(':ApiKey') }">
+                  <input class="input" type="text" [(ngModel)]="setting.value" [readonly]="setting.key.endsWith(':ApiKey')" />
+                  @if (setting.key.endsWith(':ApiKey')) {
+                    <div class="buttons mt-2">
+                      <button class="button is-small is-info" (click)="copyToClipboard($any(setting.value))">
+                        <span>Copy</span>
+                      </button>
+                      <button class="button is-small is-warning" (click)="regenerateUsenetApiKey(setting)">
+                        <span>Regenerate</span>
+                      </button>
+                    </div>
                   }
-                </select>
-              </div>
+                </div>
+              }
+              @case ("Int32") {
+                <div class="control">
+                  <input class="input" type="number" [(ngModel)]="setting.value" />
+                </div>
+              }
+              @case ("Boolean") {
+                <label class="checkbox">
+                  <input type="checkbox" [(ngModel)]="setting.value" />
+                  {{ setting.displayName }}
+                </label>
+              }
+              @case ("Enum") {
+                <div class="control select is-fullwidth">
+                  <select [(ngModel)]="setting.value">
+                    @for (kvp of setting.enumValues | keyvalue; track kvp) {
+                      <option [value]="kvp.key">{{ kvp.value }}</option>
+                    }
+                  </select>
+                </div>
+              }
             }
-            @case ("Object") {}
-            @default {
-              <div class="control">Invalid setting type {{ setting.type }}</div>
+            <p class="help" [innerHtml]="setting.description | nl2br"></p>
+            @if (setting.key === "Usenet:MaxSpeed") {
+              <button
+                class="button is-warning mt-2"
+                (click)="testUsenetConnection()"
+                [disabled]="saving"
+                [ngClass]="{ 'is-loading': saving }"
+              >
+                Test Usenet connection
+              </button>
+              @if (testUsenetConnectionError) {
+                <div class="notification is-danger is-light" style="margin-top: 1rem">
+                  Could not connect to Usenet server<br />
+                  {{ testUsenetConnectionError }}
+                </div>
+              }
+              @if (testUsenetConnectionSuccess) {
+                <div class="notification is-success is-light" style="margin-top: 1rem">Successfully connected to Usenet server!</div>
+              }
             }
+            @if (setting.key === "WebDav:ReadOnly") {
+              <button
+                class="button is-warning mt-2"
+                (click)="testWebDavConnection()"
+                [disabled]="saving"
+                [ngClass]="{ 'is-loading': saving }"
+              >
+                Test WebDAV status
+              </button>
+              @if (testWebDavConnectionError) {
+                <div class="notification is-danger is-light" style="margin-top: 1rem">
+                  WebDAV test failed<br />
+                  {{ testWebDavConnectionError }}
+                </div>
+              }
+              @if (testWebDavConnectionSuccess) {
+                <div class="notification is-success is-light" style="margin-top: 1rem">
+                  {{ testWebDavConnectionSuccess }}
+                </div>
+              }
+            }
+          </div>
+        }
+      }
+    } @else {
+      @for (setting of tab.settings; track setting.key) {
+        @if (isSettingVisible(setting)) {
+          @if (setting.type === "Object") {
+            <h3 class="title is-3" style="margin-top: 1.2rem">{{ setting.displayName }}</h3>
           }
-          <p class="help" [innerHtml]="setting.description | nl2br"></p>
-          @if (setting.key === "DownloadClient:Aria2cSecret") {
-            <button
-              class="button is-warning"
-              (click)="testAria2cConnection()"
-              [disabled]="saving"
-              [ngClass]="{ 'is-loading': saving }"
-            >
-              Test aria2 connection
-            </button>
-            @if (testAria2cConnectionError) {
-              <div class="notification is-danger is-light" style="margin-top: 1rem">
-                Could connect to Aria2 client<br />
-                {{ testAria2cConnectionError }}
-              </div>
+          <div class="field" [ngClass]="{ 'dependent-setting': isDependentSetting(setting) }" *ngIf="setting.key !== 'Provider:CategoryMapping'">
+            @if (setting.type !== "Boolean" && setting.type !== "Object") {
+              <label class="label">{{ setting.displayName }}</label>
             }
-            @if (testAria2cConnectionSuccess) {
-              <div class="notification is-success is-light" style="margin-top: 1rem">
-                Found Aria2 client version {{ testAria2cConnectionSuccess }}
-              </div>
+            @switch (setting.type) {
+              @case ("String") {
+                <div class="control" [ngClass]="{ 'has-icons-right': setting.key.endsWith(':ApiKey') }">
+                  <input class="input" type="text" [(ngModel)]="setting.value" [readonly]="setting.key.endsWith(':ApiKey')" />
+                  @if (setting.key.endsWith(':ApiKey')) {
+                    <div class="buttons mt-2">
+                      <button class="button is-small is-info" (click)="copyToClipboard($any(setting.value))">
+                        <span>Copy</span>
+                      </button>
+                      <button class="button is-small is-warning" (click)="regenerateUsenetApiKey(setting)">
+                        <span>Regenerate</span>
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+              @case ("Int32") {
+                <div class="control">
+                  <input class="input" type="number" [(ngModel)]="setting.value" />
+                </div>
+              }
+              @case ("Boolean") {
+                <label class="checkbox">
+                  <input type="checkbox" [(ngModel)]="setting.value" />
+                  {{ setting.displayName }}
+                </label>
+              }
+              @case ("Enum") {
+                <div class="control select is-fullwidth">
+                  <select [(ngModel)]="setting.value">
+                    @for (kvp of setting.enumValues | keyvalue; track kvp) {
+                      <option [value]="kvp.key">{{ kvp.value }}</option>
+                    }
+                  </select>
+                </div>
+              }
+              @case ("Object") {}
+              @default {
+                <div class="control">Invalid setting type {{ setting.type }}</div>
+              }
             }
-          }
-        </div>
+            <p class="help" [innerHtml]="setting.description | nl2br"></p>
+            @if (setting.key === "DownloadClient:Aria2cSecret") {
+              <button
+                class="button is-warning"
+                (click)="testAria2cConnection()"
+                [disabled]="saving"
+                [ngClass]="{ 'is-loading': saving }"
+              >
+                Test aria2 connection
+              </button>
+              @if (testAria2cConnectionError) {
+                <div class="notification is-danger is-light" style="margin-top: 1rem">
+                  Could connect to Aria2 client<br />
+                  {{ testAria2cConnectionError }}
+                </div>
+              }
+              @if (testAria2cConnectionSuccess) {
+                <div class="notification is-success is-light" style="margin-top: 1rem">
+                  Found Aria2 client version {{ testAria2cConnectionSuccess }}
+                </div>
+              }
+            }
+          </div>
+        }
       }
     }
     @if (tab.key === 'Provider') {

@@ -14,6 +14,7 @@ export class TorrentService {
   public update$: Subject<Torrent[]> = new Subject();
   public diskSpaceStatus$: Subject<DiskSpaceStatus> = new Subject();
   public rateLimitStatus$: Subject<RateLimitStatus> = new Subject();
+  public usenetStatus$: Subject<{ active: number; max: number }> = new Subject();
 
   private connection: signalR.HubConnection;
 
@@ -44,6 +45,10 @@ export class TorrentService {
 
     this.connection.on('rateLimitStatus', (status: any) => {
       this.rateLimitStatus$.next(status);
+    });
+
+    this.connection.on('usenetStatus', (status: any) => {
+      this.usenetStatus$.next(status);
     });
 
     this.connection.onreconnected(() => {
@@ -87,20 +92,6 @@ export class TorrentService {
     formData.append('file', file);
     formData.append('formData', JSON.stringify({ torrent }));
     return this.http.post<void>(`${this.baseHref}Api/Torrents/UploadFile`, formData);
-  }
-
-  public uploadNzbLink(nzbLink: string, torrent: Torrent): Observable<void> {
-    return this.http.post<void>(`${this.baseHref}Api/Torrents/UploadNzbLink`, {
-      nzbLink,
-      torrent,
-    });
-  }
-
-  public uploadNzbFile(file: File, torrent: Torrent): Observable<void> {
-    const formData: FormData = new FormData();
-    formData.append('file', file);
-    formData.append('formData', JSON.stringify({ torrent }));
-    return this.http.post<void>(`${this.baseHref}Api/Torrents/UploadNzbFile`, formData);
   }
 
   public checkFilesMagnet(magnetLink: string): Observable<TorrentFileAvailability[]> {

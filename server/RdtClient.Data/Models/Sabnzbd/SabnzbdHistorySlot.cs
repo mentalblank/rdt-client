@@ -10,6 +10,9 @@ public class SabnzbdHistorySlot
     [JsonPropertyName("name")]
     public String Name { get; set; } = "";
 
+    [JsonPropertyName("nzb_name")]
+    public String NzbName { get; set; } = "";
+
     [JsonPropertyName("size")]
     public String Size { get; set; } = "0 B";
 
@@ -21,4 +24,7 @@ public class SabnzbdHistorySlot
 
     [JsonPropertyName("storage")]
     public String Path { get; set; } = "";
+
+    [JsonPropertyName("bytes")]
+    public Int64 Bytes { get; set; }
 }

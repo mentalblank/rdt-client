@@ -1,0 +1,81 @@
+<nav class="breadcrumb" aria-label="breadcrumbs">
+  <ul>
+    <li *ngFor="let segment of pathSegments; let last = last" [class.is-active]="last">
+      <a (click)="navigateToPath(segment.path)">{{ segment.name }}</a>
+    </li>
+  </ul>
+</nav>
+
+<div class="table-container">
+  <table class="table is-fullwidth is-hoverable">
+    <thead>
+      <tr>
+        <th style="width: 40px">
+          <input
+            type="checkbox"
+            (click)="toggleSelectAll($event)"
+            [checked]="selectedItems.length > 0 && selectedItems.length === items.length"
+          />
+        </th>
+        <th style="width: 40px"></th>
+        <th>Name</th>
+        <th style="width: 150px">Size</th>
+        <th style="width: 150px">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngIf="path !== '/'" (click)="navigateUp()" style="cursor: pointer">
+        <td></td>
+        <td><i class="fas fa-folder-open"></i></td>
+        <td>..</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr *ngIf="loading">
+        <td colspan="5" class="has-text-centered">Loading...</td>
+      </tr>
+      <tr *ngIf="error" class="has-background-danger-light">
+        <td colspan="5" class="has-text-danger">{{ error }}</td>
+      </tr>
+      <tr *ngIf="!loading && !error && items.length === 0">
+        <td colspan="5" class="has-text-centered">No items found</td>
+      </tr>
+      <tr *ngFor="let item of items" [style.cursor]="item.isDirectory ? 'pointer' : 'default'">
+        <td>
+          <input
+            type="checkbox"
+            (click)="toggleSelect(item.name)"
+            [checked]="selectedItems.includes(item.name)"
+          />
+        </td>
+        <td (click)="navigate(item)">
+          <i *ngIf="item.isDirectory" class="fas fa-folder"></i>
+          <i *ngIf="!item.isDirectory" class="fas fa-file"></i>
+        </td>
+        <td (click)="navigate(item)">{{ item.name }}</td>
+        <td (click)="navigate(item)">{{ item.size | filesize }}</td>
+        <td>
+          <div class="buttons">
+            <button *ngIf="!item.isDirectory" class="button is-small is-info" (click)="download(item)" title="Download">
+              <i class="fas fa-download"></i>
+            </button>
+            <button *ngIf="!readOnly" class="button is-small is-danger" (click)="delete(item)" title="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="flex-container mt-4">
+    <div class="buttons">
+      <button class="button is-info" (click)="downloadSelected()" [disabled]="selectedItems.length === 0 || loading">
+        Download Selected
+      </button>
+      <button *ngIf="!readOnly" class="button is-danger" (click)="deleteSelected()" [disabled]="selectedItems.length === 0 || loading">
+        Delete Selected
+      </button>
+    </div>
+  </div>
+</div>

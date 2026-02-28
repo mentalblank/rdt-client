@@ -9,6 +9,7 @@ using RdtClient.Data.Models.Internal;
 using RdtClient.Service.Helpers;
 using RdtClient.Service.Services;
 using RdtClient.Service.Services.Downloaders;
+using RdtClient.Service.Services.Usenet;
 using DownloadClient = RdtClient.Data.Enums.DownloadClient;
 
 namespace RdtClient.Web.Controllers;
@@ -211,6 +212,54 @@ public class SettingsController(Settings settings, Torrents torrents) : Controll
 
         return Ok(version);
     }
+
+    [HttpPost]
+    [Route("TestUsenetConnection")]
+    public async Task<ActionResult> TestUsenetConnection([FromBody] SettingsControllerTestUsenetConnectionRequest? request)
+    {
+        if (request == null)
+        {
+            return BadRequest();
+        }
+
+        if (String.IsNullOrEmpty(request.Host))
+        {
+            return BadRequest("Invalid Host");
+        }
+
+        var provider = new UsenetProvider
+        {
+            Host = request.Host,
+            Port = request.Port,
+            UseSsl = request.UseSsl,
+            Username = request.Username,
+            Password = request.Password
+        };
+
+        await UsenetStreamingClient.CreateNewConnection(provider, CancellationToken.None);
+
+        return Ok();
+    }
+
+    [HttpPost]
+    [Route("TestWebDavConnection")]
+    public ActionResult TestWebDavConnection([FromBody] SettingsControllerTestWebDavConnectionRequest? request)
+    {
+        if (request == null)
+        {
+            return BadRequest(new { Message = "Invalid request" });
+        }
+
+        // For WebDAV we just check if it's reachable or configured
+        if (request.Enabled)
+        {
+            var requestHost = HttpContext.Request.Host.Value;
+            var scheme = HttpContext.Request.Scheme;
+            return Ok(new { Message = $"WebDAV is enabled. Access it at {scheme}://{requestHost}/dav/usenet" });
+        }
+
+        return BadRequest(new { Message = "WebDAV is not enabled" });
+    }
 }
 
 public class SettingsControllerTestPathRequest
@@ -222,4 +271,19 @@ public class SettingsControllerTestAria2cConnectionRequest
 {
     public String? Url { get; set; }
     public String? Secret { get; set; }
+}
+
+public class SettingsControllerTestUsenetConnectionRequest
+{
+    public String? Host { get; set; }
+    public Int32 Port { get; set; }
+    public Boolean UseSsl { get; set; }
+    public String? Username { get; set; }
+    public String? Password { get; set; }
+}
+
+public class SettingsControllerTestWebDavConnectionRequest
+{
+    public Boolean Enabled { get; set; }
+    public Int32 Port { get; set; }
 }

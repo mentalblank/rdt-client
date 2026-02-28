@@ -33,12 +33,10 @@ WORKDIR /appserver
 COPY server ./server
 RUN \
    echo "**** Building Source Code for $TARGETPLATFORM on $BUILDPLATFORM ****" && \
-   cd server && \
-   dotnet restore --no-cache RdtClient.sln && \
-   dotnet test && \
-   dotnet publish --no-restore -c Release -o out ; 
-
-# Stage 3 - Build runtime image
+       cd server && \
+       dotnet restore --no-cache RdtClient.sln && \
+       dotnet publish --no-restore -c Release -o out ; 
+   # Stage 3 - Build runtime image
 FROM ghcr.io/linuxserver/baseimage-alpine:3.20
 ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}

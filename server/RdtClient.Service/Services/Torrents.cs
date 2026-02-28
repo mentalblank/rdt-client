@@ -16,6 +16,7 @@ using RdtClient.Data.Models.Internal;
 using RdtClient.Service.BackgroundServices;
 using RdtClient.Service.Helpers;
 using RdtClient.Service.Services.DebridClients;
+using RdtClient.Service.Services.Usenet;
 using RdtClient.Service.Wrappers;
 using Torrent = RdtClient.Data.Models.Data.Torrent;
 
@@ -32,7 +33,8 @@ public class Torrents(
     PremiumizeDebridClient premiumizeDebridClient,
     RealDebridDebridClient realDebridDebridClient,
     DebridLinkClient debridLinkClient,
-    TorBoxDebridClient torBoxDebridClient)
+    TorBoxDebridClient torBoxDebridClient,
+    UsenetQueueManager usenetQueueManager)
 {
     private static readonly SemaphoreSlim RealDebridUpdateLock = new(1, 1);
 
@@ -199,98 +201,24 @@ public class Torrents(
 
     public virtual async Task<IList<Torrent>> AddNzbLinkToDebridQueue(String nzbLink, Torrent torrent)
     {
-        torrent.RdStatus = TorrentStatus.Queued;
-
-        try
-        {
-            var uri = new Uri(nzbLink);
-            var lastSegment = uri.Segments.LastOrDefault()?.TrimEnd('/');
-            torrent.RdName = !String.IsNullOrWhiteSpace(lastSegment) ? lastSegment : "Unknown NZB";
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "{ex.Message}, trying to parse {nzbLink}", ex.Message, nzbLink);
-
-            throw new($"{ex.Message}, trying to parse {nzbLink}");
-        }
-
-        var nzbHash = ComputeMd5Hash(nzbLink);
-        var providers = GetProvidersForCategory(torrent.Category);
-        var results = new List<Torrent>();
-
-        foreach (var provider in providers)
-        {
-            var nzbNewTorrent = await AddQueued(nzbHash, nzbLink, false, DownloadType.Nzb, torrent, provider);
-            Log($"Adding {nzbLink} with hash {nzbHash} (nzb link) to queue for {provider}");
-            await CopyAddedTorrent(nzbNewTorrent);
-            results.Add(nzbNewTorrent);
-        }
-
-        return results;
+        throw new NotSupportedException("NZB Links are not supported in the internal Usenet engine. Please upload the .nzb file instead.");
     }
 
     public virtual async Task<IList<Torrent>> AddNzbFileToDebridQueue(Byte[] bytes, String? fileName, Torrent torrent)
     {
-        torrent.RdName = fileName ?? "Unknown NZB";
-        torrent.RdStatus = TorrentStatus.Queued;
-
-        try
+        var hash = await usenetQueueManager.AddNzbFile(bytes, fileName ?? "unknown.nzb", torrent.Category, torrent.Priority ?? 0);
+        
+        // Return a dummy torrent list to satisfy the UI, although the job is actually in UsenetJobs table
+        return new List<Torrent>
         {
-            using var stream = new MemoryStream(bytes);
-
-            var settings = new XmlReaderSettings
+            new Torrent
             {
-                DtdProcessing = DtdProcessing.Ignore,
-                XmlResolver = null
-            };
-
-            using var reader = XmlReader.Create(stream, settings);
-            var doc = XDocument.Load(reader);
-            var nzbNamespace = doc.Root?.GetDefaultNamespace() ?? XNamespace.None;
-
-            var title = doc.Root?
-                           .Elements(nzbNamespace + "head")
-                           .Elements(nzbNamespace + "meta")
-                           .FirstOrDefault(x => x.Attribute("type")?.Value == "name")
-                           ?
-                           .Value;
-
-            if (String.IsNullOrWhiteSpace(title))
-            {
-                title = doc.Root?
-                           .Elements(nzbNamespace + "head")
-                           .Elements(nzbNamespace + "meta")
-                           .FirstOrDefault(x => x.Attribute("type")?.Value == "title")
-                           ?
-                           .Value;
+                Hash = hash,
+                RdName = fileName,
+                RdStatus = TorrentStatus.Processing,
+                Type = DownloadType.Nzb
             }
-
-            if (!String.IsNullOrWhiteSpace(title))
-            {
-                torrent.RdName = title.Trim();
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "{ex.Message}, trying to parse NZB file contents", ex.Message);
-
-            throw new($"{ex.Message}, trying to parse NZB file contents");
-        }
-
-        var nzbHash = ComputeMd5HashFromBytes(bytes);
-        var nzbFileAsBase64 = Convert.ToBase64String(bytes);
-        var providers = GetProvidersForCategory(torrent.Category);
-        var results = new List<Torrent>();
-
-        foreach (var provider in providers)
-        {
-            var nzbNewTorrent = await AddQueued(nzbHash, nzbFileAsBase64, true, DownloadType.Nzb, torrent, provider);
-            Log($"Adding {nzbHash} (nzb file) to queue for {provider}", nzbNewTorrent);
-            await CopyAddedTorrent(nzbNewTorrent);
-            results.Add(nzbNewTorrent);
-        }
-
-        return results;
+        };
     }
 
     public virtual async Task<IList<Torrent>> AddMagnetToDebridQueue(String magnetLink, Torrent torrent)
@@ -434,7 +362,7 @@ public class Torrents(
 
     private async Task CopyAddedTorrent(Torrent torrent)
     {
-        if (String.IsNullOrWhiteSpace(Settings.Get.General.CopyAddedTorrents) || String.IsNullOrWhiteSpace(torrent.FileOrMagnet) || String.IsNullOrWhiteSpace(torrent.RdName))
+        if (torrent.Type == DownloadType.Nzb || String.IsNullOrWhiteSpace(Settings.Get.General.CopyAddedTorrents) || String.IsNullOrWhiteSpace(torrent.FileOrMagnet) || String.IsNullOrWhiteSpace(torrent.RdName))
         {
             return;
         }
@@ -509,15 +437,20 @@ public class Torrents(
 
             if (torrent.Type == DownloadType.Nzb)
             {
-                id = torrent.IsFile
-                    ? await GetDebridClient(torrent.ClientKind).AddNzbFile(Convert.FromBase64String(torrent.FileOrMagnet), torrent.RdName)
-                    : await GetDebridClient(torrent.ClientKind).AddNzbLink(torrent.FileOrMagnet);
+                if (torrent.IsFile)
+                {
+                    id = await usenetQueueManager.AddNzbFile(Convert.FromBase64String(torrent.FileOrMagnet!), torrent.RdName ?? "unknown.nzb", torrent.Category, torrent.Priority ?? 0);
+                }
+                else
+                {
+                    throw new NotSupportedException("NZB Links are not supported in the internal Usenet engine yet.");
+                }
             }
             else
             {
                 id = torrent.IsFile
-                    ? await GetDebridClient(torrent.ClientKind).AddTorrentFile(Convert.FromBase64String(torrent.FileOrMagnet))
-                    : await GetDebridClient(torrent.ClientKind).AddTorrentMagnet(torrent.FileOrMagnet);
+                    ? await GetDebridClient(torrent.ClientKind).AddTorrentFile(Convert.FromBase64String(torrent.FileOrMagnet!))
+                    : await GetDebridClient(torrent.ClientKind).AddTorrentMagnet(torrent.FileOrMagnet!);
             }
 
             await torrentData.UpdateRdId(torrent, id);
@@ -744,20 +677,33 @@ public class Torrents(
 
     public async Task<Profile> GetProfile()
     {
-        var provider = Provider.RealDebrid;
-        if (String.IsNullOrWhiteSpace(Settings.Get.Provider.RealDebridApiKey))
+        Provider? provider = null;
+        
+        if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.RealDebridApiKey)) provider = Provider.RealDebrid;
+        else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.AllDebridApiKey)) provider = Provider.AllDebrid;
+        else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.PremiumizeApiKey)) provider = Provider.Premiumize;
+        else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.DebridLinkApiKey)) provider = Provider.DebridLink;
+        else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.TorBoxApiKey)) provider = Provider.TorBox;
+
+        if (provider == null)
         {
-            if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.AllDebridApiKey)) provider = Provider.AllDebrid;
-            else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.PremiumizeApiKey)) provider = Provider.Premiumize;
-            else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.DebridLinkApiKey)) provider = Provider.DebridLink;
-            else if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.TorBoxApiKey)) provider = Provider.TorBox;
+            return new Profile
+            {
+                Provider = "None",
+                UserName = "Internal",
+                Expiration = null,
+                CurrentVersion = UpdateChecker.CurrentVersion,
+                LatestVersion = UpdateChecker.LatestVersion,
+                IsInsecure = UpdateChecker.IsInsecure,
+                DisableUpdateNotification = Settings.Get.General.DisableUpdateNotifications
+            };
         }
 
-        var user = await GetDebridClient(provider).GetUser();
+        var user = await GetDebridClient(provider.Value).GetUser();
 
         var profile = new Profile
         {
-            Provider = Enum.GetName(provider),
+            Provider = Enum.GetName(provider.Value),
             UserName = user.Username,
             Expiration = user.Expiration,
             CurrentVersion = UpdateChecker.CurrentVersion,
@@ -776,6 +722,7 @@ public class Torrents(
         try
         {
             var torrents = await Get();
+            torrents = torrents.Where(m => m.Type != DownloadType.Nzb).ToList();
 
             var providers = new List<Provider>();
             if (!String.IsNullOrWhiteSpace(Settings.Get.Provider.RealDebridApiKey)) providers.Add(Provider.RealDebrid);

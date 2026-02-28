@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using RdtClient.Data.Models.Internal;
+using RdtClient.Service.Services.Usenet;
 
 namespace RdtClient.Service.Services;
 
-public class RemoteService(IHubContext<RdtHub> hub, Torrents torrents)
+public class RemoteService(IHubContext<RdtHub> hub, Torrents torrents, UsenetStreamingClient usenetStreamingClient)
 {
     public async Task Update()
     {
@@ -81,6 +82,14 @@ public class RemoteService(IHubContext<RdtHub> hub, Torrents torrents)
         [
             torrentDtos
         ]);
+        
+        await UpdateUsenetStatus();
+    }
+
+    public async Task UpdateUsenetStatus()
+    {
+        var stats = usenetStreamingClient.GetConnectionStats();
+        await hub.Clients.All.SendCoreAsync("usenetStatus", [new { stats.Active, stats.Max }]);
     }
 
     public async Task UpdateDiskSpaceStatus(Object status)

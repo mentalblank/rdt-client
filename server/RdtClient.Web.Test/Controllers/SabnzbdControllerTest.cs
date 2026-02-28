@@ -23,7 +23,7 @@ public class SabnzbdControllerTest
         SettingData.Get.General.AuthenticationType = AuthenticationType.None;
         SettingData.Get.Provider.RealDebridApiKey = "test-api-key";
 
-        var torrentsMock = new Mock<Torrents>(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
+        var torrentsMock = new Mock<Torrents>(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
         var sabnzbdLoggerMock = new Mock<ILogger<Sabnzbd>>();
         _sabnzbdMock = new(sabnzbdLoggerMock.Object, torrentsMock.Object, null!);
         var loggerMock = new Mock<ILogger<SabnzbdController>>();

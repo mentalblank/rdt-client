@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using RdtClient.Data.Data;
 using RdtClient.Data.Models.Internal;
@@ -15,7 +16,11 @@ public static class DiConfig
         }
 
         var connectionString = $"Data Source={appSettings.Database.Path};Cache=Shared;Pooling=True;Command Timeout=30";
-        services.AddDbContext<DataContext>(options => options.UseSqlite(connectionString));
+        services.AddDbContext<DataContext>(options =>
+        {
+            options.UseSqlite(connectionString);
+            options.ConfigureWarnings(x => x.Ignore(RelationalEventId.PendingModelChangesWarning));
+        });
 
         services.AddScoped<DownloadData>();
         services.AddScoped<SettingData>();
