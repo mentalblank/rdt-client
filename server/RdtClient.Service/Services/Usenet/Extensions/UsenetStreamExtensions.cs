@@ -1,9 +1,15 @@
 using System.Buffers;
+using RdtClient.Service.Services.Usenet.Streams;
 
 namespace RdtClient.Service.Services.Usenet.Extensions;
 
 public static class UsenetStreamExtensions
 {
+    public static Stream LimitLength(this Stream stream, Int64 length)
+    {
+        return new LimitedLengthStream(stream, length);
+    }
+
     public static async Task DiscardBytesAsync(this Stream stream, Int64 count, CancellationToken ct = default)
     {
         if (count == 0) return;
@@ -23,5 +29,19 @@ public static class UsenetStreamExtensions
         {
             ArrayPool<Byte>.Shared.Return(throwaway);
         }
+    }
+
+    public static Stream OnDispose(this Stream stream, Action onDispose)
+    {
+        return new DisposableCallbackStream(stream, onDispose, () =>
+        {
+            onDispose?.Invoke();
+            return ValueTask.CompletedTask;
+        });
+    }
+
+    public static Stream OnDisposeAsync(this Stream stream, Func<ValueTask> onDisposeAsync)
+    {
+        return new DisposableCallbackStream(stream, onDisposeAsync: onDisposeAsync);
     }
 }

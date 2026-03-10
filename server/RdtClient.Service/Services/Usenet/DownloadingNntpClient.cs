@@ -18,8 +18,7 @@ public class DownloadingNntpClient : WrappingNntpClient
     {
         var settings = Settings.Get.Usenet;
         var maxDownloadConnections = settings.MaxDownloadConnections;
-        var highPriorityOdds = settings.ArticleBufferSize; // Using ArticleBufferSize as proxy for streaming priority odds for now or we can add a new setting
-        var streamingPriority = new SemaphorePriorityOdds { HighPriorityOdds = 80 }; 
+        var streamingPriority = new SemaphorePriorityOdds { HighPriorityOdds = settings.StreamingPriority }; 
         
         _semaphore = new PrioritizedSemaphore(maxDownloadConnections, maxDownloadConnections, streamingPriority);
     }

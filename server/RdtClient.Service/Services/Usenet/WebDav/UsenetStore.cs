@@ -1,19 +1,13 @@
 using NWebDav.Server.Stores;
 using RdtClient.Data.Data;
+using RdtClient.Data.Models.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace RdtClient.Service.Services.Usenet.WebDav;
 
-public class UsenetStore : IStore, IDisposable
+public class UsenetStore(DataContext dataContext, INntpClient usenetClient) : IStore
 {
-    private readonly INntpClient _cachingClient;
-    private readonly UsenetStoreRoot _root;
-
-    public UsenetStore(DataContext dataContext, INntpClient usenetClient)
-    {
-        // Wrap the singleton streaming client in a request-scoped cache
-        _cachingClient = new ArticleCachingNntpClient(usenetClient, true);
-        _root = new UsenetStoreRoot(dataContext, _cachingClient);
-    }
+    private readonly UsenetStoreCollection _root = new(UsenetDavItemConstants.Root, dataContext, usenetClient);
 
     public async Task<IStoreItem?> GetItemAsync(String path, CancellationToken cancellationToken)
     {
@@ -24,18 +18,44 @@ public class UsenetStore : IStore, IDisposable
         
         path = path.Trim('/');
         if (path == "") return _root;
-        
-        var segments = path.Split('/');
-        IStoreItem? current = _root;
-        
-        foreach (var segment in segments)
+
+        var normalizedPath = "/" + path.Replace('\\', '/');
+
+        // Handle the virtual /.ids folder
+        if (normalizedPath.StartsWith("/.ids", StringComparison.OrdinalIgnoreCase))
         {
-            if (current is not IStoreCollection collection) return null;
-            current = await collection.GetItemAsync(segment, cancellationToken).ConfigureAwait(false);
-            if (current == null) return null;
+            if (normalizedPath.Length == 5) // Exactly "/.ids"
+            {
+                return new UsenetStoreIdsCollection(".ids", "/.ids", dataContext, usenetClient);
+            }
+
+            var subPath = normalizedPath.Substring(5).TrimStart('/');
+            var segments = subPath.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
+            
+            IStoreItem? current = new UsenetStoreIdsCollection(".ids", "/.ids", dataContext, usenetClient);
+            foreach (var segment in segments)
+            {
+                if (current is not IStoreCollection collection) return null;
+                current = await collection.GetItemAsync(segment, cancellationToken).ConfigureAwait(false);
+                if (current == null) return null;
+            }
+            return current;
         }
         
-        return current;
+        // Resolve the item from the database by its path
+        var davItem = await dataContext.UsenetDavItems
+            .FirstOrDefaultAsync(x => x.Path == normalizedPath, cancellationToken);
+            
+        if (davItem == null) return null;
+        
+        if (davItem.Type == UsenetDavItem.UsenetItemType.Directory || 
+            davItem.Type == UsenetDavItem.UsenetItemType.SymlinkRoot || 
+            davItem.Type == UsenetDavItem.UsenetItemType.IdsRoot)
+        {
+            return new UsenetStoreCollection(davItem, dataContext, usenetClient);
+        }
+
+        return new UsenetStoreItem(davItem, dataContext, usenetClient);
     }
 
     public Task<IStoreItem?> GetItemAsync(Uri uri, CancellationToken cancellationToken)
@@ -46,10 +66,5 @@ public class UsenetStore : IStore, IDisposable
     public async Task<IStoreCollection?> GetCollectionAsync(Uri uri, CancellationToken cancellationToken)
     {
         return await GetItemAsync(uri, cancellationToken).ConfigureAwait(false) as IStoreCollection;
-    }
-
-    public void Dispose()
-    {
-        _cachingClient.Dispose();
     }
 }

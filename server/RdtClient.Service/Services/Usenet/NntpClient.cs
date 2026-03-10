@@ -1,4 +1,5 @@
 using RdtClient.Service.Services.Usenet.Models;
+using RdtClient.Service.Services.Usenet.Extensions;
 using UsenetSharp.Models;
 
 namespace RdtClient.Service.Services.Usenet;
@@ -77,7 +78,31 @@ public abstract class NntpClient : INntpClient
         return headers!;
     }
 
-    public virtual Task CheckAllSegmentsAsync
+    public virtual async Task<Int64> GetFileSizeAsync(NzbFile file, CancellationToken ct)
+    {
+        if (file.Segments.Count == 0) return 0;
+        var headers = await GetYencHeadersAsync(file.Segments[^1].MessageId, ct).ConfigureAwait(false);
+        return headers!.PartOffset + headers!.PartSize;
+    }
+
+    public virtual async Task<Streams.NzbFileStream> GetFileStream(NzbFile nzbFile, Int32 articleBufferSize, CancellationToken ct)
+    {
+        var segmentIds = nzbFile.GetSegmentIds();
+        var fileSize = await GetFileSizeAsync(nzbFile, ct).ConfigureAwait(false);
+        return new Streams.NzbFileStream(segmentIds, fileSize, this, articleBufferSize);
+    }
+
+    public virtual Streams.NzbFileStream GetFileStream(NzbFile nzbFile, Int64 fileSize, Int32 articleBufferSize)
+    {
+        return new Streams.NzbFileStream(nzbFile.GetSegmentIds(), fileSize, this, articleBufferSize);
+    }
+
+    public virtual Streams.NzbFileStream GetFileStream(String[] segmentIds, Int64 fileSize, Int32 articleBufferSize)
+    {
+        return new Streams.NzbFileStream(segmentIds, fileSize, this, articleBufferSize);
+    }
+
+    public virtual async Task CheckAllSegmentsAsync
     (
         IEnumerable<String> segmentIds,
         Int32 concurrency,
@@ -85,20 +110,23 @@ public abstract class NntpClient : INntpClient
         CancellationToken cancellationToken
     )
     {
-        // Simple sequential implementation for now, will be optimized later
-        return Task.Run(async () =>
+        using var childCt = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var token = childCt.Token;
+
+        var tasks = segmentIds
+            .Select(async segmentId => (
+                SegmentId: segmentId,
+                Result: await StatAsync(segmentId, token).ConfigureAwait(false)
+            ))
+            .WithConcurrencyAsync(concurrency);
+
+        var processed = 0;
+        await foreach (var task in tasks.ConfigureAwait(false))
         {
-            var processed = 0;
-            foreach (var segmentId in segmentIds)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var result = await StatAsync(segmentId, cancellationToken).ConfigureAwait(false);
-                progress?.Report(++processed);
-                if (result.ResponseType != UsenetResponseType.ArticleExists)
-                {
-                    throw new Exception($"Article not found: {segmentId}");
-                }
-            }
-        }, cancellationToken);
+            progress?.Report(++processed);
+            if (task.Result.ResponseType == UsenetResponseType.ArticleExists) continue;
+            await childCt.CancelAsync().ConfigureAwait(false);
+            throw new Exceptions.UsenetArticleNotFoundException(task.SegmentId);
+        }
     }
 }

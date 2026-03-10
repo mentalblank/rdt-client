@@ -72,4 +72,12 @@ export class SettingsService {
       port,
     });
   }
+
+  public cleanupUsenetOrphans(): Observable<{ count: number }> {
+    return this.http.post<{ count: number }>(`${this.baseHref}api/usenet/maintenance/cleanup`, {});
+  }
+
+  public convertUsenetStrmToSymlinks(): Observable<{ count: number }> {
+    return this.http.post<{ count: number }>(`${this.baseHref}api/usenet/maintenance/strm-to-symlinks`, {});
+  }
 }

@@ -39,6 +39,14 @@ public class DbSettings
     public DbSettingsWebDav WebDav { get; set; } = new();
 }
 
+public enum UsenetImportStrategy
+{
+    [Description("Symlinks (Best for Plex/Rclone)")]
+    Symlinks = 0,
+    [Description("STRM Files (Direct streaming for Emby/Jellyfin)")]
+    StrmFiles = 1
+}
+
 public class DbSettingsUsenet
 {
     [DisplayName("Enabled")]
@@ -116,6 +124,38 @@ public class DbSettingsUsenet
     [DisplayName("Exclude files")]
     [Description("Ignore files that are matching this regular expression. Only use this setting OR the Include files setting, not both.")]
     public String? ExcludeRegex { get; set; } = @"(?i)^.*\.(xml|ac3|sql|docx|arj|lzh|tar|gz|bat|bmp|cmd|cue|db|diz|dll|((dvd)?disc|par(t)?|py)\d*|exe|flac|gif|htm(l)?|ico(n)?|idx|info|ini|index|jp(e)?g|l(i)?nk|md5|m2ts|mp3|nfo|nzb|png|rar|readme|reg|sample|sfv|sql|srr|sub|srt|tag|tak|t(e)?xt|thumb|torrent|ts|url|vbs|webp|zip|zsh|padding_file|smallfile|_unpack|ade|adp|app|application|appref-ms|asp|aspx|asx|bas|bgi|cab|cer|chm|cmd|cnt|com|cpl|crt|csh|der|diagcab|fxp|gadget|grp|hlp|hpj|hta|htc|inf|ins|iso|isp|its|jar|jnlp|js|jse|ksh|lnk|mad|maf|mag|mam|maq|mar|mas|mat|mau|mav|maw|mcf|mda|mdb|mde|mdt|mdw|mdz|msc|msh|msh1|msh2|mshxml|msh1xml|msh2xml|msi|msp|mst|msu|ops|osd|pcd|pif|pl|plg|prf|prg|printerexport|ps1|ps1xml|ps2|ps2xml|psc1|psc2|psd1|psdm1|pst|py|pyc|pyo|pyw|pyz|pyzw|reg|scf|scr|sct|shb|shs|theme|tmp|vb|vbe|vbp|vbs|vhd|vhdx|vsmacros|vsw|webpnp|website|ws|wsc|wsf|wsh|xbap|xll|xnk|7z|bdjo|bdmv|bin|cci|clpi|crl|idx|m4a|mpls|msi|pdf|sig|tbl|xig|xrt|zipx)$";
+
+    [DisplayName("Import Strategy")]
+    [Description("Choose between Symlinks (requires Rclone) or STRM files.")]
+    public UsenetImportStrategy ImportStrategy { get; set; } = UsenetImportStrategy.Symlinks;
+
+    [DisplayName("Streaming Priority (%)")]
+    [Description("When streaming while the queue is active, how much bandwidth should be dedicated to streaming?")]
+    public Int32 StreamingPriority { get; set; } = 80;
+
+    [DisplayName("User Agent")]
+    [Description("The user-agent used for fetching NZB files via URL.")]
+    public String UserAgent { get; set; } = "rdt-client";
+
+    [DisplayName("Radarr Host")]
+    public String? RadarrHost { get; set; }
+
+    [DisplayName("Radarr API Key")]
+    public String? RadarrApiKey { get; set; }
+
+    [DisplayName("Sonarr Host")]
+    public String? SonarrHost { get; set; }
+
+    [DisplayName("Sonarr API Key")]
+    public String? SonarrApiKey { get; set; }
+
+    [DisplayName("Enable Background Repairs")]
+    [Description("Unhealthy items will be removed and a new search will be triggered in Radarr/Sonarr.")]
+    public Boolean EnableBackgroundRepairs { get; set; } = false;
+
+    [DisplayName("Library Directory")]
+    [Description("Path to your media library containing symlinks or STRM files.")]
+    public String? LibraryDirectory { get; set; }
 }
 
 public enum DuplicateNzbBehavior
@@ -143,6 +183,14 @@ public class DbSettingsWebDav
     [DisplayName("Enforce Read-Only")]
     [Description("The WebDAV /dav/usenet folder will be readonly when checked.")]
     public Boolean ReadOnly { get; set; } = false;
+
+    [DisplayName("Show hidden files")]
+    [Description("Show files starting with a period.")]
+    public Boolean ShowHiddenFiles { get; set; } = false;
+
+    [DisplayName("Preview par2 files")]
+    [Description("Render par2 files as text files displaying descriptors.")]
+    public Boolean PreviewPar2Files { get; set; } = false;
 }
 
 public class DbSettingsGeneral

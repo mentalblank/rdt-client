@@ -49,7 +49,8 @@ public static class DiConfig
 
         services.AddScoped<UsenetQueueManager>();
         services.AddScoped<UsenetSabnzbd>();
-        services.AddScoped<UsenetSymlinkManager>();
+        services.AddScoped<UsenetImportManager>();
+        services.AddScoped<UsenetMaintenanceManager>();
         services.AddSingleton<UsenetStreamingClient>();
         services.AddSingleton<INntpClient>(sp => sp.GetRequiredService<UsenetStreamingClient>());
 
@@ -67,6 +68,8 @@ public static class DiConfig
         services.AddHostedService<UpdateChecker>();
         services.AddHostedService<WatchFolderChecker>();
         services.AddHostedService<WebsocketsUpdater>();
+        services.AddHostedService<UsenetHealthCheckService>();
+        services.AddHostedService<UsenetMaintenanceService>();
     }
 
     public static void RegisterHttpClients(this IServiceCollection services)

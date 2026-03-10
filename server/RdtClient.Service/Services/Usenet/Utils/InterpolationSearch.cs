@@ -1,5 +1,6 @@
 using RdtClient.Service.Services.Usenet.Exceptions;
 using RdtClient.Service.Services.Usenet.Models;
+using RdtClient.Data.Models.Data;
 
 namespace RdtClient.Service.Services.Usenet.Utils;
 

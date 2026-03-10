@@ -13,13 +13,51 @@ namespace RdtClient.Web.Controllers;
 [ApiController]
 [Route("api/usenet")]
 [Authorize]
-public class UsenetController(UsenetQueueManager queueManager, UsenetStore usenetStore, DataContext dataContext, ILogger<UsenetController> logger) : Controller
+public class UsenetController(
+    UsenetQueueManager queueManager,
+    UsenetStore usenetStore,
+    DataContext dataContext,
+    UsenetMaintenanceManager maintenanceManager,
+    UsenetImportManager importManager,
+    ILogger<UsenetController> logger) : Controller
 {
     [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IList<UsenetJob>>> Get()
     {
         return Ok(await queueManager.GetJobs());
+    }
+
+    [AllowAnonymous]
+    [HttpPost("maintenance/cleanup")]
+    public async Task<ActionResult> CleanupOrphans()
+    {
+        try
+        {
+            var count = await maintenanceManager.RemoveOrphanedFiles(HttpContext.RequestAborted);
+            return Ok(new { Count = count });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Error during orphan cleanup: {ex.Message}");
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("maintenance/strm-to-symlinks")]
+    public async Task<ActionResult> StrmToSymlinks()
+    {
+        try
+        {
+            var count = await importManager.ConvertStrmFilesToSymlinks();
+            return Ok(new { Count = count });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Error during STRM to Symlink conversion: {ex.Message}");
+            return BadRequest(ex.Message);
+        }
     }
 
     [AllowAnonymous]
@@ -62,49 +100,44 @@ public class UsenetController(UsenetQueueManager queueManager, UsenetStore usene
 
             if (item is UsenetStoreCollection collection)
             {
-                // It's a job folder
-                var jobId = collection.UniqueKey;
-                logger.LogInformation($"Deleting job folder with ID: {jobId}");
-                if (Guid.TryParse(jobId, out var jobGuid))
+                // It's a directory
+                if (Guid.TryParse(collection.UniqueKey, out var itemGuid))
                 {
-                    var job = await dataContext.UsenetJobs.FirstOrDefaultAsync(j => j.UsenetJobId == jobGuid);
-                    if (job != null)
+                    var dbItem = await dataContext.UsenetDavItems.FirstOrDefaultAsync(j => j.Id == itemGuid);
+                    if (dbItem != null)
                     {
-                        await queueManager.DeleteJob(job.Hash, true);
-                        logger.LogInformation($"Job {job.JobName} (Hash: {job.Hash}) deleted successfully.");
+                        if (dbItem.ParentId == null)
+                        {
+                            return BadRequest("Cannot delete static system folders.");
+                        }
+
+                        // If it's a mount folder (top level job folder), use queueManager to clean up legacy tables too
+                        var job = await dataContext.UsenetJobs.FirstOrDefaultAsync(j => j.JobName == dbItem.Name);
+                        if (job != null && dbItem.ParentId == UsenetDavItemConstants.ContentFolder.Id)
+                        {
+                            await queueManager.DeleteJob(job.Hash, true);
+                        }
+                        else 
+                        {
+                            dataContext.UsenetDavItems.Remove(dbItem);
+                            await dataContext.SaveChangesAsync();
+                        }
+                        logger.LogInformation($"Item {dbItem.Name} (ID: {itemGuid}) deleted successfully.");
                     }
-                    else
-                    {
-                        logger.LogWarning($"Job not found in database for Guid: {jobGuid}");
-                    }
-                }
-                else
-                {
-                    logger.LogError($"Failed to parse job folder ID '{jobId}' as Guid");
                 }
             }
-            else if (item is UsenetStoreFile file)
+            else if (item is UsenetStoreItem file)
             {
                 // It's a file
-                var fileId = file.UniqueKey;
-                logger.LogInformation($"Deleting file with ID: {fileId}");
-                if (Guid.TryParse(fileId, out var fileGuid))
+                if (Guid.TryParse(file.UniqueKey, out var itemGuid))
                 {
-                    var dbFile = await dataContext.UsenetFiles.FirstOrDefaultAsync(f => f.UsenetFileId == fileGuid);
-                    if (dbFile != null)
+                    var dbItem = await dataContext.UsenetDavItems.FirstOrDefaultAsync(f => f.Id == itemGuid);
+                    if (dbItem != null)
                     {
-                        dataContext.UsenetFiles.Remove(dbFile);
+                        dataContext.UsenetDavItems.Remove(dbItem);
                         await dataContext.SaveChangesAsync();
-                        logger.LogInformation($"File {dbFile.Path} (ID: {fileGuid}) deleted from database.");
+                        logger.LogInformation($"File {dbItem.Name} (ID: {itemGuid}) deleted from database.");
                     }
-                    else
-                    {
-                        logger.LogWarning($"File not found in database for Guid: {fileGuid}");
-                    }
-                }
-                else
-                {
-                    logger.LogError($"Failed to parse file ID '{fileId}' as Guid");
                 }
             }
 

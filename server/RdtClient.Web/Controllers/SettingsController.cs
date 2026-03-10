@@ -258,7 +258,7 @@ public class SettingsController(Settings settings, Torrents torrents) : Controll
             return Ok(new { Message = $"WebDAV is enabled. Access it at {scheme}://{requestHost}/dav/usenet" });
         }
 
-        return BadRequest(new { Message = "WebDAV is not enabled" });
+        return BadRequest(new { Message = "WebDAV is not enabled in settings. Please enable it first." });
     }
 }
 

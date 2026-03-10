@@ -68,6 +68,48 @@
               }
             }
             <p class="help" [innerHtml]="setting.description | nl2br"></p>
+            @if (setting.key === "Usenet:LibraryDirectory") {
+              <div class="buttons mt-2">
+                <button
+                  class="button is-warning"
+                  (click)="cleanupUsenetOrphans()"
+                  [disabled]="saving"
+                  [ngClass]="{ 'is-loading': saving }"
+                >
+                  Remove orphaned files
+                </button>
+                <button
+                  class="button is-warning"
+                  (click)="convertUsenetStrmToSymlinks()"
+                  [disabled]="saving"
+                  [ngClass]="{ 'is-loading': saving }"
+                >
+                  Convert STRM Files to Symlinks
+                </button>
+              </div>
+              @if (cleanupUsenetOrphansError) {
+                <div class="notification is-danger is-light" style="margin-top: 1rem">
+                  Orphan cleanup failed<br />
+                  {{ cleanupUsenetOrphansError }}
+                </div>
+              }
+              @if (cleanupUsenetOrphansSuccess) {
+                <div class="notification is-success is-light" style="margin-top: 1rem">
+                  {{ cleanupUsenetOrphansSuccess }}
+                </div>
+              }
+              @if (convertUsenetStrmToSymlinksError) {
+                <div class="notification is-danger is-light" style="margin-top: 1rem">
+                  Conversion failed<br />
+                  {{ convertUsenetStrmToSymlinksError }}
+                </div>
+              }
+              @if (convertUsenetStrmToSymlinksSuccess) {
+                <div class="notification is-success is-light" style="margin-top: 1rem">
+                  {{ convertUsenetStrmToSymlinksSuccess }}
+                </div>
+              }
+            }
             @if (setting.key === "Usenet:MaxSpeed") {
               <button
                 class="button is-warning mt-2"

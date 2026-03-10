@@ -39,6 +39,12 @@ export class SettingsComponent implements OnInit {
   public testWebDavConnectionError: string = null;
   public testWebDavConnectionSuccess: string = null;
 
+  public cleanupUsenetOrphansError: string = null;
+  public cleanupUsenetOrphansSuccess: string = null;
+
+  public convertUsenetStrmToSymlinksError: string = null;
+  public convertUsenetStrmToSymlinksSuccess: string = null;
+
   public canRegisterMagnetHandler = false;
 
   public categoryMappings: { category: string; provider: string }[] = [];
@@ -84,8 +90,23 @@ export class SettingsComponent implements OnInit {
                 'Usenet:DuplicateNzbBehavior',
                 'Usenet:FailIfNoVideo',
                 'Usenet:PerformFullHealthCheck',
-                'Usenet:AlwaysSendFullHistory'
+                'Usenet:AlwaysSendFullHistory',
+                'Usenet:ImportStrategy',
+                'Usenet:StreamingPriority',
+                'Usenet:UserAgent'
               ].includes(s.key))
+            },
+            {
+              title: 'Radarr Integration',
+              settings: usenetSettings.filter(s => ['Usenet:RadarrHost', 'Usenet:RadarrApiKey'].includes(s.key))
+            },
+            {
+              title: 'Sonarr Integration',
+              settings: usenetSettings.filter(s => ['Usenet:SonarrHost', 'Usenet:SonarrApiKey'].includes(s.key))
+            },
+            {
+              title: 'Maintenance',
+              settings: usenetSettings.filter(s => ['Usenet:EnableBackgroundRepairs', 'Usenet:LibraryDirectory'].includes(s.key))
             },
             {
               title: 'Regex Filtering',
@@ -311,6 +332,48 @@ export class SettingsComponent implements OnInit {
       },
       error: (err) => {
         this.testWebDavConnectionError = err.error?.message || err.error?.Message || err.error || err.message;
+        this.saving = false;
+      },
+    });
+  }
+
+  public cleanupUsenetOrphans(): void {
+    if (!confirm('Are you sure you want to remove orphaned Usenet files? This will remove files from the database that are no longer referenced in your library.')) {
+      return;
+    }
+
+    this.saving = true;
+    this.cleanupUsenetOrphansError = null;
+    this.cleanupUsenetOrphansSuccess = null;
+
+    this.settingsService.cleanupUsenetOrphans().subscribe({
+      next: (result) => {
+        this.saving = false;
+        this.cleanupUsenetOrphansSuccess = `Successfully removed ${result.count} orphaned items.`;
+      },
+      error: (err) => {
+        this.cleanupUsenetOrphansError = err.error?.message || err.error || err.message;
+        this.saving = false;
+      },
+    });
+  }
+
+  public convertUsenetStrmToSymlinks(): void {
+    if (!confirm('Are you sure you want to convert all STRM files to symlinks? This will delete existing STRM files and replace them with symbolic links.')) {
+      return;
+    }
+
+    this.saving = true;
+    this.convertUsenetStrmToSymlinksError = null;
+    this.convertUsenetStrmToSymlinksSuccess = null;
+
+    this.settingsService.convertUsenetStrmToSymlinks().subscribe({
+      next: (result) => {
+        this.saving = false;
+        this.convertUsenetStrmToSymlinksSuccess = `Successfully converted ${result.count} files.`;
+      },
+      error: (err) => {
+        this.convertUsenetStrmToSymlinksError = err.error?.message || err.error || err.message;
         this.saving = false;
       },
     });

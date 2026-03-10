@@ -2,6 +2,7 @@ using RdtClient.Service.Services.Usenet;
 using RdtClient.Service.Services.Usenet.Extensions;
 using RdtClient.Service.Services.Usenet.Models;
 using RdtClient.Service.Services.Usenet.Utils;
+using RdtClient.Data.Models.Data;
 
 namespace RdtClient.Service.Services.Usenet.Streams;
 

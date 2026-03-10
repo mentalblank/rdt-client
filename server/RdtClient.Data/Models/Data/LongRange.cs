@@ -1,4 +1,4 @@
-namespace RdtClient.Service.Services.Usenet.Models;
+namespace RdtClient.Data.Models.Data;
 
 public record LongRange(Int64 StartInclusive, Int64 EndExclusive)
 {

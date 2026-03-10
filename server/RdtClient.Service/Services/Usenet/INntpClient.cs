@@ -47,6 +47,18 @@ public interface INntpClient : IDisposable
     Task<UsenetYencHeader> GetYencHeadersAsync(
         String segmentId, CancellationToken ct);
 
+    Task<Int64> GetFileSizeAsync(
+        NzbFile file, CancellationToken ct);
+
+    Task<Streams.NzbFileStream> GetFileStream(
+        NzbFile nzbFile, Int32 articleBufferSize, CancellationToken ct);
+
+    Streams.NzbFileStream GetFileStream(
+        NzbFile nzbFile, Int64 fileSize, Int32 articleBufferSize);
+
+    Streams.NzbFileStream GetFileStream(
+        String[] segmentIds, Int64 fileSize, Int32 articleBufferSize);
+
     Task CheckAllSegmentsAsync(
         IEnumerable<String> segmentIds, Int32 concurrency, IProgress<Int32>? progress, CancellationToken cancellationToken);
 }
