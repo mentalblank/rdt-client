@@ -1,7 +1,40 @@
-.no-premium {
-  color: red;
+.navbar {
+    z-index: 1010; // Higher than status-bar's 1005
 }
 
-.notification {
-  margin-top: 52px;
+.navbar-brand {
+    .navbar-item {
+        color: #fff !important;
+        &:hover {
+            color: var(--primary-color) !important;
+        }
+    }
+}
+
+.add-button-nav {
+    color: var(--primary-color) !important;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(0, 209, 178, 0.3);
+    border-radius: 6px;
+    margin: 8px;
+    padding: 0 1rem !important;
+    transition: all 0.2s ease;
+    
+    .icon {
+        color: var(--primary-color) !important;
+    }
+
+    &:hover {
+        background-color: rgba(0, 209, 178, 0.1) !important;
+        border-color: var(--primary-color);
+    }
+}
+
+@media screen and (max-width: 1023px) {
+    .add-button-nav {
+        margin: 0.5rem;
+        display: inline-flex;
+        width: fit-content;
+    }
 }

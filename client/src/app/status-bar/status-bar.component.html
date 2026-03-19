@@ -1,0 +1,45 @@
+<div class="status-bar">
+  <div class="status-item">
+    <span class="icon is-small">
+      <i class="fas fa-download"></i>
+    </span>
+    <span class="status-value">{{ totalSpeed | filesize }}/s</span>
+    <span class="status-label">Speed</span>
+  </div>
+  <div class="status-item">
+    <span class="icon is-small">
+      <i class="fas fa-hdd"></i>
+    </span>
+    <span class="status-value">{{ totalRemaining | filesize }}</span>
+    <span class="status-label">Remaining</span>
+  </div>
+  <div class="status-item">
+    <span class="icon is-small">
+      <i class="fas fa-clock"></i>
+    </span>
+    <span class="status-value">{{ eta }}</span>
+    <span class="status-label">ETA</span>
+  </div>
+  @if (diskSpace) {
+    <div class="status-item">
+      <span class="icon is-small">
+        <i class="fas fa-microchip"></i>
+      </span>
+      <span class="status-value">{{ diskSpace.availableSpaceGB | number: '1.2-2' }} GB</span>
+      <span class="status-label">Free Space</span>
+    </div>
+  }
+  @if (profile) {
+    <div class="status-item">
+      <span class="icon is-small">
+        <i class="fas fa-user-shield"></i>
+      </span>
+      @if (profile.expiration) {
+        <span class="status-value">{{ profile.expiration | date: 'shortDate' }}</span>
+      } @else {
+        <span class="status-value has-text-danger">Expired</span>
+      }
+      <span class="status-label">Debrid Expiry</span>
+    </div>
+  }
+</div>

@@ -1,6 +1,43 @@
-<app-navbar></app-navbar>
+<header class="header-container is-fixed-top">
+  <app-navbar></app-navbar>
+  <app-status-bar></app-status-bar>
+
+  @if (
+    showUpdateBanner &&
+    profile &&
+    (!profile.disableUpdateNotification || profile.isInsecure) &&
+    profile.latestVersion &&
+    profile.currentVersion !== profile.latestVersion
+  ) {
+    <div class="notification update-banner mb-0" [ngClass]="profile.isInsecure ? 'is-danger' : 'is-warning'">
+      <button class="delete" (click)="closeBanner()"></button>
+      <div class="container">
+          @if (profile.isInsecure) {
+              <strong>URGENT: </strong>
+              <span> Your current version is insecure. </span>
+          }
+          <span>
+              Version {{ profile.latestVersion }} of RDT-Client was found. You are currently on version
+              {{ profile.currentVersion }}.
+          </span>
+      </div>
+    </div>
+  }
+</header>
+
 <section class="section main-list">
   <div class="container">
     <router-outlet></router-outlet>
   </div>
 </section>
+
+<button 
+  class="button is-primary back-to-top shadow-lg" 
+  [ngClass]="{ 'is-visible': showBackToTop }"
+  (click)="scrollToTop()"
+  aria-label="Back to top"
+>
+  <span class="icon">
+    <i class="fas fa-chevron-up"></i>
+  </span>
+</button>

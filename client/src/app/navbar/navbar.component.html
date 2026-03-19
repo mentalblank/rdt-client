@@ -1,7 +1,10 @@
-<nav class="navbar is-dark is-fixed-top" role="navigation" aria-label="main navigation">
+<nav class="navbar is-dark" role="navigation" aria-label="main navigation">
   <div class="navbar-brand">
     <a class="navbar-item" routerLink="/">
-      <img src="assets/logo.png" />
+      <span class="icon is-medium mr-2 has-text-primary">
+          <i class="fas fa-rocket fa-lg"></i>
+      </span>
+      <b class="is-size-5">RDT-CLIENT</b>
     </a>
 
     <a
@@ -18,41 +21,28 @@
     </a>
   </div>
 
-  <div class="navbar-menu" [class.is-active]="showMobileMenu">
-    <div class="navbar-start">
-      <a class="navbar-item" routerLink="/">
-        <span class="icon">
-          <i class="fas fa-table" aria-hidden="true"></i>
-        </span>
-        <span>Torrents/NZBs</span>
-      </a>
-      <a class="navbar-item" routerLink="/add" [queryParams]="{ type: 'torrent' }">
-        <span class="icon">
-          <i class="fas fa-plus" aria-hidden="true"></i>
-        </span>
-        <span>Add Torrent/NZB</span>
-      </a>
-      <a class="navbar-item" routerLink="/settings">
-        <span class="icon">
+      <div class="navbar-menu" [class.is-active]="showMobileMenu">
+      <div class="navbar-start">
+        <a class="navbar-item" routerLink="/">
+          <span class="icon">
+            <i class="fas fa-list" aria-hidden="true"></i>
+          </span>
+          <span>Queue</span>
+        </a>
+        <a class="navbar-item" routerLink="/settings">        <span class="icon">
           <i class="fas fa-cog" aria-hidden="true"></i>
         </span>
         <span>Settings</span>
       </a>
-      @if (profile) {
-        <a class="navbar-item" href="{{ providerLink }}" target="_blank" rel="noopener">
-          <span class="icon">
-            <i class="fas fa-euro-sign" aria-hidden="true"></i>
-          </span>
-          @if (profile.expiration) {
-            <span>Premium Status: {{ profile.expiration | date }}</span>
-          } @else {
-            <span class="no-premium">Not premium</span>
-          }
-        </a>
-      }
     </div>
 
     <div class="navbar-end">
+      <a class="navbar-item add-button-nav" routerLink="/add" [queryParams]="{ type: 'item' }">
+          <span class="icon has-text-white">
+              <i class="fas fa-plus-circle"></i>
+          </span>
+          <span class="has-text-white">ADD</span>
+      </a>
       <div class="navbar-item has-dropdown is-hoverable">
         <span class="navbar-link"> Account </span>
 

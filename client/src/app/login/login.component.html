@@ -1,63 +1,77 @@
-<section class="hero is-dark is-fullheight">
-  <div class="hero-body">
-    <div class="container">
-      <div class="columns is-centered">
-        <div class="column is-5-tablet is-5-desktop is-5-widescreen">
-          <img src="assets/logo.png" />
-          <div class="box">
-            <form (ngSubmit)="login()">
-              <div class="field">
-                <label for="userName" class="label">Username</label>
-                <div class="control has-icons-left">
-                  <input
-                    type="text"
-                    placeholder=""
-                    class="input"
-                    name="userName"
-                    id="userName"
-                    (change)="setUserName($event)"
-                    required
-                  />
-                  <span class="icon is-small is-left">
-                    <i class="fa fa-envelope"></i>
-                  </span>
-                </div>
-              </div>
-              <div class="field">
-                <label for="password" class="label">Password</label>
-                <div class="control has-icons-left">
-                  <input
-                    type="password"
-                    class="input"
-                    required
-                    name="password"
-                    id="password"
-                    (change)="setPassword($event)"
-                  />
-                  <span class="icon is-small is-left">
-                    <i class="fa fa-lock"></i>
-                  </span>
-                </div>
-              </div>
-              <div class="field">
-                <button
-                  class="button is-success"
-                  type="submit"
-                  [ngClass]="{ 'is-loading': loggingIn }"
-                  [disabled]="loggingIn"
-                >
-                  Login
-                </button>
-              </div>
-              @if (error?.length > 0) {
-                <div class="notification is-danger is-light">
-                  {{ error }}
-                </div>
-              }
-            </form>
+<div class="login-layout">
+  <div class="login-container">
+    <div class="login-card shadow-lg">
+      <div class="login-header has-text-centered">
+        <span class="is-size-2 has-text-weight-bold has-text-primary mb-2 is-block">
+            <i class="fas fa-rocket mr-2"></i>RDT-CLIENT
+        </span>
+        <h1 class="title is-4 has-text-white">Sign In</h1>
+        <p class="subtitle is-7 has-text-grey">Please enter your credentials to continue</p>
+      </div>
+
+      <div class="login-body">
+        <form (ngSubmit)="login()">
+          <div class="field">
+            <label for="userName" class="label">Username</label>
+            <div class="control has-icons-left">
+              <input
+                type="text"
+                class="input"
+                name="userName"
+                id="userName"
+                (change)="setUserName($event)"
+                placeholder="Enter username"
+                required
+              />
+              <span class="icon is-small is-left">
+                <i class="fas fa-user"></i>
+              </span>
+            </div>
           </div>
-        </div>
+
+          <div class="field">
+            <label for="password" class="label">Password</label>
+            <div class="control has-icons-left">
+              <input
+                type="password"
+                class="input"
+                required
+                name="password"
+                id="password"
+                (change)="setPassword($event)"
+                placeholder="Enter password"
+              />
+              <span class="icon is-small is-left">
+                <i class="fas fa-lock"></i>
+              </span>
+            </div>
+          </div>
+
+          <div class="field mt-5">
+            <button
+              class="button is-primary is-fullwidth is-medium"
+              type="submit"
+              [ngClass]="{ 'is-loading': loggingIn }"
+              [disabled]="loggingIn"
+            >
+              <span>Login</span>
+              <span class="icon"><i class="fas fa-sign-in-alt"></i></span>
+            </button>
+          </div>
+
+          @if (error?.length > 0) {
+            <div class="notification is-danger is-light mt-4">
+              {{ error }}
+            </div>
+          }
+        </form>
       </div>
     </div>
+    
+    <div class="has-text-centered mt-4">
+        <p class="is-size-7 has-text-grey">
+            RDT-Client v{{ version }}
+        </p>
+    </div>
   </div>
-</section>
+</div>

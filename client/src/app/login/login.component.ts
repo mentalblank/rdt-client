@@ -1,6 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth.service';
+import { SettingsService } from '../settings.service';
 import { FormsModule } from '@angular/forms';
 import { NgClass } from '@angular/common';
 
@@ -11,14 +12,22 @@ import { NgClass } from '@angular/common';
   imports: [FormsModule, NgClass],
   standalone: true,
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private authService = inject(AuthService);
+  private settingsService = inject(SettingsService);
   private router = inject(Router);
 
   public userName: string;
   public password: string;
   public error: string;
   public loggingIn: boolean;
+  public version: string = '2.0.0';
+
+  ngOnInit(): void {
+    this.settingsService.getVersion().subscribe((v) => {
+      this.version = v.version;
+    });
+  }
 
   public setUserName(event: Event): void {
     this.userName = (event.target as any).value;

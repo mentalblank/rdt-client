@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { saveAs } from 'file-saver-es';
 import { Torrent } from '../models/torrent.model';
 import { TorrentService } from '../torrent.service';
-import { NgClass, DatePipe } from '@angular/common';
+import { NgClass, DatePipe, DecimalPipe } from '@angular/common';
 import { CdkCopyToClipboard } from '@angular/cdk/clipboard';
 import { FormsModule } from '@angular/forms';
 import { TorrentStatusPipe } from '../torrent-status.pipe';
@@ -20,6 +20,7 @@ import { FileSizePipe } from '../filesize.pipe';
     CdkCopyToClipboard,
     FormsModule,
     DatePipe,
+    DecimalPipe,
     TorrentStatusPipe,
     DownloadStatusPipe,
     DecodeURIPipe,

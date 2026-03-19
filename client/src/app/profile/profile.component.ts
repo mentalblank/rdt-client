@@ -17,8 +17,8 @@ export class ProfileComponent {
   public password: string;
 
   public saving = false;
-  public success: boolean;
-  public error: string;
+  public success: boolean = false;
+  public error: string | null = null;
 
   public save(): void {
     this.success = false;
