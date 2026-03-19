@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [Unreleased]
+
+## [2.0.127] - 2026-03-15
+### Added
+- Implement qBittorrent endpoint for counting torrents, thanks to @vinodmishra!
+
+## [2.0.126] - 2026-03-14
+### Added
+- qBittorrent hash filtering on the /torrrents/info endpoint, thanks to @jfrconley!
+- Category select as a dropdown when adding a new torrent, thanks to @sylvaindd!
+
+### Changed
+- Rate limiting fixes, thanks to @omgbeez!
+- AllDebrid Symlink fixes, thanks to @AlexandreVassard!
+
+## [2.0.125] - 2026-03-01
+### Added
+- Added extra qBittorrent endpoints for Cleanuparr compatibility.
+
 ## [2.0.124] - 2026-02-23
 ### Added
 - Added /version/api for qBittorrent to support clients that still want to talk to the old API.
