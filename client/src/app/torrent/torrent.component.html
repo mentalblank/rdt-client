@@ -9,7 +9,9 @@
     <nav class="breadcrumb" aria-label="breadcrumbs">
       <ul>
         <li><a routerLink="/">Queue</a></li>
-        <li class="is-active"><a aria-current="page">{{ torrent.rdName }}</a></li>
+        <li class="is-active">
+          <a aria-current="page">{{ torrent.rdName }}</a>
+        </li>
       </ul>
     </nav>
 
@@ -26,6 +28,16 @@
         <button class="button is-primary is-small" (click)="showRetryModal()">
           <span class="icon is-small"><i class="fas fa-sync-alt"></i></span>
           <span>Retry Item</span>
+        </button>
+        <button
+          *ngIf="hasFailedDownloads"
+          class="button is-warning is-small"
+          (click)="retryFailedOk()"
+          [disabled]="retrying"
+          [ngClass]="{ 'is-loading': retrying }"
+        >
+          <span class="icon is-small"><i class="fas fa-redo"></i></span>
+          <span>Retry Failed Files</span>
         </button>
         <button class="button is-info is-small" (click)="showUpdateSettingsModal()">
           <span class="icon is-small"><i class="fas fa-edit"></i></span>
@@ -63,15 +75,29 @@
           <div class="column is-4">
             <div class="card-field">
               <label class="label uppercase-label">Status</label>
-              <span class="status-badge" [ngClass]="'status-' + (torrent.rdStatus === 99 ? 'error' : torrent.rdStatus === 4 ? 'finished' : (torrent.rdStatus === 3 || torrent.rdStatus === 5) ? 'downloading' : 'queued')">
-                  {{ torrent | status }}
+              <span
+                class="status-badge"
+                [ngClass]="
+                  'status-' +
+                  (torrent.rdStatus === 99
+                    ? 'error'
+                    : torrent.rdStatus === 4
+                      ? 'finished'
+                      : torrent.rdStatus === 3 || torrent.rdStatus === 5
+                        ? 'downloading'
+                        : 'queued')
+                "
+              >
+                {{ torrent | status }}
               </span>
             </div>
             <div class="card-field">
               <label class="label uppercase-label">Progress</label>
               <div class="progress-container">
-                  <progress class="progress is-small is-primary mb-0" [value]="torrent.rdProgress || 0" max="100">{{ torrent.rdProgress }}%</progress>
-                  <span class="progress-text">{{ (torrent.rdProgress || 0) | number: '1.0-1' }}%</span>
+                <progress class="progress is-small is-primary mb-0" [value]="torrent.rdProgress || 0" max="100">
+                  {{ torrent.rdProgress }}%
+                </progress>
+                <span class="progress-text">{{ torrent.rdProgress || 0 | number: "1.0-1" }}%</span>
               </div>
             </div>
             <div class="card-field">
@@ -107,11 +133,11 @@
           <div class="column is-4">
             <div class="card-field">
               <label class="label uppercase-label">Added</label>
-              <div>{{ torrent.added | date: 'medium' }}</div>
+              <div>{{ torrent.added | date: "medium" }}</div>
             </div>
             <div class="card-field">
               <label class="label uppercase-label">Speed</label>
-              <div>{{ (torrent.rdSpeed || 0) | filesize }}/s</div>
+              <div>{{ torrent.rdSpeed || 0 | filesize }}/s</div>
             </div>
             <div class="card-field">
               <label class="label uppercase-label">Seeders</label>
@@ -121,41 +147,53 @@
 
           <div class="column is-12 mt-4 border-top-light pt-4">
             <div class="columns is-multiline">
-                <div class="column is-3">
-                    <label class="label is-size-7 uppercase-label has-text-grey">Downloader Engine</label>
-                    <div class="is-size-6 has-text-weight-medium">
-                        @switch (torrent.downloadClient) {
-                            @case (0) { Bezzad }
-                            @case (1) { Aria2c }
-                            @case (2) { Symlink Downloader }
-                            @case (3) { DownloadStation }
-                        }
-                    </div>
-                </div>
-                <div class="column is-3">
-                    <label class="label is-size-7 uppercase-label has-text-grey">Provider Status</label>
-                    <div class="is-size-6">{{ torrent.rdStatusRaw }}</div>
-                </div>
-                <div class="column is-6">
-                    <label class="label is-size-7 uppercase-label has-text-grey">Source Link/File</label>
-                    @if (!torrent.isFile) {
-                        <div class="buttons">
-                            @if (!copied) {
-                              <button class="button is-small is-info is-light" [cdkCopyToClipboard]="torrent.fileOrMagnet" (click)="copied = true">
-                                <span class="icon is-small"><i class="fas fa-copy"></i></span>
-                                <span>Copy Link</span>
-                              </button>
-                            } @else {
-                              <span class="tag is-success"><i class="fas fa-check mr-1"></i> Copied!</span>
-                            }
-                        </div>
-                    } @else {
-                        <button class="button is-small is-info is-light" (click)="download()">
-                          <span class="icon is-small"><i class="fas fa-download"></i></span>
-                          <span>Download Meta File</span>
-                        </button>
+              <div class="column is-3">
+                <label class="label is-size-7 uppercase-label has-text-grey">Downloader Engine</label>
+                <div class="is-size-6 has-text-weight-medium">
+                  @switch (torrent.downloadClient) {
+                    @case (0) {
+                      Bezzad
                     }
+                    @case (1) {
+                      Aria2c
+                    }
+                    @case (2) {
+                      Symlink Downloader
+                    }
+                    @case (3) {
+                      DownloadStation
+                    }
+                  }
                 </div>
+              </div>
+              <div class="column is-3">
+                <label class="label is-size-7 uppercase-label has-text-grey">Provider Status</label>
+                <div class="is-size-6">{{ torrent.rdStatusRaw }}</div>
+              </div>
+              <div class="column is-6">
+                <label class="label is-size-7 uppercase-label has-text-grey">Source Link/File</label>
+                @if (!torrent.isFile) {
+                  <div class="buttons">
+                    @if (!copied) {
+                      <button
+                        class="button is-small is-info is-light"
+                        [cdkCopyToClipboard]="torrent.fileOrMagnet"
+                        (click)="copied = true"
+                      >
+                        <span class="icon is-small"><i class="fas fa-copy"></i></span>
+                        <span>Copy Link</span>
+                      </button>
+                    } @else {
+                      <span class="tag is-success"><i class="fas fa-check mr-1"></i> Copied!</span>
+                    }
+                  </div>
+                } @else {
+                  <button class="button is-small is-info is-light" (click)="download()">
+                    <span class="icon is-small"><i class="fas fa-download"></i></span>
+                    <span>Download Meta File</span>
+                  </button>
+                }
+              </div>
             </div>
           </div>
 
@@ -171,134 +209,162 @@
 
       @if (activeTab === 1) {
         <div class="table-container">
-            <table class="table is-fullwidth is-narrow is-hoverable is-striped mb-0">
-              <thead>
+          <table class="table is-fullwidth is-narrow is-hoverable is-striped mb-0">
+            <thead>
+              <tr>
+                <th width="60">ID</th>
+                <th>Path</th>
+                <th width="120" class="has-text-right">Size</th>
+                <th width="100" class="has-text-centered">Selected</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (file of torrent.files; track file.id) {
                 <tr>
-                  <th width="60">ID</th>
-                  <th>Path</th>
-                  <th width="120" class="has-text-right">Size</th>
-                  <th width="100" class="has-text-centered">Selected</th>
+                  <td class="has-text-grey">{{ file.id }}</td>
+                  <td class="break-all">{{ file.path }}</td>
+                  <td class="has-text-right">{{ file.bytes | filesize }}</td>
+                  <td class="has-text-centered">
+                    @if (file.selected) {
+                      <span class="icon has-text-success"><i class="fas fa-check-circle"></i></span>
+                    } @else {
+                      <span class="icon has-text-grey-lighter"><i class="fas fa-circle"></i></span>
+                    }
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                @for (file of torrent.files; track file.id) {
-                  <tr>
-                    <td class="has-text-grey">{{ file.id }}</td>
-                    <td class="break-all">{{ file.path }}</td>
-                    <td class="has-text-right">{{ file.bytes | filesize }}</td>
-                    <td class="has-text-centered">
-                      @if (file.selected) {
-                        <span class="icon has-text-success"><i class="fas fa-check-circle"></i></span>
-                      } @else {
-                        <span class="icon has-text-grey-lighter"><i class="fas fa-circle"></i></span>
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+              }
+            </tbody>
+          </table>
         </div>
       }
 
       @if (activeTab === 2) {
         <div class="table-container">
-            <table class="table is-fullwidth is-hoverable is-narrow is-striped mb-0">
-              <thead>
-                <tr>
-                  <th style="width: 40px"></th>
-                  <th>Link / Path</th>
-                  <th width="120" class="has-text-right">Size</th>
-                  <th width="150">Status</th>
+          <table class="table is-fullwidth is-hoverable is-narrow is-striped mb-0">
+            <thead>
+              <tr>
+                <th style="width: 40px"></th>
+                <th>Link / Path</th>
+                <th width="120" class="has-text-right">Size</th>
+                <th width="150">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (download of torrent.downloads; track download.downloadId) {
+                @let expanded = downloadExpanded[download.downloadId];
+                <tr
+                  (click)="downloadExpanded[download.downloadId] = !expanded"
+                  [class.is-selected]="expanded"
+                  class="is-clickable"
+                >
+                  <td class="has-text-centered">
+                    <span class="icon is-small">
+                      <i class="fas" [ngClass]="expanded ? 'fa-caret-down' : 'fa-caret-right'"></i>
+                    </span>
+                  </td>
+                  <td class="break-all">
+                    @if (download.link) {
+                      {{ download.link | decodeURI }}
+                    } @else {
+                      {{ download.path }}
+                    }
+                  </td>
+                  <td class="has-text-right">
+                    {{ download.bytesTotal | filesize }}
+                  </td>
+                  <td>
+                    <span
+                      class="status-badge is-small"
+                      [ngClass]="
+                        'status-' + (download.error ? 'error' : download.downloadFinished ? 'finished' : 'downloading')
+                      "
+                    >
+                      {{ download | downloadStatus }}
+                    </span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                @for (download of torrent.downloads; track download.downloadId) {
-                  @let expanded = downloadExpanded[download.downloadId];
-                  <tr (click)="downloadExpanded[download.downloadId] = !expanded" [class.is-selected]="expanded" class="is-clickable">
-                    <td class="has-text-centered">
-                      <span class="icon is-small">
-                          <i class="fas" [ngClass]="expanded ? 'fa-caret-down' : 'fa-caret-right'"></i>
-                      </span>
-                    </td>
-                    <td class="break-all">
-                      @if (download.link) {
-                        {{ download.link | decodeURI }}
-                      } @else {
-                        {{ download.path }}
-                      }
-                    </td>
-                    <td class="has-text-right">
-                      {{ download.bytesTotal | filesize }}
-                    </td>
-                    <td>
-                      <span class="status-badge is-small" [ngClass]="'status-' + (download.error ? 'error' : download.downloadFinished ? 'finished' : 'downloading')">
-                          {{ download | downloadStatus }}
-                      </span>
-                    </td>
-                  </tr>
-                  @if (expanded) {
-                    <tr class="expanded-row">
-                      <td></td>
-                      <td colspan="3">
-                        <div class="p-4 bg-dark-soft rounded border-light my-2">
-                          <div class="columns is-multiline">
-                            <div class="column is-6">
-                              <div class="buttons mb-4">
-                                <button class="button is-primary is-small" (click)="showDownloadRetryModal(download.downloadId); $event.stopPropagation()">
-                                  <span class="icon is-small"><i class="fas fa-sync-alt"></i></span>
-                                  <span>Retry Download</span>
-                                </button>
+                @if (expanded) {
+                  <tr class="expanded-row">
+                    <td></td>
+                    <td colspan="3">
+                      <div class="p-4 bg-dark-soft rounded border-light my-2">
+                        <div class="columns is-multiline">
+                          <div class="column is-6">
+                            <div class="buttons mb-4">
+                              <button
+                                class="button is-primary is-small"
+                                (click)="showDownloadRetryModal(download.downloadId); $event.stopPropagation()"
+                              >
+                                <span class="icon is-small"><i class="fas fa-sync-alt"></i></span>
+                                <span>Retry Download</span>
+                              </button>
+                            </div>
+                            @if (download.error) {
+                              <div class="notification is-danger is-light is-small p-2 mb-4 border-light">
+                                <strong>Error:</strong> {{ download.error }}
                               </div>
-                              @if (download.error) {
-                                <div class="notification is-danger is-light is-small p-2 mb-4 border-light">
-                                  <strong>Error:</strong> {{ download.error }}
-                                </div>
+                            }
+                            <div class="field">
+                              <label class="label is-size-7 uppercase-label has-text-grey">Unrestricted Link</label>
+                              @if (download.link) {
+                                <a
+                                  href="{{ download.link }}"
+                                  target="_blank"
+                                  class="is-size-7 break-all has-text-primary"
+                                >
+                                  {{ download.link | decodeURI }}</a
+                                >
+                              } @else {
+                                <span class="has-text-grey is-size-7">N/A</span>
                               }
-                              <div class="field">
-                                <label class="label is-size-7 uppercase-label has-text-grey">Unrestricted Link</label>
-                                @if (download.link) {
-                                  <a href="{{ download.link }}" target="_blank" class="is-size-7 break-all has-text-primary"> {{ download.link | decodeURI }}</a>
-                                } @else {
-                                  <span class="has-text-grey is-size-7">N/A</span>
-                                }
+                            </div>
+                          </div>
+                          <div class="column is-6">
+                            <div class="field mb-4">
+                              <label class="label is-size-7 uppercase-label has-text-grey"
+                                >Local Download Progress</label
+                              >
+                              <div class="progress-container">
+                                <progress
+                                  class="progress is-small is-primary"
+                                  [value]="download.bytesDone"
+                                  [max]="download.bytesTotal"
+                                ></progress>
+                                <span class="progress-text is-size-7"
+                                  >{{ download.bytesDone | filesize }} / {{ download.bytesTotal | filesize }}</span
+                                >
                               </div>
                             </div>
-                            <div class="column is-6">
-                                <div class="field mb-4">
-                                    <label class="label is-size-7 uppercase-label has-text-grey">Local Download Progress</label>
-                                    <div class="progress-container">
-                                        <progress class="progress is-small is-primary" [value]="download.bytesDone" [max]="download.bytesTotal"></progress>
-                                        <span class="progress-text is-size-7">{{ download.bytesDone | filesize }} / {{ download.bytesTotal | filesize }}</span>
-                                    </div>
-                                </div>
-                                <div class="columns is-mobile is-multiline is-gapless">
-                                    <div class="column is-6 mb-2">
-                                        <label class="label is-size-7 uppercase-label has-text-grey mb-0">Added</label>
-                                        <span class="is-size-7">{{ (download.added | date: "short") || "N/A" }}</span>
-                                    </div>
-                                    <div class="column is-6 mb-2">
-                                        <label class="label is-size-7 uppercase-label has-text-grey mb-0">Started</label>
-                                        <span class="is-size-7">{{ (download.downloadStarted | date: "short") || "N/A" }}</span>
-                                    </div>
-                                    <div class="column is-6">
-                                        <label class="label is-size-7 uppercase-label has-text-grey mb-0">Finished</label>
-                                        <span class="is-size-7">{{ (download.downloadFinished | date: "short") || "N/A" }}</span>
-                                    </div>
-                                </div>
+                            <div class="columns is-mobile is-multiline is-gapless">
+                              <div class="column is-6 mb-2">
+                                <label class="label is-size-7 uppercase-label has-text-grey mb-0">Added</label>
+                                <span class="is-size-7">{{ (download.added | date: "short") || "N/A" }}</span>
+                              </div>
+                              <div class="column is-6 mb-2">
+                                <label class="label is-size-7 uppercase-label has-text-grey mb-0">Started</label>
+                                <span class="is-size-7">{{ (download.downloadStarted | date: "short") || "N/A" }}</span>
+                              </div>
+                              <div class="column is-6">
+                                <label class="label is-size-7 uppercase-label has-text-grey mb-0">Finished</label>
+                                <span class="is-size-7">{{
+                                  (download.downloadFinished | date: "short") || "N/A"
+                                }}</span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </td>
-                    </tr>
-                  }
+                      </div>
+                    </td>
+                  </tr>
                 }
-                @if (torrent.downloads?.length === 0) {
-                    <tr>
-                        <td colspan="4" class="has-text-centered py-5 has-text-grey italic">No local downloads yet.</td>
-                    </tr>
-                }
-              </tbody>
-            </table>
+              }
+              @if (torrent.downloads?.length === 0) {
+                <tr>
+                  <td colspan="4" class="has-text-centered py-5 has-text-grey italic">No local downloads yet.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       }
     </div>
@@ -331,7 +397,12 @@
           </label>
           <hr class="my-3 border-light" />
           <label class="checkbox is-block p-2">
-            <input type="checkbox" [(ngModel)]="deleteSelectAll" (change)="toggleDeleteSelectAllOptions()" class="mr-2" />
+            <input
+              type="checkbox"
+              [(ngModel)]="deleteSelectAll"
+              (change)="toggleDeleteSelectAllOptions()"
+              class="mr-2"
+            />
             <strong>Select All</strong>
           </label>
         </div>
@@ -341,7 +412,14 @@
       }
     </section>
     <footer class="modal-card-foot">
-      <button class="button is-danger" (click)="deleteOk()" [disabled]="deleting" [ngClass]="{ 'is-loading': deleting }">Delete</button>
+      <button
+        class="button is-danger"
+        (click)="deleteOk()"
+        [disabled]="deleting"
+        [ngClass]="{ 'is-loading': deleting }"
+      >
+        Delete
+      </button>
       <button class="button is-dark" (click)="deleteCancel()" [disabled]="deleting">Cancel</button>
     </footer>
   </div>
@@ -362,7 +440,14 @@
       }
     </section>
     <footer class="modal-card-foot">
-      <button class="button is-primary" (click)="retryOk()" [disabled]="retrying" [ngClass]="{ 'is-loading': retrying }">Retry Now</button>
+      <button
+        class="button is-primary"
+        (click)="retryOk()"
+        [disabled]="retrying"
+        [ngClass]="{ 'is-loading': retrying }"
+      >
+        Retry Now
+      </button>
       <button class="button is-dark" (click)="retryCancel()" [disabled]="retrying">Cancel</button>
     </footer>
   </div>
@@ -382,7 +467,14 @@
       }
     </section>
     <footer class="modal-card-foot">
-      <button class="button is-primary" (click)="downloadRetryOk()" [disabled]="downloadRetrying" [ngClass]="{ 'is-loading': downloadRetrying }">Retry Download</button>
+      <button
+        class="button is-primary"
+        (click)="downloadRetryOk()"
+        [disabled]="downloadRetrying"
+        [ngClass]="{ 'is-loading': downloadRetrying }"
+      >
+        Retry Download
+      </button>
       <button class="button is-dark" (click)="downloadRetryCancel()" [disabled]="downloadRetrying">Cancel</button>
     </footer>
   </div>
@@ -397,58 +489,65 @@
     </header>
     <section class="modal-card-body">
       <div class="columns is-multiline">
-          <div class="column is-6">
-              <div class="field">
-                <label class="label is-size-7 uppercase-label">Priority</label>
-                <div class="control">
-                  <input class="input" type="number" [(ngModel)]="updateSettingsPriority" />
-                </div>
-              </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label is-size-7 uppercase-label">Priority</label>
+            <div class="control">
+              <input class="input" type="number" [(ngModel)]="updateSettingsPriority" />
+            </div>
           </div>
-          <div class="column is-6">
-              <div class="field">
-                <label class="label is-size-7 uppercase-label">Category</label>
-                <div class="control">
-                  <input class="input" type="text" [(ngModel)]="updateSettingsCategory" />
-                </div>
-              </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label is-size-7 uppercase-label">Category</label>
+            <div class="control">
+              <input class="input" type="text" [(ngModel)]="updateSettingsCategory" />
+            </div>
           </div>
-          <div class="column is-6">
-              <div class="field">
-                <label class="label is-size-7 uppercase-label">Download Retries</label>
-                <div class="control">
-                  <input class="input" type="number" [(ngModel)]="updateSettingsDownloadRetryAttempts" />
-                </div>
-              </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label is-size-7 uppercase-label">Download Retries</label>
+            <div class="control">
+              <input class="input" type="number" [(ngModel)]="updateSettingsDownloadRetryAttempts" />
+            </div>
           </div>
-          <div class="column is-6">
-              <div class="field">
-                <label class="label is-size-7 uppercase-label">Retries</label>
-                <div class="control">
-                  <input class="input" type="number" [(ngModel)]="updateSettingsTorrentRetryAttempts" />
-                </div>
-              </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label is-size-7 uppercase-label">Retries</label>
+            <div class="control">
+              <input class="input" type="number" [(ngModel)]="updateSettingsTorrentRetryAttempts" />
+            </div>
           </div>
-          <div class="column is-6">
-              <div class="field">
-                <label class="label is-size-7 uppercase-label">Delete On Error (min)</label>
-                <div class="control">
-                  <input class="input" type="number" [(ngModel)]="updateSettingsDeleteOnError" />
-                </div>
-              </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label is-size-7 uppercase-label">Delete On Error (min)</label>
+            <div class="control">
+              <input class="input" type="number" [(ngModel)]="updateSettingsDeleteOnError" />
+            </div>
           </div>
-          <div class="column is-6">
-              <div class="field">
-                <label class="label is-size-7 uppercase-label">Maximum lifetime (min)</label>
-                <div class="control">
-                  <input class="input" type="number" [(ngModel)]="updateSettingsTorrentLifetime" />
-                </div>
-              </div>
+        </div>
+        <div class="column is-6">
+          <div class="field">
+            <label class="label is-size-7 uppercase-label">Maximum lifetime (min)</label>
+            <div class="control">
+              <input class="input" type="number" [(ngModel)]="updateSettingsTorrentLifetime" />
+            </div>
           </div>
+        </div>
       </div>
     </section>
     <footer class="modal-card-foot">
-      <button class="button is-success" (click)="updateSettingsOk()" [disabled]="updating" [ngClass]="{ 'is-loading': updating }">Save Changes</button>
+      <button
+        class="button is-success"
+        (click)="updateSettingsOk()"
+        [disabled]="updating"
+        [ngClass]="{ 'is-loading': updating }"
+      >
+        Save Changes
+      </button>
       <button class="button is-dark" (click)="updateSettingsCancel()" [disabled]="updating">Cancel</button>
     </footer>
   </div>

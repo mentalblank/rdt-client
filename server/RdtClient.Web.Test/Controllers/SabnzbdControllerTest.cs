@@ -12,6 +12,7 @@ using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
 namespace RdtClient.Web.Test.Controllers;
 
+[Xunit.Collection("Settings")]
 public class SabnzbdControllerTest
 {
     private readonly Mock<Authentication> _authenticationMock;
@@ -23,7 +24,7 @@ public class SabnzbdControllerTest
         SettingData.Get.General.AuthenticationType = AuthenticationType.None;
         SettingData.Get.Provider.ApiKey = "test-api-key";
 
-        var torrentsMock = new Mock<Torrents>(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
+        var torrentsMock = new Mock<Torrents>(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
         var sabnzbdLoggerMock = new Mock<ILogger<Sabnzbd>>();
         _sabnzbdMock = new(sabnzbdLoggerMock.Object, torrentsMock.Object, null!);
         var loggerMock = new Mock<ILogger<SabnzbdController>>();

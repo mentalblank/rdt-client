@@ -13,7 +13,7 @@ import { Subscription } from 'rxjs';
   standalone: true,
   imports: [CommonModule, FileSizePipe, DatePipe],
   templateUrl: './status-bar.component.html',
-  styleUrls: ['./status-bar.component.scss']
+  styleUrls: ['./status-bar.component.scss'],
 })
 export class StatusBarComponent implements OnInit, OnDestroy {
   private torrentService = inject(TorrentService);
@@ -24,6 +24,7 @@ export class StatusBarComponent implements OnInit, OnDestroy {
   public eta = '';
   public diskSpace: DiskSpaceStatus | null = null;
   public profile: Profile | null = null;
+  public isExpired = false;
 
   private subscriptions: Subscription = new Subscription();
 
@@ -31,20 +32,24 @@ export class StatusBarComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.torrentService.update$.subscribe((torrents) => {
         this.calculateStats(torrents);
-      })
+        this.checkProfile();
+      }),
     );
 
     this.subscriptions.add(
       this.torrentService.diskSpaceStatus$.subscribe((status) => {
         this.diskSpace = status;
-      })
+      }),
     );
 
-    this.subscriptions.add(
-      this.settingsService.getProfile().subscribe((result) => {
-        this.profile = result;
-      })
-    );
+    this.checkProfile();
+  }
+
+  private checkProfile(): void {
+    this.settingsService.getProfile().subscribe((result: Profile) => {
+      this.profile = result;
+      this.isExpired = result.expiration && new Date(result.expiration) < new Date();
+    });
   }
 
   ngOnDestroy(): void {
@@ -63,9 +68,9 @@ export class StatusBarComponent implements OnInit, OnDestroy {
         }
       });
       // Also include provider speed if downloading on provider (Status 3 = Downloading)
-      if (torrent.rdStatus === 3) { 
-         speed += (torrent.rdSpeed || 0);
-         remaining += (torrent.rdSize || 0) * (1 - (torrent.rdProgress || 0) / 100);
+      if (torrent.rdStatus === 3) {
+        speed += torrent.rdSpeed || 0;
+        remaining += (torrent.rdSize || 0) * (1 - (torrent.rdProgress || 0) / 100);
       }
     });
 

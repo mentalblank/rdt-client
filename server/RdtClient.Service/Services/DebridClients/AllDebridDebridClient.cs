@@ -92,13 +92,26 @@ public class AllDebridDebridClient(ILogger<AllDebridDebridClient> logger, IAllDe
 
     public async Task<DebridClientUser> GetUser()
     {
-        var user = await allDebridNetClientFactory.GetClient().User.GetAsync() ?? throw new("Unable to get user");
-
-        return new()
+        try
         {
-            Username = user.Username,
-            Expiration = user.PremiumUntil > 0 ? new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(user.PremiumUntil) : null
-        };
+            var user = await allDebridNetClientFactory.GetClient().User.GetAsync() ?? throw new("Unable to get user");
+
+            return new()
+            {
+                Username = user.Username,
+                Expiration = user.PremiumUntil > 0 ? new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(user.PremiumUntil) : null
+            };
+        }
+        catch (RateLimitException ex)
+        {
+            logger.LogWarning($"All-Debrid rate limit active: {ex.Message}");
+
+            return new()
+            {
+                Username = "Rate Limited (Wait)",
+                Expiration = null
+            };
+        }
     }
 
     public async Task<String> AddTorrentMagnet(String magnetLink)
@@ -240,6 +253,11 @@ public class AllDebridDebridClient(ILogger<AllDebridDebridClient> logger, IAllDe
                 _ => TorrentStatus.Error
             };
         }
+        catch (RateLimitException ex)
+        {
+            logger.LogWarning($"All-Debrid rate limit active: {ex.Message}");
+            torrent.RdStatusRaw = "Rate Limited (Wait)";
+        }
         catch (AllDebridException ex)
         {
             if (ex.ErrorCode == "MAGNET_INVALID_ID")
@@ -332,27 +350,27 @@ public class AllDebridDebridClient(ILogger<AllDebridDebridClient> logger, IAllDe
                 ? file.FolderOrFileName
                 : Path.Combine(parentPath, file.FolderOrFileName);
 
-                        var result = new List<DebridClientFile>();
+            var result = new List<DebridClientFile>();
 
-                        // If it's a file (has size)
-                        if (file.Size.HasValue)
-                        {
-                            result.Add(new()
-                            {
-                                Path = currentPath,
-                                Bytes = file.Size.Value,
-                                DownloadLink = file.DownloadLink
-                            });
-                        }
+            // If it's a file (has size)
+            if (file.Size.HasValue)
+            {
+                result.Add(new()
+                {
+                    Path = currentPath,
+                    Bytes = file.Size.Value,
+                    DownloadLink = file.DownloadLink
+                });
+            }
 
-                        // Process sub-nodes if they exist
-                        if (file.SubNodes != null)
-                        {
-                            result.AddRange(GetFiles(file.SubNodes, currentPath));
-                        }
+            // Process sub-nodes if they exist
+            if (file.SubNodes != null)
+            {
+                result.AddRange(GetFiles(file.SubNodes, currentPath));
+            }
 
-                        return result;
-                    })
+            return result;
+        })
                     .ToList();
     }
 

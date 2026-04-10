@@ -28,27 +28,27 @@ export class SetupComponent {
   public step: number = 1;
 
   public nextStep(): void {
-      if (this.step === 1) {
-          if (!this.password || this.password !== this.confirmPassword) {
-              this.error = "Passwords do not match";
-              return;
-          }
-          this.error = null;
-          this.step = 2;
-      } else if (this.step === 2) {
-          if (!this.token) {
-              this.error = "Please provide an API key";
-              return;
-          }
-          this.finish();
+    if (this.step === 1) {
+      if (!this.password || this.password !== this.confirmPassword) {
+        this.error = 'Passwords do not match';
+        return;
       }
+      this.error = null;
+      this.step = 2;
+    } else if (this.step === 2) {
+      if (!this.token) {
+        this.error = 'Please provide an API key';
+        return;
+      }
+      this.finish();
+    }
   }
 
   public prevStep(): void {
-      if (this.step > 1) {
-          this.step--;
-          this.error = null;
-      }
+    if (this.step > 1) {
+      this.step--;
+      this.error = null;
+    }
   }
 
   public async finish(): Promise<void> {
@@ -56,17 +56,17 @@ export class SetupComponent {
     this.error = null;
 
     try {
-        // Step 1: Create Admin Account
-        await firstValueFrom(this.authService.create(this.userName, this.password));
+      // Step 1: Create Admin Account
+      await firstValueFrom(this.authService.create(this.userName, this.password));
 
-        // Step 2: Configure Provider
-        await firstValueFrom(this.authService.setupProvider(this.provider, this.token));
+      // Step 2: Configure Provider
+      await firstValueFrom(this.authService.setupProvider(this.provider, this.token));
 
-        this.step = 3; // Success step
+      this.step = 3; // Success step
     } catch (err: any) {
-        this.error = err.error || "An unexpected error occurred during setup";
+      this.error = err.error || 'An unexpected error occurred during setup';
     } finally {
-        this.working = false;
+      this.working = false;
     }
   }
 

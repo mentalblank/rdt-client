@@ -159,7 +159,7 @@ public class QBittorrentController(ILogger<QBittorrentController> logger, QBitto
     {
         var results = await qBittorrent.TorrentInfo();
 
-        if(!String.IsNullOrWhiteSpace(request.Filter))
+        if (!String.IsNullOrWhiteSpace(request.Filter))
         {
             results = results.Where(m => m.State != null && m.State.Equals(request.Filter, StringComparison.OrdinalIgnoreCase)).ToList();
         }

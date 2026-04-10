@@ -39,13 +39,26 @@ public class DebridLinkClient(ILogger<DebridLinkClient> logger, IHttpClientFacto
 
     public async Task<DebridClientUser> GetUser()
     {
-        var user = await GetClient().Account.Infos();
-
-        return new()
+        try
         {
-            Username = user.Username,
-            Expiration = user.PremiumLeft > 0 ? DateTimeOffset.Now.AddSeconds(user.PremiumLeft) : null
-        };
+            var user = await GetClient().Account.Infos();
+
+            return new()
+            {
+                Username = user.Username,
+                Expiration = user.PremiumLeft > 0 ? DateTimeOffset.Now.AddSeconds(user.PremiumLeft) : null
+            };
+        }
+        catch (RateLimitException ex)
+        {
+            logger.LogWarning($"Debrid-Link rate limit active: {ex.Message}");
+
+            return new()
+            {
+                Username = "Rate Limited (Wait)",
+                Expiration = null
+            };
+        }
     }
 
     public async Task<String> AddTorrentMagnet(String magnetLink)
@@ -181,6 +194,11 @@ public class DebridLinkClient(ILogger<DebridLinkClient> logger, IHttpClientFacto
                 _ => TorrentStatus.Error
             };
         }
+        catch (RateLimitException ex)
+        {
+            logger.LogWarning($"Debrid-Link rate limit active: {ex.Message}");
+            torrent.RdStatusRaw = "Rate Limited (Wait)";
+        }
         catch (Exception ex)
         {
             if (ex.Message == "Resource not found")
@@ -286,13 +304,13 @@ public class DebridLinkClient(ILogger<DebridLinkClient> logger, IHttpClientFacto
             Status = torrent.Status.ToString(),
             Added = DateTimeOffset.FromUnixTimeSeconds(torrent.Created),
             Files = (torrent.Files ?? []).Select((m, i) => new DebridClientFile
-                                         {
-                                             Path = m.Name ?? "",
-                                             Bytes = m.Size,
-                                             Id = i,
-                                             Selected = true,
-                                             DownloadLink = m.DownloadUrl
-                                         })
+            {
+                Path = m.Name ?? "",
+                Bytes = m.Size,
+                Id = i,
+                Selected = true,
+                DownloadLink = m.DownloadUrl
+            })
                                          .ToList(),
             Links = torrent.Files?.Select(m => m.DownloadUrl.ToString()).ToList(),
             Ended = null,

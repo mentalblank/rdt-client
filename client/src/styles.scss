@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
 // Dark Mode Theme for linkarr style
 $dark-bg: #121212;
@@ -25,7 +25,7 @@ $error-color: #f14668;
   --error-color: #{$error-color};
   --navbar-bg: #1a1a1a;
   --hover-bg: #252525;
-  
+
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
@@ -35,7 +35,15 @@ $error-color: #f14668;
 }
 
 // Override Bulma variables BEFORE importing
-$family-sans-serif: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+$family-sans-serif:
+  "Inter",
+  -apple-system,
+  BlinkMacSystemFont,
+  "Segoe UI",
+  Roboto,
+  Helvetica,
+  Arial,
+  sans-serif;
 $body-background-color: $dark-bg;
 $text: $dark-text;
 $link: $primary-color;
@@ -58,26 +66,40 @@ $tabs-link-active-border-bottom-color: $primary-color;
 @import "../node_modules/bulma/bulma.scss";
 @import "../node_modules/@fortawesome/fontawesome-free/css/all.css";
 
-html, body {
+html,
+body {
   background-color: $dark-bg !important;
   color: $dark-text !important;
   font-family: $family-sans-serif;
 }
 
-input, button, select, textarea {
+input,
+button,
+select,
+textarea {
   font-family: inherit;
 }
 
 // Global Reusable Classes
-.rounded { border-radius: 8px !important; }
-.bg-dark-soft { background-color: var(--hover-bg) !important; }
-.border-light { border: 1px solid var(--border-color) !important; }
-.border-bottom { border-bottom: 1px solid var(--border-color) !important; }
-.italic { font-style: italic !important; }
+.rounded {
+  border-radius: 8px !important;
+}
+.bg-dark-soft {
+  background-color: var(--hover-bg) !important;
+}
+.border-light {
+  border: 1px solid var(--border-color) !important;
+}
+.border-bottom {
+  border-bottom: 1px solid var(--border-color) !important;
+}
+.italic {
+  font-style: italic !important;
+}
 .uppercase-label {
-    text-transform: uppercase;
-    letter-spacing: 0.05rem;
-    font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+  font-weight: 600;
 }
 
 .box {
@@ -88,20 +110,22 @@ input, button, select, textarea {
 }
 
 .card-field {
-    background-color: var(--hover-bg);
-    padding: var(--spacing-md);
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    margin-bottom: var(--spacing-md);
+  background-color: var(--hover-bg);
+  padding: var(--spacing-md);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  margin-bottom: var(--spacing-md);
 
-    .label {
-        font-size: 0.9rem;
-        color: var(--primary-color) !important;
-        margin-bottom: var(--spacing-sm);
-    }
+  .label {
+    font-size: 0.9rem;
+    color: var(--primary-color) !important;
+    margin-bottom: var(--spacing-sm);
+  }
 }
 
-.input, .textarea, .select select {
+.input,
+.textarea,
+.select select {
   background-color: $dark-input-bg !important;
   color: $dark-text !important;
   border-color: $dark-border !important;
@@ -118,8 +142,8 @@ input, button, select, textarea {
 }
 
 .button {
-    border-radius: 4px !important;
-    font-weight: 500;
+  border-radius: 4px !important;
+  font-weight: 500;
 }
 
 .label {
@@ -163,40 +187,41 @@ input, button, select, textarea {
 }
 
 .status-badge {
-    display: inline-block;
-    padding: 0.2rem 0.6rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    background-color: #333;
-    color: #eee;
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background-color: #333;
+  color: #eee;
 
-    &.status-downloading {
-        background-color: rgba($primary-color, 0.2);
-        color: var(--primary-color);
-    }
-    &.status-finished {
-        background-color: rgba($success-color, 0.2);
-        color: var(--success-color);
-    }
-    &.status-error {
-        background-color: rgba($error-color, 0.2);
-        color: var(--error-color);
-    }
-    &.status-queued {
-        background-color: rgba($warning-color, 0.2);
-        color: var(--warning-color);
-    }
+  &.status-downloading {
+    background-color: rgba($primary-color, 0.2);
+    color: var(--primary-color);
+  }
+  &.status-finished {
+    background-color: rgba($success-color, 0.2);
+    color: var(--success-color);
+  }
+  &.status-error {
+    background-color: rgba($error-color, 0.2);
+    color: var(--error-color);
+  }
+  &.status-queued {
+    background-color: rgba($warning-color, 0.2);
+    color: var(--warning-color);
+  }
 }
 
 .modal-card {
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid $dark-border;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid $dark-border;
 }
 
-.modal-card-head, .modal-card-foot {
+.modal-card-head,
+.modal-card-foot {
   background-color: $dark-card-bg !important;
   border-color: $dark-border !important;
 }
@@ -217,99 +242,99 @@ input, button, select, textarea {
 }
 
 .notification.is-light {
-    background-color: var(--hover-bg) !important;
-    color: var(--text-color) !important;
-    border: 1px solid var(--border-color);
+  background-color: var(--hover-bg) !important;
+  color: var(--text-color) !important;
+  border: 1px solid var(--border-color);
 }
 
 .break-all {
-    word-break: break-all !important;
+  word-break: break-all !important;
 }
 
 // Global Color Overrides
 .breadcrumb {
-    a {
-        color: #ffffff !important;
-        &:hover {
-            color: var(--primary-color) !important;
-        }
+  a {
+    color: #ffffff !important;
+    &:hover {
+      color: var(--primary-color) !important;
     }
-    li.is-active a {
-        color: var(--text-light) !important;
-    }
+  }
+  li.is-active a {
+    color: var(--text-light) !important;
+  }
 }
 
 .tabs {
-    a {
-        color: var(--text-light) !important;
-        &:hover {
-            color: #ffffff !important;
-        }
+  a {
+    color: var(--text-light) !important;
+    &:hover {
+      color: #ffffff !important;
     }
-    li.is-active a {
-        color: #ffffff !important;
-        font-weight: 600;
-    }
+  }
+  li.is-active a {
+    color: #ffffff !important;
+    font-weight: 600;
+  }
 }
 
 // Detail Header Utility
 .detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
+
+  .header-content {
+    flex: 1;
+    min-width: 0; // Crucial for ellipsis to work in flex
+
+    .title {
+      margin-bottom: 0.25rem !important;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .subtitle {
+      margin-bottom: 0 !important;
+    }
+  }
+
+  .header-actions {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
-    flex-wrap: wrap;
-
-    .header-content {
-        flex: 1;
-        min-width: 0; // Crucial for ellipsis to work in flex
-        
-        .title {
-            margin-bottom: 0.25rem !important;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .subtitle {
-            margin-bottom: 0 !important;
-        }
-    }
-
-    .header-actions {
-        display: flex;
-        gap: var(--spacing-sm);
-        flex-shrink: 0;
-    }
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
+  }
 }
 
 // Global Table Refinement
 .table {
-    border-collapse: separate;
-    border-spacing: 0;
-    width: 100%;
-    
-    th {
-        padding: 1rem 0.75rem !important;
-        background-color: rgba(255, 255, 255, 0.02);
-    }
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
 
-    td {
-        padding: 0.75rem !important;
-        vertical-align: middle !important;
-        white-space: nowrap; // Prevent wrapping in cells by default
-        
-        &.break-all {
-            white-space: normal; // Allow wrapping only when explicitly requested
-            word-break: break-all !important;
-        }
-    }
+  th {
+    padding: 1rem 0.75rem !important;
+    background-color: rgba(255, 255, 255, 0.02);
+  }
 
-    .buttons {
-        flex-wrap: nowrap !important; // Force buttons to stay on one line
-    }
+  td {
+    padding: 0.75rem !important;
+    vertical-align: middle !important;
+    white-space: nowrap; // Prevent wrapping in cells by default
 
-    &.is-hoverable tbody tr:hover {
-        background-color: rgba(255, 255, 255, 0.05) !important;
+    &.break-all {
+      white-space: normal; // Allow wrapping only when explicitly requested
+      word-break: break-all !important;
     }
+  }
+
+  .buttons {
+    flex-wrap: nowrap !important; // Force buttons to stay on one line
+  }
+
+  &.is-hoverable tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
 }

@@ -117,7 +117,7 @@ public class EnricherTest : IDisposable
     private void SetupTrackerListGrabber(String[] trackerList)
     {
         _trackerListGrabberMock
-            .Setup(t => t.GetTrackers())
+            .Setup(t => t.GetEnrichmentTrackers())
             .ReturnsAsync(trackerList)
             .Verifiable();
     }
@@ -190,7 +190,7 @@ public class EnricherTest : IDisposable
     {
         // Arrange
         _trackerListGrabberMock
-            .Setup(t => t.GetTrackers())
+            .Setup(t => t.GetEnrichmentTrackers())
             .ThrowsAsync(new InvalidOperationException("Unable to fetch tracker list for enrichment."));
 
         var enricher = new Enricher(_loggerMock.Object, _trackerListGrabberMock.Object);
@@ -422,7 +422,7 @@ public class EnricherTest : IDisposable
     {
         // Arrange
         _trackerListGrabberMock
-            .Setup(t => t.GetTrackers())
+            .Setup(t => t.GetEnrichmentTrackers())
             .ThrowsAsync(new InvalidOperationException("Unable to fetch tracker list for enrichment."));
 
         var torrentDict = CreateStandardTorrentDict("http://tracker1.com/announce");

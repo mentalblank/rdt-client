@@ -23,13 +23,26 @@ public class PremiumizeDebridClient(ILogger<PremiumizeDebridClient> logger, IHtt
 
     public async Task<DebridClientUser> GetUser()
     {
-        var user = await GetClient().Account.InfoAsync() ?? throw new("Unable to get user");
-
-        return new()
+        try
         {
-            Username = user.CustomerId.ToString(),
-            Expiration = user.PremiumUntil > 0 ? new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(user.PremiumUntil.Value) : null
-        };
+            var user = await GetClient().Account.InfoAsync() ?? throw new("Unable to get user");
+
+            return new()
+            {
+                Username = user.CustomerId.ToString(),
+                Expiration = user.PremiumUntil > 0 ? new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(user.PremiumUntil.Value) : null
+            };
+        }
+        catch (RateLimitException ex)
+        {
+            logger.LogWarning($"Premiumize rate limit active: {ex.Message}");
+
+            return new()
+            {
+                Username = "Rate Limited (Wait)",
+                Expiration = null
+            };
+        }
     }
 
     public async Task<String> AddTorrentMagnet(String magnetLink)
@@ -158,6 +171,11 @@ public class PremiumizeDebridClient(ILogger<PremiumizeDebridClient> logger, IHtt
                 "finished" => TorrentStatus.Finished,
                 _ => TorrentStatus.Error
             };
+        }
+        catch (RateLimitException ex)
+        {
+            logger.LogWarning($"Premiumize rate limit active: {ex.Message}");
+            torrent.RdStatusRaw = "Rate Limited (Wait)";
         }
         catch (PremiumizeException ex)
         {

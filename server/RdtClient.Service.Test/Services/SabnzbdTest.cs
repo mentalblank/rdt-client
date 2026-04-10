@@ -5,9 +5,11 @@ using RdtClient.Data.Enums;
 using RdtClient.Data.Models.Data;
 using RdtClient.Data.Models.Internal;
 using RdtClient.Service.Services;
+using Xunit;
 
 namespace RdtClient.Service.Test.Services;
 
+[Xunit.Collection("Settings")]
 public class SabnzbdTest
 {
     private readonly AppSettings _appSettings = new()
@@ -20,7 +22,7 @@ public class SabnzbdTest
 
     public SabnzbdTest()
     {
-        _torrentsMock = new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
+        _torrentsMock = new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
         _torrentsMock.Setup(t => t.Get()).ReturnsAsync(new List<Torrent>());
     }
 
@@ -274,7 +276,7 @@ public class SabnzbdTest
     public async Task GetHistory_ShouldReturnFullPath()
     {
         // Arrange
-        var savePath = @"C:\Downloads";
+        var savePath = Path.Combine(Path.GetTempPath(), "rdt-client-test");
         SettingData.Get.DownloadClient.MappedPath = savePath;
 
         var torrentList = new List<Torrent>
@@ -307,7 +309,7 @@ public class SabnzbdTest
     public async Task GetHistory_ShouldReturnFullPath_NoCategory()
     {
         // Arrange
-        var savePath = @"C:\Downloads";
+        var savePath = Path.Combine(Path.GetTempPath(), "rdt-client-test");
         SettingData.Get.DownloadClient.MappedPath = savePath;
 
         var torrentList = new List<Torrent>

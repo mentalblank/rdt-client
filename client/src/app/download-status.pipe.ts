@@ -46,6 +46,13 @@ export class DownloadStatusPipe implements PipeTransform {
     }
 
     if (value.downloadQueued) {
+      const now = new Date();
+      const queuedDate = new Date(value.downloadQueued);
+      if (queuedDate > now) {
+        const diffMs = queuedDate.getTime() - now.getTime();
+        const diffMins = Math.ceil(diffMs / 60000);
+        return `Fair-use cooldown (${diffMins} mins)`;
+      }
       return 'Download queued';
     }
 

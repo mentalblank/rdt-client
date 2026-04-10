@@ -41,6 +41,11 @@ public class Downloads(DownloadData downloadData) : IDownloads
         await downloadData.UpdateDownloadStarted(downloadId, dateTime);
     }
 
+    public async Task UpdateDownloadQueued(Guid downloadId, DateTimeOffset? dateTime)
+    {
+        await downloadData.UpdateDownloadQueued(downloadId, dateTime);
+    }
+
     public async Task UpdateDownloadFinished(Guid downloadId, DateTimeOffset? dateTime)
     {
         await downloadData.UpdateDownloadFinished(downloadId, dateTime);

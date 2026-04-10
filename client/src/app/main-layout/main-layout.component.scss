@@ -10,39 +10,39 @@
 
 .main-list {
   padding-top: 140px; // Adjust based on navbar + statusbar height
-  
+
   @media screen and (max-width: 768px) {
     padding-top: 180px;
   }
 }
 
 .update-banner {
-    border-radius: 0;
-    text-align: center;
-    padding: 0.5rem 2rem;
-    font-size: 0.85rem;
+  border-radius: 0;
+  text-align: center;
+  padding: 0.5rem 2rem;
+  font-size: 0.85rem;
 }
 
 .back-to-top {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    width: 48px;
-    height: 48px;
-    border-radius: 50% !important;
-    z-index: 999;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-    transform: translateY(20px);
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 50% !important;
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  transform: translateY(20px);
 
-    &.is-visible {
-        opacity: 1;
-        visibility: visible;
-        transform: translateY(0);
-    }
+  &.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
 
-    &:hover {
-        transform: scale(1.1);
-    }
+  &:hover {
+    transform: scale(1.1);
+  }
 }

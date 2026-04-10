@@ -3,16 +3,16 @@
     <div class="setup-card shadow-lg animate-fade-in">
       <div class="setup-header has-text-centered">
         <span class="is-size-2 has-text-weight-bold has-text-primary mb-2 is-block">
-            <i class="fas fa-rocket mr-2"></i>RDT-CLIENT
+          <i class="fas fa-rocket mr-2"></i>RDT-CLIENT
         </span>
         <h1 class="title is-3 has-text-white">Initial Setup</h1>
-        
+
         <div class="steps-indicator mb-5">
-            <div class="step-dot" [class.is-active]="step === 1" [class.is-completed]="step > 1">1</div>
-            <div class="step-line"></div>
-            <div class="step-dot" [class.is-active]="step === 2" [class.is-completed]="step > 2">2</div>
-            <div class="step-line"></div>
-            <div class="step-dot" [class.is-active]="step === 3" [class.is-completed]="step > 3">3</div>
+          <div class="step-dot" [class.is-active]="step === 1" [class.is-completed]="step > 1">1</div>
+          <div class="step-line"></div>
+          <div class="step-dot" [class.is-active]="step === 2" [class.is-completed]="step > 2">2</div>
+          <div class="step-line"></div>
+          <div class="step-dot" [class.is-active]="step === 3" [class.is-completed]="step > 3">3</div>
         </div>
       </div>
 
@@ -68,11 +68,46 @@
                 <span class="icon is-small is-left"><i class="fas fa-key"></i></span>
               </div>
               <div class="mt-3">
-                  @if (provider === 0) { <p class="help">Get key: <a href="https://real-debrid.com/apitoken" target="_blank" class="has-text-primary">real-debrid.com/apitoken</a></p> }
-                  @if (provider === 1) { <p class="help">Get key: <a href="https://alldebrid.com/apikeys/" target="_blank" class="has-text-primary">alldebrid.com/apikeys/</a></p> }
-                  @if (provider === 2) { <p class="help">Get key: <a href="https://www.premiumize.me/account" target="_blank" class="has-text-primary">premiumize.me/account</a></p> }
-                  @if (provider === 3) { <p class="help">Get key: <a href="https://torbox.app/settings" target="_blank" class="has-text-primary">torbox.app/settings</a></p> }
-                  @if (provider === 4) { <p class="help">Get key: <a href="https://debrid-link.com/webapp/apikey" target="_blank" class="has-text-primary">debrid-link.com/apikey</a></p> }
+                @if (provider === 0) {
+                  <p class="help">
+                    Get key:
+                    <a href="https://real-debrid.com/apitoken" target="_blank" class="has-text-primary"
+                      >real-debrid.com/apitoken</a
+                    >
+                  </p>
+                }
+                @if (provider === 1) {
+                  <p class="help">
+                    Get key:
+                    <a href="https://alldebrid.com/apikeys/" target="_blank" class="has-text-primary"
+                      >alldebrid.com/apikeys/</a
+                    >
+                  </p>
+                }
+                @if (provider === 2) {
+                  <p class="help">
+                    Get key:
+                    <a href="https://www.premiumize.me/account" target="_blank" class="has-text-primary"
+                      >premiumize.me/account</a
+                    >
+                  </p>
+                }
+                @if (provider === 3) {
+                  <p class="help">
+                    Get key:
+                    <a href="https://torbox.app/settings" target="_blank" class="has-text-primary"
+                      >torbox.app/settings</a
+                    >
+                  </p>
+                }
+                @if (provider === 4) {
+                  <p class="help">
+                    Get key:
+                    <a href="https://debrid-link.com/webapp/apikey" target="_blank" class="has-text-primary"
+                      >debrid-link.com/apikey</a
+                    >
+                  </p>
+                }
               </div>
             </div>
           </div>
@@ -81,12 +116,12 @@
         <!-- Step 3: Success -->
         @if (step === 3) {
           <div class="has-text-centered py-5">
-              <div class="icon is-large has-text-success mb-4">
-                  <i class="fas fa-check-circle fa-4x"></i>
-              </div>
-              <h2 class="title is-4 has-text-white">Setup Complete!</h2>
-              <p class="mb-5">RDT-Client has been successfully configured.</p>
-              <button class="button is-primary is-fullwidth" (click)="close()">Get Started</button>
+            <div class="icon is-large has-text-success mb-4">
+              <i class="fas fa-check-circle fa-4x"></i>
+            </div>
+            <h2 class="title is-4 has-text-white">Setup Complete!</h2>
+            <p class="mb-5">RDT-Client has been successfully configured.</p>
+            <button class="button is-primary is-fullwidth" (click)="close()">Get Started</button>
           </div>
         }
 
@@ -100,14 +135,14 @@
       @if (step < 3) {
         <div class="setup-footer mt-5 pt-4">
           <div class="is-flex is-justify-content-space-between">
-              <button class="button is-ghost" (click)="prevStep()" [disabled]="step === 1 || working">
-                  <span class="icon"><i class="fas fa-arrow-left"></i></span>
-                  <span>Back</span>
-              </button>
-              <button class="button is-primary px-6" (click)="nextStep()" [class.is-loading]="working">
-                  <span>{{ step === 2 ? 'Finish' : 'Next' }}</span>
-                  <span class="icon"><i class="fas fa-arrow-right"></i></span>
-              </button>
+            <button class="button is-ghost" (click)="prevStep()" [disabled]="step === 1 || working">
+              <span class="icon"><i class="fas fa-arrow-left"></i></span>
+              <span>Back</span>
+            </button>
+            <button class="button is-primary px-6" (click)="nextStep()" [class.is-loading]="working">
+              <span>{{ step === 2 ? "Finish" : "Next" }}</span>
+              <span class="icon"><i class="fas fa-arrow-right"></i></span>
+            </button>
           </div>
         </div>
       }

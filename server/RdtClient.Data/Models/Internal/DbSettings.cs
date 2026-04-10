@@ -75,16 +75,16 @@ Supports the following parameters:
     public String? CopyAddedTorrents { get; set; } = "/mnt/seed";
 
     [DisplayName("Tracker enrichment list")]
-    [Description("Optional. Specify the URL of a tracker list file to be appended to magnet links and torrent files.")]
+    [Description("Optional. Specify a URL or a comma separated list of trackers to be appended to magnet links and torrent files.")]
     public String? TrackerEnrichmentList { get; set; } = "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt";
 
-    [DisplayName("Tracker enrichment cache expiration")]
-    [Description("The time in minutes to cache the tracker list. Set to 0 to disable caching.")]
-    public Int32 TrackerEnrichmentCacheExpiration { get; set; } = 60;
-
     [DisplayName("Banned Trackers")]
-    [Description("Torrents that come from these trackers will not be allowed, this is a failsafe if you are accidentally downloading from private trackers. Will compare by keyword. Define multiple trackers by separating them with a comma.")]
+    [Description("Torrents that come from these trackers will not be allowed. Specify a URL or keywords separated by a comma. Will compare by keyword.")]
     public String? BannedTrackers { get; set; } = null;
+
+    [DisplayName("Tracker list cache expiration")]
+    [Description("The time in minutes to cache the tracker list (only applies when using a URL). Set to 0 to disable caching.")]
+    public Int32 TrackerEnrichmentCacheExpiration { get; set; } = 60;
 
     [DisplayName("RClone custom command ")]
     [Description("Allows users to define a command, such as \"rc vfs/refresh recursive=true --rc-addr=172.17.0.1:5572\", to trigger an RClone refresh operation before initiating the file discovery process.")]
@@ -93,6 +93,10 @@ Supports the following parameters:
     [DisplayName("Disable update notifications")]
     [Description("Ignore update notifications. You will still be notified if the version you are running has a security vulnerability.")]
     public Boolean DisableUpdateNotifications { get; set; } = false;
+
+    [DisplayName("Fair-Use Limit Cooldown (minutes)")]
+    [Description("When a Fair-Use Limit is reached, wait this many minutes before retrying. Default is 60.")]
+    public Int32 FairUseLimitCooldown { get; set; } = 60;
 }
 
 public class DbSettingsDownloadClient
@@ -236,6 +240,42 @@ or
     [Description("Torbox only. When selected, rdt-client will try to download the entire torrent as a .zip from TorBox and unpack it instead of downloading each file individually.")]
     public Boolean PreferZippedDownloads { get; set; } = false;
 
+    [DisplayName("Stalled torrent action")]
+    [Description("Action to take when a torrent is stalled. If set to None, no action is taken.")]
+    public StalledAction StalledAction { get; set; } = StalledAction.None;
+
+    [DisplayName("Stalled torrent timeout (minutes)")]
+    [Description("When a torrent has not made any progress for this many minutes, perform the stalled action. 0 to disable.")]
+    public Int32 StalledTimeout { get; set; } = 0;
+
+    [DisplayName("Stalled: Delete from client")]
+    [Description("When a stalled torrent is removed, delete it from the client. (Only applies when action is Remove)")]
+    public Boolean StalledDeleteData { get; set; } = true;
+
+    [DisplayName("Stalled: Delete from provider")]
+    [Description("When a stalled torrent is removed, delete it from the debrid provider. (Applies when action is Remove or Error)")]
+    public Boolean StalledDeleteRdTorrent { get; set; } = true;
+
+    [DisplayName("Stalled: Delete local files")]
+    [Description("When a stalled torrent is removed, delete any downloaded local files. (Applies when action is Remove or Error)")]
+    public Boolean StalledDeleteLocalFiles { get; set; } = true;
+
+    [DisplayName("Infringing torrent action")]
+    [Description("Action to take when a torrent is marked as infringing by the debrid provider. If set to None, no action is taken.")]
+    public StalledAction InfringingAction { get; set; } = StalledAction.None;
+
+    [DisplayName("Infringing: Delete from client")]
+    [Description("When an infringing torrent is removed, delete it from the client. (Only applies when action is Remove)")]
+    public Boolean InfringingDeleteData { get; set; } = true;
+
+    [DisplayName("Infringing: Delete from provider")]
+    [Description("When an infringing torrent is removed, delete it from the debrid provider. (Applies when action is Remove or Error)")]
+    public Boolean InfringingDeleteRdTorrent { get; set; } = true;
+
+    [DisplayName("Infringing: Delete local files")]
+    [Description("When an infringing torrent is removed, delete any downloaded local files. (Applies when action is Remove or Error)")]
+    public Boolean InfringingDeleteLocalFiles { get; set; } = true;
+
     [DisplayName("Auto Import Defaults")]
     public DbSettingsDefaultsWithCategory Default { get; set; } = new();
 }
@@ -337,4 +377,11 @@ public class DbSettingsDefaults
     [DisplayName("Priority")]
     [Description("Set the priority of a torrent, 1 = highest, 0 = disabled.")]
     public Int32 Priority { get; set; } = 0;
+}
+
+public enum StalledAction
+{
+    None = 0,
+    Remove = 1,
+    Error = 2
 }

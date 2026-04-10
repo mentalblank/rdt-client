@@ -8,69 +8,99 @@
   <div class="notification is-warning">
     <strong>Bezzad downloads paused due to low disk space</strong>
     <br />
-    Available: {{ diskSpaceStatus.availableSpaceGB }} GB | Resume at: {{ diskSpaceStatus.thresholdGB * 2 }} GB
+    Available: {{ diskSpaceStatus.availableSpaceGB | number: "1.2-2" }} GB | Resume at:
+    {{ diskSpaceStatus.thresholdGB * 2 | number: "1.2-2" }} GB
     <br />
-    <small>Last check: {{ diskSpaceStatus.lastCheckTime | date: 'short' }}</small>
+    <small>Last check: {{ diskSpaceStatus.lastCheckTime | date: "short" }}</small>
+  </div>
+}
+@if (isExpired) {
+  <div class="notification is-danger">
+    <strong>Debrid premium account has expired!</strong>
+    <br />
+    Torrents will not be synced or downloaded until your account is renewed.
   </div>
 }
 @if (rateLimitStatus?.nextDequeueTime) {
   <div class="notification is-warning">
     <strong>Debrid provider rate limit reached</strong>
     <br />
-    New torrents will not be added until {{ rateLimitStatus.nextDequeueTime | date: 'medium' }}
+    New torrents will not be added until {{ rateLimitStatus.nextDequeueTime | date: "medium" }}
   </div>
 }
 
 <div class="queue-header mb-4">
-    <div class="level">
-        <div class="level-left is-align-items-center">
-            <h1 class="title is-4 mr-4 mb-0">Queue ({{ filteredTorrents.length }})</h1>
-            
-            <div class="field has-addons mr-3 mb-0">
-                <p class="control">
-                    <span class="button is-small is-static">Category</span>
-                </p>
-                <div class="control select is-small">
-                    <select [(ngModel)]="categoryFilter">
-                        <option value="all">All</option>
-                        @for (cat of availableCategories; track cat) {
-                            <option [value]="cat">{{ cat }}</option>
-                        }
-                    </select>
-                </div>
-            </div>
+  <div class="level">
+    <div class="level-left is-align-items-center">
+      <h1 class="title is-4 mr-4 mb-0">Queue ({{ filteredTorrents.length }})</h1>
 
-            <div class="field has-addons mb-0">
-                <p class="control">
-                    <span class="button is-small is-static">Status</span>
-                </p>
-                <div class="control select is-small">
-                    <select [(ngModel)]="statusFilter">
-                        <option value="all">All</option>
-                        @for (stat of availableStatuses; track stat.value) {
-                            <option [value]="stat.value">{{ stat.label }}</option>
-                        }
-                    </select>
-                </div>
-            </div>
+      <div class="field has-addons mr-3 mb-0">
+        <p class="control">
+          <span class="button is-small is-static">Category</span>
+        </p>
+        <div class="control select is-small">
+          <select [(ngModel)]="categoryFilter">
+            <option value="all">All</option>
+            @for (cat of availableCategories; track cat) {
+              <option [value]="cat">{{ cat }}</option>
+            }
+          </select>
         </div>
-        <div class="level-right">
-            <div class="buttons">
-                <button class="button is-small is-danger" (click)="showDeleteModal()" [disabled]="selectedTorrents.length === 0">
-                    <span class="icon is-small"><i class="fas fa-trash"></i></span>
-                    <span>Delete</span>
-                </button>
-                <button class="button is-small is-primary" (click)="showRetryModal()" [disabled]="selectedTorrents.length === 0">
-                    <span class="icon is-small"><i class="fas fa-sync-alt"></i></span>
-                    <span>Retry</span>
-                </button>
-                <button class="button is-small is-info" (click)="changeSettingsModal()" [disabled]="selectedTorrents.length === 0">
-                    <span class="icon is-small"><i class="fas fa-edit"></i></span>
-                    <span>Options</span>
-                </button>
-            </div>
+      </div>
+
+      <div class="field has-addons mb-0">
+        <p class="control">
+          <span class="button is-small is-static">Status</span>
+        </p>
+        <div class="control select is-small">
+          <select [(ngModel)]="statusFilter">
+            <option value="all">All</option>
+            @for (stat of availableStatuses; track stat.value) {
+              <option [value]="stat.value">{{ stat.label }}</option>
+            }
+          </select>
         </div>
+      </div>
     </div>
+    <div class="level-right">
+      <div class="buttons">
+        <button
+          class="button is-small is-danger"
+          (click)="showDeleteModal()"
+          [disabled]="selectedTorrents.length === 0"
+        >
+          <span class="icon is-small"><i class="fas fa-trash"></i></span>
+          <span>Delete</span>
+        </button>
+        <button
+          class="button is-small is-primary"
+          (click)="showRetryModal()"
+          [disabled]="selectedTorrents.length === 0"
+        >
+          <span class="icon is-small"><i class="fas fa-sync-alt"></i></span>
+          <span>Retry</span>
+        </button>
+        <button
+          *ngIf="hasFailedDownloads"
+          class="button is-small is-warning"
+          (click)="retryFailedOk()"
+          [disabled]="selectedTorrents.length === 0"
+          [ngClass]="{ 'is-loading': retrying }"
+        >
+          <span class="icon is-small"><i class="fas fa-redo"></i></span>
+          <span>Retry Failed</span>
+        </button>
+        <button
+          class="button is-small is-info"
+          (click)="changeSettingsModal()"
+          [disabled]="selectedTorrents.length === 0"
+        >
+          <span class="icon is-small"><i class="fas fa-edit"></i></span>
+          <span>Options</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="table-container">
@@ -85,11 +115,46 @@
               [checked]="selectedTorrents.length > 0 && selectedTorrents.length === filteredTorrents.length"
             />
           </th>
-          <th (click)="sort('rdName')" [class.sort-active]="sortProperty == 'rdName'" [class.sort-descending]="sortDirection == 'desc'">Name</th>
-          <th width="100" class="has-text-right" (click)="sort('rdSize')" [class.sort-active]="sortProperty == 'rdSize'" [class.sort-descending]="sortDirection == 'desc'">Size</th>
-          <th width="150" (click)="sort('rdProgress')" [class.sort-active]="sortProperty == 'rdProgress'" [class.sort-descending]="sortDirection == 'desc'">Progress</th>
-          <th width="120" (click)="sort('rdStatus')" [class.sort-active]="sortProperty == 'rdStatus'" [class.sort-descending]="sortDirection == 'desc'">Status</th>
-          <th width="120" (click)="sort('category')" [class.sort-active]="sortProperty == 'category'" [class.sort-descending]="sortDirection == 'desc'">Category</th>
+          <th
+            (click)="sort('rdName')"
+            [class.sort-active]="sortProperty == 'rdName'"
+            [class.sort-descending]="sortDirection == 'desc'"
+          >
+            Name
+          </th>
+          <th
+            width="100"
+            class="has-text-right"
+            (click)="sort('rdSize')"
+            [class.sort-active]="sortProperty == 'rdSize'"
+            [class.sort-descending]="sortDirection == 'desc'"
+          >
+            Size
+          </th>
+          <th
+            width="150"
+            (click)="sort('rdProgress')"
+            [class.sort-active]="sortProperty == 'rdProgress'"
+            [class.sort-descending]="sortDirection == 'desc'"
+          >
+            Progress
+          </th>
+          <th
+            width="120"
+            (click)="sort('rdStatus')"
+            [class.sort-active]="sortProperty == 'rdStatus'"
+            [class.sort-descending]="sortDirection == 'desc'"
+          >
+            Status
+          </th>
+          <th
+            width="120"
+            (click)="sort('category')"
+            [class.sort-active]="sortProperty == 'category'"
+            [class.sort-descending]="sortDirection == 'desc'"
+          >
+            Category
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -104,10 +169,10 @@
             </td>
             <td (click)="openTorrent(torrent.torrentId)" class="break-all name-cell">
               <div class="is-flex is-align-items-center">
-                  <span class="icon mr-2">
-                      <i class="fas" [ngClass]="torrent.type === 1 ? 'fa-layer-group' : 'fa-magnet'"></i>
-                  </span>
-                  <span class="torrent-name">{{ torrent.rdName }}</span>
+                <span class="icon mr-2">
+                  <i class="fas" [ngClass]="torrent.type === 1 ? 'fa-layer-group' : 'fa-magnet'"></i>
+                </span>
+                <span class="torrent-name">{{ torrent.rdName }}</span>
               </div>
             </td>
             <td class="has-text-right has-text-grey">
@@ -115,13 +180,15 @@
             </td>
             <td class="progress-cell">
               <div class="progress-container">
-                  <progress class="progress is-small is-primary" [value]="torrent.rdProgress" max="100">{{ torrent.rdProgress }}%</progress>
-                  <span class="progress-text">{{ torrent.rdProgress | number: '1.0-1' }}%</span>
+                <progress class="progress is-small is-primary" [value]="torrent.rdProgress" max="100">
+                  {{ torrent.rdProgress }}%
+                </progress>
+                <span class="progress-text">{{ torrent.rdProgress | number: "1.0-1" }}%</span>
               </div>
             </td>
             <td>
               <span class="status-badge" [ngClass]="getStatusClass(torrent)">
-                  {{ torrent | status }}
+                {{ torrent | status }}
               </span>
             </td>
             <td>
@@ -139,78 +206,104 @@
     </table>
   } @else {
     <div class="mobile-queue animate-fade-in">
-        @for (torrent of filteredTorrents | sort: sortProperty : sortDirection; track torrent.torrentId) {
-            <div class="box mobile-torrent-card p-4 mb-3 rounded shadow-sm" [class.is-selected]="selectedTorrents.includes(torrent.torrentId)">
-                <div class="is-flex is-align-items-start mb-3">
-                    <div class="mr-3 pt-1">
-                        <input type="checkbox" (click)="toggleSelect(torrent.torrentId)" [checked]="selectedTorrents.includes(torrent.torrentId)" />
-                    </div>
-                    <div class="is-flex-grow-1 overflow-hidden" (click)="openTorrent(torrent.torrentId)">
-                        <div class="is-flex is-align-items-center mb-1">
-                            <span class="icon is-small mr-2 has-text-primary">
-                                <i class="fas" [ngClass]="torrent.type === 1 ? 'fa-layer-group' : 'fa-magnet'"></i>
-                            </span>
-                            <span class="has-text-weight-semibold is-size-6 break-all line-clamp-2">{{ torrent.rdName }}</span>
-                        </div>
-                        <div class="is-flex is-align-items-center is-flex-wrap-wrap gap-2">
-                            <span class="status-badge is-small" [ngClass]="getStatusClass(torrent)">{{ torrent | status }}</span>
-                            <span class="is-size-7 has-text-grey">{{ torrent.rdSize | filesize }}</span>
-                            @if (torrent.category) {
-                                <span class="tag is-info is-light is-small">{{ torrent.category }}</span>
-                            }
-                        </div>
-                    </div>
-                </div>
-                <div class="progress-container" (click)="openTorrent(torrent.torrentId)">
-                    <progress class="progress is-small is-primary mb-0" [value]="torrent.rdProgress" max="100"></progress>
-                    <span class="progress-text">{{ torrent.rdProgress | number: '1.0-1' }}%</span>
-                </div>
+      @for (torrent of filteredTorrents | sort: sortProperty : sortDirection; track torrent.torrentId) {
+        <div
+          class="box mobile-torrent-card p-4 mb-3 rounded shadow-sm"
+          [class.is-selected]="selectedTorrents.includes(torrent.torrentId)"
+        >
+          <div class="is-flex is-align-items-start mb-3">
+            <div class="mr-3 pt-1">
+              <input
+                type="checkbox"
+                (click)="toggleSelect(torrent.torrentId)"
+                [checked]="selectedTorrents.includes(torrent.torrentId)"
+              />
             </div>
-        }
+            <div class="is-flex-grow-1 overflow-hidden" (click)="openTorrent(torrent.torrentId)">
+              <div class="is-flex is-align-items-center mb-1">
+                <span class="icon is-small mr-2 has-text-primary">
+                  <i class="fas" [ngClass]="torrent.type === 1 ? 'fa-layer-group' : 'fa-magnet'"></i>
+                </span>
+                <span class="has-text-weight-semibold is-size-6 break-all line-clamp-2">{{ torrent.rdName }}</span>
+              </div>
+              <div class="is-flex is-align-items-center is-flex-wrap-wrap gap-2">
+                <span class="status-badge is-small" [ngClass]="getStatusClass(torrent)">{{ torrent | status }}</span>
+                <span class="is-size-7 has-text-grey">{{ torrent.rdSize | filesize }}</span>
+                @if (torrent.category) {
+                  <span class="tag is-info is-light is-small">{{ torrent.category }}</span>
+                }
+              </div>
+            </div>
+          </div>
+          <div class="progress-container" (click)="openTorrent(torrent.torrentId)">
+            <progress class="progress is-small is-primary mb-0" [value]="torrent.rdProgress" max="100"></progress>
+            <span class="progress-text">{{ torrent.rdProgress | number: "1.0-1" }}%</span>
+          </div>
+        </div>
+      }
     </div>
   }
-  
+
   @if (filteredTorrents.length === 0) {
-      <div class="has-text-centered py-6 has-text-grey animate-fade-in">
-          <i class="fas fa-inbox fa-3x mb-3"></i>
-          <p class="is-size-5">No items found</p>
-      </div>
+    <div class="has-text-centered py-6 has-text-grey animate-fade-in">
+      <i class="fas fa-inbox fa-3x mb-3"></i>
+      <p class="is-size-5">No items found</p>
+    </div>
   }
 </div>
 
 <div class="modal" [class.is-active]="isDeleteModalActive">
-  <div class="modal-background"></div>
+  <div class="modal-background" (click)="deleteCancel()"></div>
   <div class="modal-card">
     <header class="modal-card-head">
-      <p class="modal-card-title">Delete selected</p>
+      <p class="modal-card-title">Delete Item</p>
       <button class="delete" aria-label="close" (click)="deleteCancel()"></button>
     </header>
     <section class="modal-card-body">
-      <p class="mb-4">Are you sure you want to delete these items?</p>
+      <p class="mb-4">Are you sure you want to delete this item?</p>
       <div class="field">
         <div class="control">
-          <label class="checkbox mb-2 is-block p-2 rounded">
-            <input type="checkbox" [(ngModel)]="deleteData" (change)="updateDeleteSelectAll()" />
+          <label class="checkbox is-block p-3 rounded mb-2 bg-dark-soft border-light">
+            <input type="checkbox" [(ngModel)]="deleteData" (change)="updateDeleteSelectAll()" class="mr-2" />
             Delete from client
           </label>
-          <label class="checkbox mb-2 is-block p-2 rounded">
-            <input type="checkbox" [(ngModel)]="deleteRdTorrent" (change)="updateDeleteSelectAll()" />
+          <label class="checkbox is-block p-3 rounded mb-2 bg-dark-soft border-light">
+            <input type="checkbox" [(ngModel)]="deleteRdTorrent" (change)="updateDeleteSelectAll()" class="mr-2" />
             Delete from provider
           </label>
-          <label class="checkbox mb-2 is-block p-2 rounded">
-            <input type="checkbox" [(ngModel)]="deleteLocalFiles" (change)="updateDeleteSelectAll()" />
+          <label class="checkbox is-block p-3 rounded mb-2 bg-dark-soft border-light">
+            <input type="checkbox" [(ngModel)]="deleteLocalFiles" (change)="updateDeleteSelectAll()" class="mr-2" />
             Delete local files
+          </label>
+          <hr class="my-3 border-light" />
+          <label class="checkbox is-block p-2">
+            <input
+              type="checkbox"
+              [(ngModel)]="deleteSelectAll"
+              (change)="toggleDeleteSelectAllOptions()"
+              class="mr-2"
+            />
+            <strong>Select All</strong>
           </label>
         </div>
       </div>
+      @if (deleteError?.length) {
+        <div class="notification is-danger is-light mt-4 border-light">Error: {{ deleteError }}</div>
+      }
     </section>
     <footer class="modal-card-foot">
-      <button class="button is-danger" (click)="deleteOk()" [disabled]="deleting" [ngClass]="{ 'is-loading': deleting }">Delete</button>
-      <button class="button" (click)="deleteCancel()" [disabled]="deleting">Cancel</button>
+      <button
+        class="button is-danger"
+        (click)="deleteOk()"
+        [disabled]="deleting"
+        [ngClass]="{ 'is-loading': deleting }"
+      >
+        Delete
+      </button>
+      <button class="button is-dark" (click)="deleteCancel()" [disabled]="deleting">Cancel</button>
     </footer>
   </div>
 </div>
-
 <div class="modal" [class.is-active]="isRetryModalActive">
   <div class="modal-background"></div>
   <div class="modal-card">
@@ -222,60 +315,74 @@
       <p>This action will delete data and re-add to provider. Proceed?</p>
     </section>
     <footer class="modal-card-foot">
-      <button class="button is-primary" (click)="retryOk()" [disabled]="retrying" [ngClass]="{ 'is-loading': retrying }">Retry</button>
+      <button
+        class="button is-primary"
+        (click)="retryOk()"
+        [disabled]="retrying"
+        [ngClass]="{ 'is-loading': retrying }"
+      >
+        Retry
+      </button>
       <button class="button" (click)="retryCancel()" [disabled]="retrying">Cancel</button>
     </footer>
   </div>
 </div>
 
 <div class="modal" [class.is-active]="isChangeSettingsModalActive">
-    <div class="modal-background"></div>
-    <div class="modal-card">
-      <header class="modal-card-head">
-        <p class="modal-card-title">Options</p>
-        <button class="delete" aria-label="close" (click)="changeSettingsCancel()"></button>
-      </header>
-      <section class="modal-card-body">
-        <div class="field">
-          <label class="label">Category</label>
-          <div class="control">
-            <input class="input" type="text" [(ngModel)]="updateSettingsCategory" />
-          </div>
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">Options</p>
+      <button class="delete" aria-label="close" (click)="changeSettingsCancel()"></button>
+    </header>
+    <section class="modal-card-body">
+      <div class="field">
+        <label class="label">Category</label>
+        <div class="control">
+          <input class="input" type="text" [(ngModel)]="updateSettingsCategory" />
         </div>
-        <div class="field">
-          <label class="label">Priority</label>
-          <div class="control">
-            <input class="input" type="number" step="1" [(ngModel)]="updateSettingsPriority" />
-          </div>
+      </div>
+      <div class="field">
+        <label class="label">Priority</label>
+        <div class="control">
+          <input class="input" type="number" step="1" [(ngModel)]="updateSettingsPriority" />
         </div>
-        <div class="field">
-          <label class="label">Download retry attempts</label>
-          <div class="control">
-            <input class="input" type="number" step="1" [(ngModel)]="updateSettingsDownloadRetryAttempts" />
-          </div>
+      </div>
+      <div class="field">
+        <label class="label">Download retry attempts</label>
+        <div class="control">
+          <input class="input" type="number" step="1" [(ngModel)]="updateSettingsDownloadRetryAttempts" />
         </div>
-        <div class="field">
-          <label class="label">Retry attempts</label>
-          <div class="control">
-            <input class="input" type="number" step="1" [(ngModel)]="updateSettingsTorrentRetryAttempts" />
-          </div>
+      </div>
+      <div class="field">
+        <label class="label">Retry attempts</label>
+        <div class="control">
+          <input class="input" type="number" step="1" [(ngModel)]="updateSettingsTorrentRetryAttempts" />
         </div>
-        <div class="field">
-          <label class="label">Delete on error (minutes)</label>
-          <div class="control">
-            <input class="input" type="number" step="1" [(ngModel)]="updateSettingsDeleteOnError" />
-          </div>
+      </div>
+      <div class="field">
+        <label class="label">Delete on error (minutes)</label>
+        <div class="control">
+          <input class="input" type="number" step="1" [(ngModel)]="updateSettingsDeleteOnError" />
         </div>
-        <div class="field">
-          <label class="label">Maximum lifetime (minutes)</label>
-          <div class="control">
-            <input class="input" type="number" step="1" [(ngModel)]="updateSettingsTorrentLifetime" />
-          </div>
+      </div>
+      <div class="field">
+        <label class="label">Maximum lifetime (minutes)</label>
+        <div class="control">
+          <input class="input" type="number" step="1" [(ngModel)]="updateSettingsTorrentLifetime" />
         </div>
-      </section>
-      <footer class="modal-card-foot">
-        <button class="button is-success" (click)="changeSettingsOk()" [disabled]="changingSettings" [ngClass]="{ 'is-loading': changingSettings }">Save</button>
-        <button class="button" (click)="changeSettingsCancel()" [disabled]="changingSettings">Cancel</button>
-      </footer>
-    </div>
+      </div>
+    </section>
+    <footer class="modal-card-foot">
+      <button
+        class="button is-success"
+        (click)="changeSettingsOk()"
+        [disabled]="changingSettings"
+        [ngClass]="{ 'is-loading': changingSettings }"
+      >
+        Save
+      </button>
+      <button class="button" (click)="changeSettingsCancel()" [disabled]="changingSettings">Cancel</button>
+    </footer>
   </div>
+</div>

@@ -82,9 +82,9 @@ export class TorrentService {
     });
   }
 
-  public uploadFile(file: File, torrent: Torrent): Observable<void> {
+  public uploadFile(files: File[], torrent: Torrent): Observable<void> {
     const formData: FormData = new FormData();
-    formData.append('file', file);
+    files.forEach((file) => formData.append('files', file));
     formData.append('formData', JSON.stringify({ torrent }));
     return this.http.post<void>(`${this.baseHref}Api/Torrents/UploadFile`, formData);
   }
@@ -96,9 +96,9 @@ export class TorrentService {
     });
   }
 
-  public uploadNzbFile(file: File, torrent: Torrent): Observable<void> {
+  public uploadNzbFile(files: File[], torrent: Torrent): Observable<void> {
     const formData: FormData = new FormData();
-    formData.append('file', file);
+    files.forEach((file) => formData.append('files', file));
     formData.append('formData', JSON.stringify({ torrent }));
     return this.http.post<void>(`${this.baseHref}Api/Torrents/UploadNzbFile`, formData);
   }
@@ -134,6 +134,10 @@ export class TorrentService {
 
   public retryDownload(downloadId: string): Observable<void> {
     return this.http.post<void>(`${this.baseHref}Api/Torrents/RetryDownload/${downloadId}`, {});
+  }
+
+  public retryFailed(torrentId: string): Observable<void> {
+    return this.http.post<void>(`${this.baseHref}Api/Torrents/RetryFailed/${torrentId}`, {});
   }
 
   public update(torrent: Torrent): Observable<void> {

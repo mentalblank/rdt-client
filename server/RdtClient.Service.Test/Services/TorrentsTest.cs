@@ -24,12 +24,14 @@ internal class Mocks
     public readonly Mock<IProcess> ProcessMock;
     public readonly Mock<ITorrentData> TorrentDataMock;
     public readonly Mock<ILogger<TorrentsService>> TorrentsLoggerMock;
+    public readonly Mock<ITrackerListGrabber> TrackerListGrabberMock;
 
     public Mocks()
     {
         TorrentDataMock = new();
         DownloadsMock = new();
         EnricherMock = new();
+        TrackerListGrabberMock = new();
 
         TorrentsLoggerMock = new();
 
@@ -114,14 +116,14 @@ public class TorrentsTest
                 filePath, new("Test file")
             }
         });
-
         var torrents = new TorrentsService(mocks.TorrentsLoggerMock.Object,
                                            mocks.TorrentDataMock.Object,
                                            mocks.DownloadsMock.Object,
                                            mocks.ProcessFactoryMock.Object,
                                            fileSystemMock,
                                            mocks.EnricherMock.Object,
-                                           null!, // Torrent Clients are not used by `RunTorrentComplete`, this is fine
+                                           mocks.TrackerListGrabberMock.Object,
+                                           null!,
                                            null!,
                                            null!,
                                            null!,
@@ -180,14 +182,14 @@ public class TorrentsTest
                 filePath, new("Test file")
             }
         });
-
         var torrents = new TorrentsService(mocks.TorrentsLoggerMock.Object,
                                            mocks.TorrentDataMock.Object,
                                            mocks.DownloadsMock.Object,
                                            mocks.ProcessFactoryMock.Object,
                                            fileSystemMock,
                                            mocks.EnricherMock.Object,
-                                           null!, // Torrent Clients are not used by `RunTorrentComplete`, this is fine
+                                           mocks.TrackerListGrabberMock.Object,
+                                           null!,
                                            null!,
                                            null!,
                                            null!,
@@ -228,14 +230,14 @@ public class TorrentsTest
                 filePath, new("Test file")
             }
         });
-
         var torrents = new TorrentsService(mocks.TorrentsLoggerMock.Object,
                                            mocks.TorrentDataMock.Object,
                                            mocks.DownloadsMock.Object,
                                            mocks.ProcessFactoryMock.Object,
                                            fileSystemMock,
                                            mocks.EnricherMock.Object,
-                                           null!, // Torrent Clients are not used by `RunTorrentComplete`, this is fine
+                                           mocks.TrackerListGrabberMock.Object,
+                                           null!,
                                            null!,
                                            null!,
                                            null!,
@@ -295,14 +297,14 @@ public class TorrentsTest
                 filePath, new("Test file")
             }
         });
-
         var torrents = new TorrentsService(mocks.TorrentsLoggerMock.Object,
                                            mocks.TorrentDataMock.Object,
                                            mocks.DownloadsMock.Object,
                                            mocks.ProcessFactoryMock.Object,
                                            fileSystemMock,
                                            mocks.EnricherMock.Object,
-                                           null!, // Torrent Clients are not used by `RunTorrentComplete`, this is fine
+                                           mocks.TrackerListGrabberMock.Object,
+                                           null!,
                                            null!,
                                            null!,
                                            null!,
@@ -365,6 +367,7 @@ public class TorrentsTest
                                            mocks.ProcessFactoryMock.Object,
                                            new MockFileSystem(),
                                            mocks.EnricherMock.Object,
+                                           mocks.TrackerListGrabberMock.Object,
                                            null!,
                                            null!,
                                            null!,
@@ -413,6 +416,7 @@ public class TorrentsTest
                                            mocks.ProcessFactoryMock.Object,
                                            new MockFileSystem(),
                                            mocks.EnricherMock.Object,
+                                           mocks.TrackerListGrabberMock.Object,
                                            null!,
                                            null!,
                                            null!,

@@ -1,20 +1,20 @@
 <div class="add-container">
-  @if (provider === 'TorBox') {
+  @if (provider === "TorBox") {
     <div class="tabs is-toggle is-fullwidth mb-5">
-        <ul>
+      <ul>
         <li [class.is-active]="type === 'torrent'">
-            <a (click)="changeType('torrent')">
+          <a (click)="changeType('torrent')">
             <span class="icon is-small"><i class="fas fa-magnet" aria-hidden="true"></i></span>
             <span>Torrent</span>
-            </a>
+          </a>
         </li>
         <li [class.is-active]="type === 'nzb'">
-            <a (click)="changeType('nzb')">
+          <a (click)="changeType('nzb')">
             <span class="icon is-small"><i class="fas fa-file-archive" aria-hidden="true"></i></span>
             <span>NZB</span>
-            </a>
+          </a>
         </li>
-        </ul>
+      </ul>
     </div>
   }
 
@@ -23,10 +23,21 @@
       <div class="field">
         <label class="label">Source File</label>
         <div class="file-input-wrapper">
-          <input class="file-input" type="file" name="resume" (change)="pickFile($event)" [disabled]="saving" style="display: none;" #fileInput />
+          <input
+            class="file-input"
+            type="file"
+            name="resume"
+            (change)="pickFile($event)"
+            [disabled]="saving"
+            style="display: none"
+            #fileInput
+            multiple
+          />
           <div class="file-drop-zone" (click)="fileInput.click()">
             <div class="file-icon"><i class="fas fa-upload fa-2x"></i></div>
-            <div class="file-label is-block mt-2">{{ fileName || 'Click to select or drag and drop torrent file' }}</div>
+            <div class="file-label is-block mt-2">
+              {{ fileName || "Click to select or drag and drop torrent file" }}
+            </div>
           </div>
         </div>
       </div>
@@ -53,10 +64,19 @@
       <div class="field">
         <label class="label">NZB File</label>
         <div class="file-input-wrapper">
-          <input class="file-input" type="file" name="resume" (change)="pickFile($event)" [disabled]="saving" style="display: none;" #nzbInput />
+          <input
+            class="file-input"
+            type="file"
+            name="resume"
+            (change)="pickFile($event)"
+            [disabled]="saving"
+            style="display: none"
+            #nzbInput
+            multiple
+          />
           <div class="file-drop-zone" (click)="nzbInput.click()">
             <div class="file-icon"><i class="fas fa-upload fa-2x"></i></div>
-            <div class="file-label is-block mt-2">{{ fileName || 'Click to select or drag and drop NZB file' }}</div>
+            <div class="file-label is-block mt-2">{{ fileName || "Click to select or drag and drop NZB file" }}</div>
           </div>
         </div>
       </div>
@@ -101,7 +121,12 @@
     </div>
 
     <div class="field mt-5">
-      <button class="button is-success is-large is-fullwidth" [disabled]="saving" [ngClass]="{ 'is-loading': saving }" (click)="ok()">
+      <button
+        class="button is-success is-large is-fullwidth"
+        [disabled]="saving"
+        [ngClass]="{ 'is-loading': saving }"
+        (click)="ok()"
+      >
         <span class="icon mr-2"><i class="fas fa-plus"></i></span>
         <span>Add to Queue</span>
       </button>
@@ -110,62 +135,68 @@
 
   <div class="add-card advanced-settings shadow-sm">
     <h4 class="title is-5 mb-4 has-text-primary uppercase-label">Advanced Settings</h4>
-    
+
     <div class="columns is-multiline">
-        <div class="column is-6">
-            <div class="field">
-                <label class="label is-size-7">Downloader</label>
-                <div class="control select is-fullwidth">
-                    <select [(ngModel)]="downloadClient" (ngModelChange)="setFinishAction()">
-                        <option [ngValue]="0">Bezzad</option>
-                        <option [ngValue]="1">Aria2c</option>
-                        <option [ngValue]="2">Symlink Downloader</option>
-                        <option [ngValue]="3">Synology DownloadStation</option>
-                    </select>
-                </div>
-            </div>
+      <div class="column is-6">
+        <div class="field">
+          <label class="label is-size-7">Downloader</label>
+          <div class="control select is-fullwidth">
+            <select [(ngModel)]="downloadClient" (ngModelChange)="setFinishAction()">
+              <option [ngValue]="0">Bezzad</option>
+              <option [ngValue]="1">Aria2c</option>
+              <option [ngValue]="2">Symlink Downloader</option>
+              <option [ngValue]="3">Synology DownloadStation</option>
+            </select>
+          </div>
         </div>
-        <div class="column is-6">
-            <div class="field">
-                <label class="label is-size-7">Post Download Action</label>
-                <div class="control select is-fullwidth">
-                    <select [(ngModel)]="hostDownloadAction">
-                        <option [ngValue]="0">Download all files to host</option>
-                        <option [ngValue]="1">Don't download any files to host</option>
-                    </select>
-                </div>
-            </div>
+      </div>
+      <div class="column is-6">
+        <div class="field">
+          <label class="label is-size-7">Post Download Action</label>
+          <div class="control select is-fullwidth">
+            <select [(ngModel)]="hostDownloadAction">
+              <option [ngValue]="0">Download all files to host</option>
+              <option [ngValue]="1">Don't download any files to host</option>
+            </select>
+          </div>
         </div>
-        <div class="column is-4">
-            <div class="field">
-                <label class="label is-size-7">Priority</label>
-                <div class="control">
-                    <input class="input" type="number" step="1" [(ngModel)]="priority" />
-                </div>
-            </div>
+      </div>
+      <div class="column is-4">
+        <div class="field">
+          <label class="label is-size-7">Priority</label>
+          <div class="control">
+            <input class="input" type="number" step="1" [(ngModel)]="priority" />
+          </div>
         </div>
-        <div class="column is-4">
-            <div class="field">
-                <label class="label is-size-7">Min. File Size (MB)</label>
-                <div class="control">
-                    <input class="input" type="number" [(ngModel)]="downloadMinSize" />
-                </div>
-            </div>
+      </div>
+      <div class="column is-4">
+        <div class="field">
+          <label class="label is-size-7">Min. File Size (MB)</label>
+          <div class="control">
+            <input class="input" type="number" [(ngModel)]="downloadMinSize" />
+          </div>
         </div>
-        <div class="column is-4">
-            <div class="field">
-                <label class="label is-size-7">Retry Attempts</label>
-                <div class="control">
-                    <input class="input" type="number" [(ngModel)]="torrentRetryAttempts" />
-                </div>
-            </div>
+      </div>
+      <div class="column is-4">
+        <div class="field">
+          <label class="label is-size-7">Retry Attempts</label>
+          <div class="control">
+            <input class="input" type="number" [(ngModel)]="torrentRetryAttempts" />
+          </div>
         </div>
+      </div>
     </div>
 
     <div class="field mb-4">
       <label class="label is-size-7">Include Files (Regex)</label>
       <div class="control">
-        <input class="input" type="text" [(ngModel)]="includeRegex" (blur)="verifyRegex()" placeholder="e.g. \.(mkv|mp4)$" />
+        <input
+          class="input"
+          type="text"
+          [(ngModel)]="includeRegex"
+          (blur)="verifyRegex()"
+          placeholder="e.g. \.(mkv|mp4)$"
+        />
       </div>
       @if (includeRegexError) {
         <p class="help is-danger">{{ includeRegexError }}</p>

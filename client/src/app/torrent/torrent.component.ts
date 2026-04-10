@@ -71,6 +71,10 @@ export class TorrentComponent implements OnInit {
 
   public updating: boolean;
 
+  public get hasFailedDownloads(): boolean {
+    return this.torrent?.downloads?.some((m) => m.error) ?? false;
+  }
+
   ngOnInit(): void {
     this.activatedRoute.params.subscribe((params) => {
       const torrentId = params['id'];
@@ -166,6 +170,19 @@ export class TorrentComponent implements OnInit {
       },
       error: (err) => {
         this.retryError = err.error;
+        this.retrying = false;
+      },
+    });
+  }
+
+  public retryFailedOk(): void {
+    this.retrying = true;
+
+    this.torrentService.retryFailed(this.torrent.torrentId).subscribe({
+      next: () => {
+        this.retrying = false;
+      },
+      error: (err) => {
         this.retrying = false;
       },
     });

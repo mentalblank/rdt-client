@@ -10,6 +10,7 @@ using RdtClient.Service.Services;
 
 namespace RdtClient.Web.Test.Controllers;
 
+[Xunit.Collection("Settings")]
 public class SabnzbdHandlerTest
 {
     private readonly Mock<Authentication> _authenticationMock;

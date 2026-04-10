@@ -4,9 +4,7 @@
   "tools": {
     "dotnet-ef": {
       "version": "9.0.9",
-      "commands": [
-        "dotnet-ef"
-      ],
+      "commands": ["dotnet-ef"],
       "rollForward": false
     }
   }

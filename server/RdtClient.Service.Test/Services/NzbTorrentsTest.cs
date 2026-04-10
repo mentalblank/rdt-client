@@ -24,6 +24,7 @@ public class NzbTorrentsTest
                         _mocks.ProcessFactoryMock.Object,
                         _fileSystem,
                         _mocks.EnricherMock.Object,
+                        _mocks.TrackerListGrabberMock.Object,
                         null!,
                         null!,
                         null!,

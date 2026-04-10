@@ -6,9 +6,7 @@
           {{ section.displayName }}
         </li>
       }
-      <li [class.is-active]="activeTab === 99" (click)="setActiveTab(99)">
-        Diagnostics
-      </li>
+      <li [class.is-active]="activeTab === 99" (click)="setActiveTab(99)">Diagnostics</li>
     </ul>
   </aside>
 
@@ -20,191 +18,283 @@
 
         <!-- Sub-menu Tabs -->
         <div class="tabs is-boxed is-small mb-5">
-            <ul>
-                @for (subMenu of section.subMenus; track subMenu.title; let j = $index) {
-                    @if (!subMenu.isVisible || subMenu.isVisible()) {
-                        <li [class.is-active]="activeSubTab === j">
-                            <a (click)="activeSubTab = j">{{ subMenu.title }}</a>
-                        </li>
-                    }
-                }
-            </ul>
+          <ul>
+            @for (subMenu of section.subMenus; track subMenu.title; let j = $index) {
+              @if (!subMenu.isVisible || subMenu.isVisible()) {
+                <li [class.is-active]="activeSubTab === j">
+                  <a (click)="activeSubTab = j">{{ subMenu.title }}</a>
+                </li>
+              }
+            }
+          </ul>
         </div>
 
         @for (subMenu of section.subMenus; track subMenu.title; let j = $index) {
-            <div [hidden]="activeSubTab !== j">
-                
-                <!-- Provider Configuration -->
-                @if (section.key === 'torrents' && subMenu.title === 'Providers') {
-                    <div class="columns is-multiline">
-                        @for (p of providerOptions; track p) {
-                            @let group = getProviderGroup(p);
-                            <div class="column is-12">
-                                <div class="box provider-card p-0 overflow-hidden" [class.is-enabled]="group.enabled">
-                                    <div class="provider-header p-4 is-flex is-align-items-center">
-                                        <div class="provider-icon mr-4">
-                                            @if (p === 'RealDebrid') { <i class="fas fa-rocket fa-2x"></i> }
-                                            @if (p === 'AllDebrid') { <i class="fas fa-bolt fa-2x"></i> }
-                                            @if (p === 'Premiumize') { <i class="fas fa-cloud fa-2x"></i> }
-                                            @if (p === 'DebridLink') { <i class="fas fa-link fa-2x"></i> }
-                                            @if (p === 'TorBox') { <i class="fas fa-box-open fa-2x"></i> }
-                                        </div>
-                                        <div class="is-flex-grow-1">
-                                            <h4 class="title is-5 mb-0">{{ p }}</h4>
-                                            @if (p === 'RealDebrid') { <p class="is-size-7 has-text-grey">The most popular debrid service.</p> }
-                                            @if (p === 'AllDebrid') { <p class="is-size-7 has-text-grey">Excellent speed and variety.</p> }
-                                            @if (p === 'Premiumize') { <p class="is-size-7 has-text-grey">Includes cloud storage and VPN.</p> }
-                                            @if (p === 'DebridLink') { <p class="is-size-7 has-text-grey">Good for seeds and streaming.</p> }
-                                            @if (p === 'TorBox') { <p class="is-size-7 has-text-grey">Specialized in high-speed downloads.</p> }
-                                        </div>
-                                        <div class="field mb-0">
-                                            <button class="button is-rounded is-small" [ngClass]="group.enabled ? 'is-primary' : 'is-light'" (click)="setProvider(p)">
-                                                <span class="icon is-small">
-                                                    <i class="fas" [ngClass]="group.enabled ? 'fa-check-circle' : 'fa-circle'"></i>
-                                                </span>
-                                                <span>{{ group.enabled ? 'Active' : 'Select' }}</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="provider-body p-4 border-top-light" [hidden]="!group.enabled">
-                                        <div class="columns is-multiline">
-                                            <div class="column is-12">
-                                                <div class="field card-field mb-0">
-                                                    <label class="label is-size-7 uppercase-label">API Key</label>
-                                                    <div class="control has-icons-left">
-                                                        <input class="input" type="password" [(ngModel)]="group.apiKey.value" placeholder="Enter your API key">
-                                                        <span class="icon is-small is-left"><i class="fas fa-key"></i></span>
-                                                    </div>
-                                                    <div class="help mt-2">
-                                                        <span>You can find your API key here: </span>
-                                                        @switch (p) {
-                                                            @case ('RealDebrid') { <a href="https://real-debrid.com/apitoken" target="_blank" class="has-text-primary">real-debrid.com/apitoken</a> }
-                                                            @case ('AllDebrid') { <a href="https://alldebrid.com/apikeys/" target="_blank" class="has-text-primary">alldebrid.com/apikeys/</a> }
-                                                            @case ('Premiumize') { <a href="https://www.premiumize.me/account/" target="_blank" class="has-text-primary">premiumize.me/account/</a> }
-                                                            @case ('TorBox') { <a href="https://torbox.app/settings/" target="_blank" class="has-text-primary">torbox.app/settings/</a> }
-                                                            @case ('DebridLink') { <a href="https://debrid-link.com/webapp/apikey" target="_blank" class="has-text-primary">debrid-link.com/webapp/apikey</a> }
-                                                        }
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            @for (extra of group.extras; track extra.key) {
-                                                @if (isSettingVisible(extra)) {
-                                                    <div class="column is-12">
-                                                        <div class="field card-field mb-0">
-                                                            <label class="label is-size-7 uppercase-label">{{ extra.displayName }}</label>
-                                                            <ng-container [ngTemplateOutlet]="settingInput" [ngTemplateOutletContext]="{setting: extra}"></ng-container>
-                                                            <p class="help mt-1" [innerHtml]="extra.description | nl2br"></p>
-                                                        </div>
-                                                    </div>
-                                                }
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                }
+          <div [hidden]="activeSubTab !== j">
+            <!-- Provider Configuration -->
+            @if (section.key === "torrents" && subMenu.title === "Providers") {
+              <div class="columns is-multiline">
+                @for (p of providerOptions; track p) {
+                  @let group = getProviderGroup(p);
+                  <div class="column is-12">
+                    <div class="box provider-card p-0 overflow-hidden" [class.is-enabled]="group.enabled">
+                      <div class="provider-header p-4 is-flex is-align-items-center">
+                        <div class="provider-icon mr-4">
+                          @if (p === "RealDebrid") {
+                            <i class="fas fa-rocket fa-2x"></i>
+                          }
+                          @if (p === "AllDebrid") {
+                            <i class="fas fa-bolt fa-2x"></i>
+                          }
+                          @if (p === "Premiumize") {
+                            <i class="fas fa-cloud fa-2x"></i>
+                          }
+                          @if (p === "DebridLink") {
+                            <i class="fas fa-link fa-2x"></i>
+                          }
+                          @if (p === "TorBox") {
+                            <i class="fas fa-box-open fa-2x"></i>
+                          }
+                        </div>
+                        <div class="is-flex-grow-1">
+                          <h4 class="title is-5 mb-0">{{ p }}</h4>
+                          @if (p === "RealDebrid") {
+                            <p class="is-size-7 has-text-grey">The most popular debrid service.</p>
+                          }
+                          @if (p === "AllDebrid") {
+                            <p class="is-size-7 has-text-grey">Excellent speed and variety.</p>
+                          }
+                          @if (p === "Premiumize") {
+                            <p class="is-size-7 has-text-grey">Includes cloud storage and VPN.</p>
+                          }
+                          @if (p === "DebridLink") {
+                            <p class="is-size-7 has-text-grey">Good for seeds and streaming.</p>
+                          }
+                          @if (p === "TorBox") {
+                            <p class="is-size-7 has-text-grey">Specialized in high-speed downloads.</p>
+                          }
+                        </div>
+                        <div class="field mb-0">
+                          <button
+                            class="button is-rounded is-small"
+                            [ngClass]="group.enabled ? 'is-primary' : 'is-light'"
+                            (click)="setProvider(p)"
+                          >
+                            <span class="icon is-small">
+                              <i class="fas" [ngClass]="group.enabled ? 'fa-check-circle' : 'fa-circle'"></i>
+                            </span>
+                            <span>{{ group.enabled ? "Active" : "Select" }}</span>
+                          </button>
+                        </div>
+                      </div>
 
-                <!-- Workflow Defaults Matrix -->
-                @else if (section.key === 'workflow' && subMenu.title === 'Defaults Matrix') {
-                    <div class="columns is-multiline is-variable is-3 mb-5">
-                        <div class="column is-3">
-                            <div class="box master-switch-card p-4 has-text-centered rounded h-100 pointer" 
-                                 [class.is-active]="selectedWorkflowSource === 'Gui'"
-                                 (click)="selectedWorkflowSource = 'Gui'">
-                                <div class="icon-wrapper mb-2">
-                                    <i class="fas fa-mouse-pointer fa-lg"></i>
-                                </div>
-                                <h4 class="title is-6 mb-1">Web UI</h4>
-                                <p class="is-size-7 has-text-grey">Manual adds via dashboard.</p>
-                            </div>
-                        </div>
-                        <div class="column is-3">
-                            <div class="box master-switch-card p-4 has-text-centered rounded h-100 pointer" 
-                                 [class.is-active]="selectedWorkflowSource === 'Integrations'"
-                                 (click)="selectedWorkflowSource = 'Integrations'">
-                                <div class="icon-wrapper mb-2">
-                                    <i class="fas fa-plug fa-lg"></i>
-                                </div>
-                                <h4 class="title is-6 mb-1">API (*arr)</h4>
-                                <p class="is-size-7 has-text-grey">Automation via Radarr/Sonarr.</p>
-                            </div>
-                        </div>
-                        <div class="column is-3">
-                            <div class="box master-switch-card p-4 has-text-centered rounded h-100 pointer" 
-                                 [class.is-active]="selectedWorkflowSource === 'Watch'"
-                                 (click)="selectedWorkflowSource = 'Watch'">
-                                <div class="icon-wrapper mb-2">
-                                    <i class="fas fa-eye fa-lg"></i>
-                                </div>
-                                <h4 class="title is-6 mb-1">Watch Folder</h4>
-                                <p class="is-size-7 has-text-grey">Automated source discovery.</p>
-                            </div>
-                        </div>
-                        <div class="column is-3">
-                            <div class="box master-switch-card p-4 has-text-centered rounded h-100 pointer" 
-                                 [class.is-active]="selectedWorkflowSource === 'Provider'"
-                                 (click)="selectedWorkflowSource = 'Provider'">
-                                <div class="icon-wrapper mb-2">
-                                    <i class="fas fa-robot fa-lg"></i>
-                                </div>
-                                <h4 class="title is-6 mb-1">Auto Import</h4>
-                                <p class="is-size-7 has-text-grey">Direct provider monitoring.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    @if (selectedWorkflowSource) {
-                        <div class="workflow-settings-list animate-fade-in">
-                            <h5 class="title is-5 mb-4 has-text-primary">
-                                Editing {{ selectedWorkflowSource === 'Gui' ? 'Web UI' : selectedWorkflowSource === 'Watch' ? 'Watch Folder' : selectedWorkflowSource === 'Provider' ? 'Auto Import' : 'API' }} Defaults
-                            </h5>
-                            @for (row of getWorkflowMatrix(); track row.keySuffix) {
-                                @let setting = getMatrixSetting(selectedWorkflowSource, row.keySuffix);
-                                @if (setting && isSettingVisible(setting)) {
-                                    <div class="field card-field mb-4 p-4 rounded">
-                                        <label class="label is-size-7 uppercase-label">{{ row.label }}</label>
-                                        <ng-container [ngTemplateOutlet]="settingInput" [ngTemplateOutletContext]="{setting: setting, isMatrix: true}"></ng-container>
-                                        <p class="help mt-2" [innerHtml]="setting.description | nl2br"></p>
-                                    </div>
+                      <div class="provider-body p-4 border-top-light" [hidden]="!group.enabled">
+                        <div class="columns is-multiline">
+                          <div class="column is-12">
+                            <div class="field card-field mb-0">
+                              <label class="label is-size-7 uppercase-label">API Key</label>
+                              <div class="control has-icons-left">
+                                <input
+                                  class="input"
+                                  type="password"
+                                  [(ngModel)]="group.apiKey.value"
+                                  placeholder="Enter your API key"
+                                />
+                                <span class="icon is-small is-left"><i class="fas fa-key"></i></span>
+                              </div>
+                              <div class="help mt-2">
+                                <span>You can find your API key here: </span>
+                                @switch (p) {
+                                  @case ("RealDebrid") {
+                                    <a href="https://real-debrid.com/apitoken" target="_blank" class="has-text-primary"
+                                      >real-debrid.com/apitoken</a
+                                    >
+                                  }
+                                  @case ("AllDebrid") {
+                                    <a href="https://alldebrid.com/apikeys/" target="_blank" class="has-text-primary"
+                                      >alldebrid.com/apikeys/</a
+                                    >
+                                  }
+                                  @case ("Premiumize") {
+                                    <a
+                                      href="https://www.premiumize.me/account/"
+                                      target="_blank"
+                                      class="has-text-primary"
+                                      >premiumize.me/account/</a
+                                    >
+                                  }
+                                  @case ("TorBox") {
+                                    <a href="https://torbox.app/settings/" target="_blank" class="has-text-primary"
+                                      >torbox.app/settings/</a
+                                    >
+                                  }
+                                  @case ("DebridLink") {
+                                    <a
+                                      href="https://debrid-link.com/webapp/apikey"
+                                      target="_blank"
+                                      class="has-text-primary"
+                                      >debrid-link.com/webapp/apikey</a
+                                    >
+                                  }
                                 }
-                            }
-                        </div>
-                    }
-                }
-
-                <!-- Standard Settings Group rendering -->
-                @else {
-                    <div class="settings-list">
-                        @for (setting of subMenu.settings; track setting.key) {
-                            @if (isSettingVisible(setting)) {
-                                <div class="field card-field mb-4 p-4 rounded">
-                                    @if (setting.type !== 'Boolean') {
-                                        <label class="label is-size-7 uppercase-label">{{ setting.displayName }}</label>
-                                    }
-                                    
-                                    <ng-container [ngTemplateOutlet]="settingInput" [ngTemplateOutletContext]="{setting: setting}"></ng-container>
-                                    
-                                    <p class="help mt-2" [innerHtml]="setting.description | nl2br"></p>
-
-                                    <!-- Specific Action Buttons -->
-                                    @if (setting.key === 'DownloadClient:Aria2cSecret') {
-                                        <button class="button is-small is-primary is-light mt-3" (click)="testAria2cConnection()" [disabled]="saving">
-                                            <span class="icon is-small"><i class="fas fa-plug"></i></span>
-                                            <span>Test Aria2c Connection</span>
-                                        </button>
-                                        @if (testAria2cConnectionSuccess) { <p class="help has-text-success mt-2"><i class="fas fa-check mr-1"></i> Success! Aria2c version: {{testAria2cConnectionSuccess}}</p> }
-                                        @if (testAria2cConnectionError) { <p class="help has-text-danger mt-2"><i class="fas fa-times mr-1"></i> Error: {{testAria2cConnectionError}}</p> }
-                                    }
+                              </div>
+                            </div>
+                          </div>
+                          @for (extra of group.extras; track extra.key) {
+                            @if (isSettingVisible(extra)) {
+                              <div class="column is-12">
+                                <div class="field card-field mb-0">
+                                  <label class="label is-size-7 uppercase-label">{{ extra.displayName }}</label>
+                                  <ng-container
+                                    [ngTemplateOutlet]="settingInput"
+                                    [ngTemplateOutletContext]="{ setting: extra }"
+                                  ></ng-container>
+                                  <p class="help mt-1" [innerHtml]="extra.description | nl2br"></p>
                                 </div>
+                              </div>
                             }
-                        }
+                          }
+                        </div>
+                      </div>
                     </div>
+                  </div>
                 }
+              </div>
+            }
 
-            </div>
+            <!-- Workflow Defaults Matrix -->
+            @else if (section.key === "workflow" && subMenu.title === "Defaults Matrix") {
+              <div class="columns is-multiline is-variable is-3 mb-5">
+                <div class="column is-3">
+                  <div
+                    class="box master-switch-card p-4 has-text-centered rounded h-100 pointer"
+                    [class.is-active]="selectedWorkflowSource === 'Gui'"
+                    (click)="selectedWorkflowSource = 'Gui'"
+                  >
+                    <div class="icon-wrapper mb-2">
+                      <i class="fas fa-mouse-pointer fa-lg"></i>
+                    </div>
+                    <h4 class="title is-6 mb-1">Web UI</h4>
+                    <p class="is-size-7 has-text-grey">Manual adds via dashboard.</p>
+                  </div>
+                </div>
+                <div class="column is-3">
+                  <div
+                    class="box master-switch-card p-4 has-text-centered rounded h-100 pointer"
+                    [class.is-active]="selectedWorkflowSource === 'Integrations'"
+                    (click)="selectedWorkflowSource = 'Integrations'"
+                  >
+                    <div class="icon-wrapper mb-2">
+                      <i class="fas fa-plug fa-lg"></i>
+                    </div>
+                    <h4 class="title is-6 mb-1">API (*arr)</h4>
+                    <p class="is-size-7 has-text-grey">Automation via Radarr/Sonarr.</p>
+                  </div>
+                </div>
+                <div class="column is-3">
+                  <div
+                    class="box master-switch-card p-4 has-text-centered rounded h-100 pointer"
+                    [class.is-active]="selectedWorkflowSource === 'Watch'"
+                    (click)="selectedWorkflowSource = 'Watch'"
+                  >
+                    <div class="icon-wrapper mb-2">
+                      <i class="fas fa-eye fa-lg"></i>
+                    </div>
+                    <h4 class="title is-6 mb-1">Watch Folder</h4>
+                    <p class="is-size-7 has-text-grey">Automated source discovery.</p>
+                  </div>
+                </div>
+                <div class="column is-3">
+                  <div
+                    class="box master-switch-card p-4 has-text-centered rounded h-100 pointer"
+                    [class.is-active]="selectedWorkflowSource === 'Provider'"
+                    (click)="selectedWorkflowSource = 'Provider'"
+                  >
+                    <div class="icon-wrapper mb-2">
+                      <i class="fas fa-robot fa-lg"></i>
+                    </div>
+                    <h4 class="title is-6 mb-1">Auto Import</h4>
+                    <p class="is-size-7 has-text-grey">Direct provider monitoring.</p>
+                  </div>
+                </div>
+              </div>
+
+              @if (selectedWorkflowSource) {
+                <div class="workflow-settings-list animate-fade-in">
+                  <h5 class="title is-5 mb-4 has-text-primary">
+                    Editing
+                    {{
+                      selectedWorkflowSource === "Gui"
+                        ? "Web UI"
+                        : selectedWorkflowSource === "Watch"
+                          ? "Watch Folder"
+                          : selectedWorkflowSource === "Provider"
+                            ? "Auto Import"
+                            : "API"
+                    }}
+                    Defaults
+                  </h5>
+                  @for (row of getWorkflowMatrix(); track row.keySuffix) {
+                    @let setting = getMatrixSetting(selectedWorkflowSource, row.keySuffix);
+                    @if (setting && isSettingVisible(setting)) {
+                      <div class="field card-field mb-4 p-4 rounded">
+                        <label class="label is-size-7 uppercase-label">{{ row.label }}</label>
+                        <ng-container
+                          [ngTemplateOutlet]="settingInput"
+                          [ngTemplateOutletContext]="{ setting: setting, isMatrix: true }"
+                        ></ng-container>
+                        <p class="help mt-2" [innerHtml]="setting.description | nl2br"></p>
+                      </div>
+                    }
+                  }
+                </div>
+              }
+            }
+
+            <!-- Standard Settings Group rendering -->
+            @else {
+              <div class="settings-list">
+                @for (setting of subMenu.settings; track setting.key) {
+                  @if (isSettingVisible(setting)) {
+                    <div class="field card-field mb-4 p-4 rounded">
+                      @if (setting.type !== "Boolean") {
+                        <label class="label is-size-7 uppercase-label">{{ setting.displayName }}</label>
+                      }
+
+                      <ng-container
+                        [ngTemplateOutlet]="settingInput"
+                        [ngTemplateOutletContext]="{ setting: setting }"
+                      ></ng-container>
+
+                      <p class="help mt-2" [innerHtml]="setting.description | nl2br"></p>
+
+                      <!-- Specific Action Buttons -->
+                      @if (setting.key === "DownloadClient:Aria2cSecret") {
+                        <button
+                          class="button is-small is-primary is-light mt-3"
+                          (click)="testAria2cConnection()"
+                          [disabled]="saving"
+                        >
+                          <span class="icon is-small"><i class="fas fa-plug"></i></span>
+                          <span>Test Aria2c Connection</span>
+                        </button>
+                        @if (testAria2cConnectionSuccess) {
+                          <p class="help has-text-success mt-2">
+                            <i class="fas fa-check mr-1"></i> Success! Aria2c version: {{ testAria2cConnectionSuccess }}
+                          </p>
+                        }
+                        @if (testAria2cConnectionError) {
+                          <p class="help has-text-danger mt-2">
+                            <i class="fas fa-times mr-1"></i> Error: {{ testAria2cConnectionError }}
+                          </p>
+                        }
+                      }
+                    </div>
+                  }
+                }
+              </div>
+            }
+          </div>
         }
       </div>
     }
@@ -213,98 +303,132 @@
       <div class="speed-tests animate-fade-in">
         <h3 class="title is-4 mb-2">Diagnostics</h3>
         <p class="subtitle is-6 mb-5 has-text-grey">Test your connection and storage performance.</p>
-        
-        <div class="columns is-multiline">
-            <div class="column is-12">
-                <div class="box p-5 rounded border-light">
-                    <h4 class="title is-6 mb-4 uppercase-label">Storage Tests</h4>
-                    <div class="buttons">
-                        <button class="button is-warning is-light" (click)="testDownloadPath()" [disabled]="saving">
-                            <span class="icon is-small"><i class="fas fa-folder-open"></i></span>
-                            <span>Test Download Path</span>
-                        </button>
-                        @if (getSetting('DownloadClient:Client')?.value == 0) {
-                            <button class="button is-info is-light" (click)="testDownloadSpeed()" [disabled]="saving">
-                                <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                <span>Test Download Speed</span>
-                            </button>
-                            <button class="button is-success is-light" (click)="testWriteSpeed()" [disabled]="saving">
-                                <span class="icon is-small"><i class="fas fa-save"></i></span>
-                                <span>Test Write Speed</span>
-                            </button>
-                        }
-                    </div>
-                    
-                    @if (testPathSuccess) { <p class="help has-text-success mt-2"><i class="fas fa-check mr-1"></i> Path is writable!</p> }
-                    @if (testPathError) { <p class="help has-text-danger mt-2"><i class="fas fa-times mr-1"></i> Error: {{testPathError}}</p> }
-                    
-                    @if (testDownloadSpeedSuccess > 0) { <p class="help has-text-success mt-2"><i class="fas fa-tachometer-alt mr-1"></i> Download Speed: {{ testDownloadSpeedSuccess | filesize }}/s</p> }
-                    @if (testDownloadSpeedError) { <p class="help has-text-danger mt-2"><i class="fas fa-times mr-1"></i> Error: {{testDownloadSpeedError}}</p> }
-                    
-                    @if (testWriteSpeedSuccess > 0) { <p class="help has-text-success mt-2"><i class="fas fa-hdd mr-1"></i> Write Speed: {{ testWriteSpeedSuccess | filesize }}/s</p> }
-                    @if (testWriteSpeedError) { <p class="help has-text-danger mt-2"><i class="fas fa-times mr-1"></i> Error: {{testWriteSpeedError}}</p> }
-                </div>
-            </div>
 
-            <div class="column is-12">
-                <div class="box p-5 rounded border-light">
-                    <h4 class="title is-6 mb-4 uppercase-label">Browser Integration</h4>
-                    <p class="is-size-7 mb-3">Register RDT-Client as the default handler for magnet links in your browser.</p>
-                    <button class="button is-info is-light" (click)="registerMagnetHandler()" [disabled]="!canRegisterMagnetHandler">
-                        <span class="icon is-small"><i class="fas fa-magnet"></i></span>
-                        <span>Register Magnet Protocol</span>
-                    </button>
-                </div>
+        <div class="columns is-multiline">
+          <div class="column is-12">
+            <div class="box p-5 rounded border-light">
+              <h4 class="title is-6 mb-4 uppercase-label">Storage Tests</h4>
+              <div class="buttons">
+                <button class="button is-warning is-light" (click)="testDownloadPath()" [disabled]="saving">
+                  <span class="icon is-small"><i class="fas fa-folder-open"></i></span>
+                  <span>Test Download Path</span>
+                </button>
+                @if (getSetting("DownloadClient:Client")?.value == 0) {
+                  <button class="button is-info is-light" (click)="testDownloadSpeed()" [disabled]="saving">
+                    <span class="icon is-small"><i class="fas fa-download"></i></span>
+                    <span>Test Download Speed</span>
+                  </button>
+                  <button class="button is-success is-light" (click)="testWriteSpeed()" [disabled]="saving">
+                    <span class="icon is-small"><i class="fas fa-save"></i></span>
+                    <span>Test Write Speed</span>
+                  </button>
+                }
+              </div>
+
+              @if (testPathSuccess) {
+                <p class="help has-text-success mt-2"><i class="fas fa-check mr-1"></i> Path is writable!</p>
+              }
+              @if (testPathError) {
+                <p class="help has-text-danger mt-2"><i class="fas fa-times mr-1"></i> Error: {{ testPathError }}</p>
+              }
+
+              @if (testDownloadSpeedSuccess > 0) {
+                <p class="help has-text-success mt-2">
+                  <i class="fas fa-tachometer-alt mr-1"></i> Download Speed: {{ testDownloadSpeedSuccess | filesize }}/s
+                </p>
+              }
+              @if (testDownloadSpeedError) {
+                <p class="help has-text-danger mt-2">
+                  <i class="fas fa-times mr-1"></i> Error: {{ testDownloadSpeedError }}
+                </p>
+              }
+
+              @if (testWriteSpeedSuccess > 0) {
+                <p class="help has-text-success mt-2">
+                  <i class="fas fa-hdd mr-1"></i> Write Speed: {{ testWriteSpeedSuccess | filesize }}/s
+                </p>
+              }
+              @if (testWriteSpeedError) {
+                <p class="help has-text-danger mt-2">
+                  <i class="fas fa-times mr-1"></i> Error: {{ testWriteSpeedError }}
+                </p>
+              }
             </div>
+          </div>
+
+          <div class="column is-12">
+            <div class="box p-5 rounded border-light">
+              <h4 class="title is-6 mb-4 uppercase-label">Browser Integration</h4>
+              <p class="is-size-7 mb-3">Register RDT-Client as the default handler for magnet links in your browser.</p>
+              <button
+                class="button is-info is-light"
+                (click)="registerMagnetHandler()"
+                [disabled]="!canRegisterMagnetHandler"
+              >
+                <span class="icon is-small"><i class="fas fa-magnet"></i></span>
+                <span>Register Magnet Protocol</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     }
 
     @if (hasChanges) {
-        <div class="save-bar">
-            <button class="button is-success is-medium px-6 shadow-lg" (click)="ok()" [disabled]="saving" [ngClass]="{ 'is-loading': saving }">
-                <span class="icon"><i class="fas fa-save"></i></span>
-                <span>Save All Settings</span>
-            </button>
-        </div>
+      <div class="save-bar">
+        <button
+          class="button is-success is-medium px-6 shadow-lg"
+          (click)="ok()"
+          [disabled]="saving"
+          [ngClass]="{ 'is-loading': saving }"
+        >
+          <span class="icon"><i class="fas fa-save"></i></span>
+          <span>Save All Settings</span>
+        </button>
+      </div>
     }
-    
+
     @if (error) {
-        <div class="notification is-danger mt-4">
-            <button class="delete" (click)="error = null"></button>
-            {{ error }}
-        </div>
+      <div class="notification is-danger mt-4">
+        <button class="delete" (click)="error = null"></button>
+        {{ error }}
+      </div>
     }
   </main>
 </div>
 
 <!-- Shared Input Template -->
 <ng-template #settingInput let-setting="setting" let-isMatrix="isMatrix">
-    @switch (setting.type) {
-        @case ("String") {
-            <div class="control">
-                <input class="input" [ngClass]="{'is-small': isMatrix}" type="text" [(ngModel)]="setting.value" />
-            </div>
-        }
-        @case ("Int32") {
-            <div class="control">
-                <input class="input" [ngClass]="{'is-small': isMatrix}" type="number" [(ngModel)]="setting.value" />
-            </div>
-        }
-        @case ("Boolean") {
-            <div class="field">
-                <input [id]="'switch-' + setting.key" type="checkbox" class="switch is-rounded is-primary" [(ngModel)]="setting.value">
-                <label [for]="'switch-' + setting.key" class="ml-2">{{ setting.displayName }}</label>
-            </div>
-        }
-        @case ("Enum") {
-            <div class="control select is-fullwidth" [ngClass]="{'is-small': isMatrix}">
-                <select [(ngModel)]="setting.value">
-                    @for (kvp of setting.enumValues | keyvalue; track kvp) {
-                        <option [value]="kvp.key">{{ kvp.value }}</option>
-                    }
-                </select>
-            </div>
-        }
+  @switch (setting.type) {
+    @case ("String") {
+      <div class="control">
+        <input class="input" [ngClass]="{ 'is-small': isMatrix }" type="text" [(ngModel)]="setting.value" />
+      </div>
     }
+    @case ("Int32") {
+      <div class="control">
+        <input class="input" [ngClass]="{ 'is-small': isMatrix }" type="number" [(ngModel)]="setting.value" />
+      </div>
+    }
+    @case ("Boolean") {
+      <div class="field">
+        <input
+          [id]="'switch-' + setting.key"
+          type="checkbox"
+          class="switch is-rounded is-primary"
+          [(ngModel)]="setting.value"
+        />
+        <label [for]="'switch-' + setting.key" class="ml-2">{{ setting.displayName }}</label>
+      </div>
+    }
+    @case ("Enum") {
+      <div class="control select is-fullwidth" [ngClass]="{ 'is-small': isMatrix }">
+        <select [(ngModel)]="setting.value">
+          @for (kvp of setting.enumValues | keyvalue; track kvp) {
+            <option [value]="kvp.key">{{ kvp.value }}</option>
+          }
+        </select>
+      </div>
+    }
+  }
 </ng-template>

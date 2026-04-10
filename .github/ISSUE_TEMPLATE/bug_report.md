@@ -1,10 +1,9 @@
 ---
 name: Bug report
 about: Use this template to report actual bugs. If you are looking for general help, please post a discussion.
-title: ''
-labels: ''
-assignees: ''
-
+title: ""
+labels: ""
+assignees: ""
 ---
 
 **What version are you using?**

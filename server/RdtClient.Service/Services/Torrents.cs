@@ -28,12 +28,15 @@ public class Torrents(
     IProcessFactory processFactory,
     IFileSystem fileSystem,
     IEnricher enricher,
+    ITrackerListGrabber trackerListGrabber,
     AllDebridDebridClient allDebridDebridClient,
     PremiumizeDebridClient premiumizeDebridClient,
     RealDebridDebridClient realDebridDebridClient,
     DebridLinkClient debridLinkClient,
     TorBoxDebridClient torBoxDebridClient)
 {
+    public static Boolean IsExpired { get; private set; }
+
     private static readonly SemaphoreSlim RealDebridUpdateLock = new(1, 1);
 
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
@@ -197,10 +200,10 @@ public class Torrents(
             throw new($"{ex.Message}, trying to parse {magnetLink}");
         }
 
-        if (!String.IsNullOrWhiteSpace(Settings.Get.General.BannedTrackers))
-        {
-            var bannedTrackers = Settings.Get.General.BannedTrackers.Split(',');
+        var bannedTrackers = await trackerListGrabber.GetBannedTrackers();
 
+        if (bannedTrackers.Length > 0)
+        {
             foreach (var bannedTracker in bannedTrackers)
             {
                 var bannedTrackerCompare = bannedTracker.Trim().ToLower();
@@ -264,10 +267,10 @@ public class Torrents(
             throw new($"{ex.Message}, trying to parse {fileAsBase64}");
         }
 
-        if (!String.IsNullOrWhiteSpace(Settings.Get.General.BannedTrackers))
-        {
-            var bannedTrackers = Settings.Get.General.BannedTrackers.Split(',');
+        var bannedTrackers = await trackerListGrabber.GetBannedTrackers();
 
+        if (bannedTrackers.Length > 0)
+        {
             foreach (var bannedTracker in bannedTrackers)
             {
                 var bannedTrackerCompare = bannedTracker.Trim().ToLower();
@@ -401,6 +404,8 @@ public class Torrents(
             await torrentData.UpdateRdId(torrent, id);
 
             await UpdateTorrentClientData(torrent);
+
+            await Task.Delay(500);
         }
         finally
         {
@@ -647,6 +652,21 @@ public class Torrents(
         {
             var rdTorrents = await DebridClient.GetDownloads();
 
+            // Check if the user is expired, if so skip the update to prevent deleting all torrents
+            if (rdTorrents.Count == 0 && torrents.Any(m => m.RdId != null))
+            {
+                var user = await DebridClient.GetUser();
+
+                if (user.Expiration != null && user.Expiration < DateTimeOffset.Now)
+                {
+                    logger.LogWarning("Debrid account has expired, skipping update and preventing deletion.");
+                    IsExpired = true;
+                    return;
+                }
+            }
+
+            IsExpired = false;
+
             foreach (var rdTorrent in rdTorrents)
             {
                 var torrent = torrents.FirstOrDefault(m => m.RdId == rdTorrent.Id);
@@ -693,9 +713,11 @@ public class Torrents(
             {
                 var rdTorrent = rdTorrents.FirstOrDefault(m => m.Id == torrent.RdId);
 
-                if (rdTorrent == null && Settings.Get.Provider.AutoDelete && torrent.RdStatus != TorrentStatus.Queued)
+                if (rdTorrent == null && Settings.Get.Provider.AutoDelete && torrent.RdStatus != TorrentStatus.Queued && torrent.RdId != null)
                 {
-                    await Delete(torrent.TorrentId, true, false, true);
+                    Log($"Torrent {torrent.RdName} ({torrent.RdId}) not found on debrid provider, marking as error", torrent);
+                    await torrentData.UpdateRetry(torrent.TorrentId, null, 0);
+                    await torrentData.UpdateComplete(torrent.TorrentId, "Not found on debrid provider", DateTimeOffset.UtcNow, false);
                 }
             }
         }
@@ -831,6 +853,44 @@ public class Torrents(
         await downloads.Reset(downloadId);
 
         await torrentData.UpdateComplete(download.TorrentId, null, null, false);
+    }
+
+    public async Task RetryFailedDownloads(Guid torrentId)
+    {
+        var torrent = await torrentData.GetById(torrentId);
+
+        if (torrent == null)
+        {
+            return;
+        }
+
+        Log($"Retrying failed downloads for", torrent);
+
+        // If the torrent itself is in a "Not found" error state, we need to re-add it to the provider first
+        if (torrent.Error != null && torrent.Error.Contains("Not found on debrid provider", StringComparison.OrdinalIgnoreCase))
+        {
+            Log($"Torrent was deleted by provider, re-adding to provider before retrying downloads", torrent);
+
+            // Reset the torrent so it can be picked up by the runner to be added again
+            await torrentData.UpdateComplete(torrent.TorrentId, null, null, false);
+            await torrentData.UpdateRetry(torrent.TorrentId, null, 0);
+            await torrentData.UpdateRdId(torrent, null!);
+            await torrentData.UpdateRdData(new Torrent
+            {
+                TorrentId = torrent.TorrentId,
+                RdStatus = TorrentStatus.Queued
+            });
+
+            // We return here because once it's re-added, the normal flow will recreate the downloads
+            return;
+        }
+
+        var failedDownloads = torrent.Downloads.Where(m => m.Error != null).ToList();
+
+        foreach (var download in failedDownloads)
+        {
+            await RetryDownload(download.DownloadId);
+        }
     }
 
     public async Task UpdateComplete(Guid torrentId, String? error, DateTimeOffset datetime, Boolean retry)

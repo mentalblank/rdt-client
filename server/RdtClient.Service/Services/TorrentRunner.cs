@@ -21,6 +21,7 @@ public class TorrentRunner(
 {
     public static readonly ConcurrentDictionary<Guid, DownloadClient> ActiveDownloadClients = new();
     public static readonly ConcurrentDictionary<Guid, UnpackClient> ActiveUnpackClients = new();
+    private static readonly ConcurrentDictionary<Guid, (Int64 Progress, DateTimeOffset LastUpdated)> TorrentProgress = new();
     private DateTimeOffset? _lastNextAllowedAt;
 
     public static Boolean IsPausedForLowDiskSpace { get; set; }
@@ -214,7 +215,17 @@ public class TorrentRunner(
                         download,
                         download.Torrent);
 
-                    if (download.RetryCount < download.Torrent.DownloadRetryAttempts)
+                    if (downloadClient.Error.Contains("Fair Usage Limit", StringComparison.OrdinalIgnoreCase) ||
+                        downloadClient.Error.Contains("Fair Use", StringComparison.OrdinalIgnoreCase) ||
+                        downloadClient.Error.Contains("Limit reached", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var cooldown = Settings.Get.General.FairUseLimitCooldown > 0 ? Settings.Get.General.FairUseLimitCooldown : 60;
+                        Log($"Fair Usage Limit reached for download, putting on {cooldown} minutes cooldown", download, download.Torrent);
+
+                        await downloads.Reset(downloadId);
+                        await downloads.UpdateDownloadQueued(downloadId, DateTimeOffset.UtcNow.AddMinutes(cooldown));
+                    }
+                    else if (download.RetryCount < download.Torrent.DownloadRetryAttempts)
                     {
                         Log($"Retrying download", download, download.Torrent);
 
@@ -350,23 +361,85 @@ public class TorrentRunner(
                 continue;
             }
 
+            // Don't delete if the error is due to premium expiration, stalling, or infringing, as the user might want to fix and retry
+            if (torrent.Error != null && (torrent.Error.Contains("Not found on debrid provider", StringComparison.OrdinalIgnoreCase) ||
+                torrent.Error.Contains("Torrent stalled", StringComparison.OrdinalIgnoreCase) ||
+                torrent.Error.Contains("infringing", StringComparison.OrdinalIgnoreCase) ||
+                torrent.Error.Contains("expired", StringComparison.OrdinalIgnoreCase) ||
+                torrent.Error.Contains("unauthorized", StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
             Log($"Removing torrent because it has been {torrent.DeleteOnError} minutes in the error state", torrent);
 
             await torrents.Delete(torrent.TorrentId, true, true, true);
         }
 
         // Process torrent lifetime
-        foreach (var torrent in allTorrents.Where(m => m.Downloads.Count == 0 && m.Completed == null && m.Lifetime > 0))
+        if (!Torrents.IsExpired)
         {
-            if (torrent.Added.AddMinutes(torrent.Lifetime) > DateTime.UtcNow)
+            foreach (var torrent in allTorrents.Where(m => m.Downloads.Count == 0 && m.Completed == null && m.Lifetime > 0))
             {
-                continue;
+                if (torrent.Added.AddMinutes(torrent.Lifetime) > DateTime.UtcNow)
+                {
+                    continue;
+                }
+
+                Log($"Torrent has reached its {torrent.Lifetime} minutes lifetime, marking as error", torrent);
+
+                await torrents.UpdateRetry(torrent.TorrentId, null, torrent.TorrentRetryAttempts);
+                await torrents.UpdateComplete(torrent.TorrentId, $"Torrent lifetime of {torrent.Lifetime} minutes reached", DateTimeOffset.UtcNow, false);
+            }
+        }
+
+        // Process stalled torrents
+        if (Settings.Get.Provider.StalledAction != StalledAction.None && Settings.Get.Provider.StalledTimeout > 0)
+        {
+            var activeTorrentIds = allTorrents.Select(m => m.TorrentId).ToHashSet();
+            var trackedIds = TorrentProgress.Keys.ToList();
+            foreach (var trackedId in trackedIds)
+            {
+                if (!activeTorrentIds.Contains(trackedId))
+                {
+                    TorrentProgress.TryRemove(trackedId, out _);
+                }
             }
 
-            Log($"Torrent has reached its {torrent.Lifetime} minutes lifetime, marking as error", torrent);
+            foreach (var torrent in allTorrents.Where(m => m.Completed == null && (m.RdStatus == TorrentStatus.Downloading || m.RdStatus == TorrentStatus.Processing)))
+            {
+                var currentProgress = torrent.RdProgress ?? 0;
 
-            await torrents.UpdateRetry(torrent.TorrentId, null, torrent.TorrentRetryAttempts);
-            await torrents.UpdateComplete(torrent.TorrentId, $"Torrent lifetime of {torrent.Lifetime} minutes reached", DateTimeOffset.UtcNow, false);
+                if (TorrentProgress.TryGetValue(torrent.TorrentId, out var progress))
+                {
+                    if (progress.Progress != currentProgress)
+                    {
+                        TorrentProgress[torrent.TorrentId] = (currentProgress, DateTimeOffset.UtcNow);
+                    }
+                    else if (progress.LastUpdated.AddMinutes(Settings.Get.Provider.StalledTimeout) < DateTimeOffset.UtcNow)
+                    {
+                        Log($"Torrent has been stalled for {Settings.Get.Provider.StalledTimeout} minutes, taking action: {Settings.Get.Provider.StalledAction}", torrent);
+
+                        if (Settings.Get.Provider.StalledAction == StalledAction.Remove)
+                        {
+                            await torrents.Delete(torrent.TorrentId, Settings.Get.Provider.StalledDeleteData, Settings.Get.Provider.StalledDeleteRdTorrent, Settings.Get.Provider.StalledDeleteLocalFiles);
+                        }
+                        else if (Settings.Get.Provider.StalledAction == StalledAction.Error)
+                        {
+                            await torrents.Delete(torrent.TorrentId, false, Settings.Get.Provider.StalledDeleteRdTorrent, Settings.Get.Provider.StalledDeleteLocalFiles);
+
+                            await torrents.UpdateRetry(torrent.TorrentId, null, torrent.TorrentRetryAttempts);
+                            await torrents.UpdateComplete(torrent.TorrentId, $"Torrent stalled for {Settings.Get.Provider.StalledTimeout} minutes", DateTimeOffset.UtcNow, false);
+                        }
+
+                        TorrentProgress.TryRemove(torrent.TorrentId, out _);
+                    }
+                }
+                else
+                {
+                    TorrentProgress.TryAdd(torrent.TorrentId, (currentProgress, DateTimeOffset.UtcNow));
+                }
+            }
         }
 
         // Process torrents in DebridQueue
@@ -408,8 +481,27 @@ public class TorrentRunner(
                     }
                     catch (Exception ex)
                     {
-                        await torrents.UpdateComplete(torrent.TorrentId, $"Could not add to provider: {ex.Message}", DateTimeOffset.Now, true);
-                        logger.LogWarning(ex, "Could not dequeue torrent {torrentId}", torrent.TorrentId);
+                        if (Settings.Get.Provider.InfringingAction != StalledAction.None && ex.Message.Contains("infringing file", StringComparison.OrdinalIgnoreCase))
+                        {
+                            Log($"Torrent has been marked as infringing by debrid provider, taking action: {Settings.Get.Provider.InfringingAction}", torrent);
+
+                            if (Settings.Get.Provider.InfringingAction == StalledAction.Remove)
+                            {
+                                await torrents.Delete(torrent.TorrentId, Settings.Get.Provider.InfringingDeleteData, Settings.Get.Provider.InfringingDeleteRdTorrent, Settings.Get.Provider.InfringingDeleteLocalFiles);
+                            }
+                            else if (Settings.Get.Provider.InfringingAction == StalledAction.Error)
+                            {
+                                await torrents.Delete(torrent.TorrentId, false, Settings.Get.Provider.InfringingDeleteRdTorrent, Settings.Get.Provider.InfringingDeleteLocalFiles);
+
+                                await torrents.UpdateRetry(torrent.TorrentId, null, torrent.TorrentRetryAttempts);
+                                await torrents.UpdateComplete(torrent.TorrentId, $"Torrent contains infringing files", DateTimeOffset.UtcNow, false);
+                            }
+                        }
+                        else
+                        {
+                            await torrents.UpdateComplete(torrent.TorrentId, $"Could not add to provider: {ex.Message}", DateTimeOffset.Now, true);
+                            logger.LogWarning(ex, "Could not dequeue torrent {torrentId}", torrent.TorrentId);
+                        }
                     }
                 }
             }
@@ -480,7 +572,7 @@ public class TorrentRunner(
             {
                 // Check if there are any downloads that are queued and can be started.
                 var queuedDownloads = torrent.Downloads
-                                             .Where(m => m.Completed == null && m.DownloadQueued != null && m.DownloadStarted == null && m.Error == null)
+                                             .Where(m => m.Completed == null && m.DownloadQueued != null && m.DownloadQueued <= DateTimeOffset.UtcNow && m.DownloadStarted == null && m.Error == null)
                                              .OrderBy(m => m.DownloadQueued)
                                              .ToList();
 
@@ -531,10 +623,22 @@ public class TorrentRunner(
                     {
                         logger.LogError(ex, "Cannot unrestrict link: {ex.Message}", ex.Message);
 
-                        await downloads.UpdateError(download.DownloadId, ex.Message);
-                        await downloads.UpdateCompleted(download.DownloadId, DateTimeOffset.UtcNow);
-                        download.Error = ex.Message;
-                        download.Completed = DateTimeOffset.UtcNow;
+                        if (ex.Message.Contains("Fair Usage Limit", StringComparison.OrdinalIgnoreCase) ||
+                            ex.Message.Contains("Fair Use", StringComparison.OrdinalIgnoreCase) ||
+                            ex.Message.Contains("Limit reached", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var cooldown = Settings.Get.General.FairUseLimitCooldown > 0 ? Settings.Get.General.FairUseLimitCooldown : 60;
+                            Log($"Fair Usage Limit reached for download, putting on {cooldown} minutes cooldown", download, torrent);
+                            await downloads.Reset(download.DownloadId);
+                            await downloads.UpdateDownloadQueued(download.DownloadId, DateTimeOffset.UtcNow.AddMinutes(cooldown));
+                        }
+                        else
+                        {
+                            await downloads.UpdateError(download.DownloadId, ex.Message);
+                            await downloads.UpdateCompleted(download.DownloadId, DateTimeOffset.UtcNow);
+                            download.Error = ex.Message;
+                            download.Completed = DateTimeOffset.UtcNow;
+                        }
 
                         return;
                     }
@@ -595,7 +699,7 @@ public class TorrentRunner(
 
                 // Check if there are any unpacks that are queued and can be started.
                 var queuedUnpacks = torrent.Downloads
-                                           .Where(m => m.Completed == null && m.UnpackingQueued != null && m.UnpackingStarted == null && m.Error == null)
+                                           .Where(m => m.Completed == null && m.UnpackingQueued != null && m.UnpackingQueued <= DateTimeOffset.UtcNow && m.UnpackingStarted == null && m.Error == null)
                                            .OrderBy(m => m.DownloadQueued)
                                            .ToList();
 

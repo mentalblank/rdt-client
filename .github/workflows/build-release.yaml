@@ -28,8 +28,8 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10'
-      
+          dotnet-version: "10"
+
       - name: Install Frontend Dependencies
         working-directory: client
         run: npm install
@@ -41,11 +41,11 @@ jobs:
       - name: Restore Backend Dependencies
         working-directory: server
         run: dotnet restore
-      
+
       - name: Build and Publish Backend
         working-directory: server
         shell: pwsh
-        run:  |
+        run: |
           $v = "${{ github.ref_name }}".TrimStart('v')
           dotnet build -c Release --no-restore -p:Version=$v -p:AssemblyVersion=$v
           dotnet publish RdtClient.Web/RdtClient.Web.csproj -c Release --no-build -p:Version=$v -p:AssemblyVersion=$v -o ../publish
@@ -56,7 +56,7 @@ jobs:
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
-        with: 
+        with:
           name: RDTClient.zip
           path: RDTClient.zip
 
@@ -64,29 +64,29 @@ jobs:
     name: Create GitHub release
     runs-on: ubuntu-latest
     needs: build
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          
+
       - name: Strip 'v' from tag
         id: version
         run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
-          
+
       - name: Get latest release info
         id: query-release-info
         uses: release-flow/keep-a-changelog-action@v2
         with:
           command: query
           version: ${{ steps.version.outputs.version }}
-      
+
       - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
           name: RDTClient.zip
-          
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:

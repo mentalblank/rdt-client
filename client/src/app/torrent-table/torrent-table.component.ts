@@ -4,6 +4,8 @@ import { Torrent } from '../models/torrent.model';
 import { DiskSpaceStatus } from '../models/disk-space-status.model';
 import { RateLimitStatus } from '../models/rate-limit-status.model';
 import { TorrentService } from '../torrent.service';
+import { SettingsService } from '../settings.service';
+import { Profile } from '../models/profile.model';
 import { forkJoin, Observable, Subscription } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { NgClass, DecimalPipe, DatePipe, CommonModule } from '@angular/common';
@@ -15,12 +17,23 @@ import { FileSizePipe } from '../filesize.pipe';
   selector: 'app-torrent-table',
   templateUrl: './torrent-table.component.html',
   styleUrls: ['./torrent-table.component.scss'],
-  imports: [FormsModule, NgClass, DecimalPipe, DatePipe, TorrentStatusPipe, SortPipe, FileSizePipe, CommonModule, RouterLink],
+  imports: [
+    FormsModule,
+    NgClass,
+    DecimalPipe,
+    DatePipe,
+    TorrentStatusPipe,
+    SortPipe,
+    FileSizePipe,
+    CommonModule,
+    RouterLink,
+  ],
   standalone: true,
 })
 export class TorrentTableComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private torrentService = inject(TorrentService);
+  private settingsService = inject(SettingsService);
 
   public torrents: Torrent[] = [];
   public selectedTorrents: string[] = [];
@@ -58,6 +71,7 @@ export class TorrentTableComponent implements OnInit, OnDestroy {
 
   public diskSpaceStatus: DiskSpaceStatus | null = null;
   public rateLimitStatus: RateLimitStatus | null = null;
+  public isExpired = false;
 
   public isMobile = false;
   private mobileQuery: MediaQueryList;
@@ -92,13 +106,19 @@ export class TorrentTableComponent implements OnInit, OnDestroy {
         next: (status) => {
           this.diskSpaceStatus = status;
         },
-      })
+      }),
     );
 
     this.subscriptions.add(
       this.torrentService.diskSpaceStatus$.subscribe((status) => {
         this.diskSpaceStatus = status;
-      })
+      }),
+    );
+
+    this.subscriptions.add(
+      this.settingsService.getProfile().subscribe((result: Profile) => {
+        this.isExpired = result.expiration && new Date(result.expiration) < new Date();
+      }),
     );
 
     this.subscriptions.add(
@@ -106,19 +126,19 @@ export class TorrentTableComponent implements OnInit, OnDestroy {
         next: (status) => {
           this.rateLimitStatus = status;
         },
-      })
+      }),
     );
 
     this.subscriptions.add(
       this.torrentService.rateLimitStatus$.subscribe((status) => {
         this.rateLimitStatus = status;
-      })
+      }),
     );
 
     this.subscriptions.add(
       this.torrentService.update$.subscribe((result) => {
         this.torrents = result;
-      })
+      }),
     );
 
     this.subscriptions.add(
@@ -129,12 +149,12 @@ export class TorrentTableComponent implements OnInit, OnDestroy {
         error: (err) => {
           this.error = err.error;
         },
-      })
+      }),
     );
   }
 
   public get filteredTorrents(): Torrent[] {
-    return this.torrents.filter(t => {
+    return this.torrents.filter((t) => {
       const matchesCategory = this.categoryFilter === 'all' || t.category === this.categoryFilter;
       const matchesStatus = this.statusFilter === 'all' || t.rdStatus === parseInt(this.statusFilter);
       return matchesCategory && matchesStatus;
@@ -143,13 +163,13 @@ export class TorrentTableComponent implements OnInit, OnDestroy {
 
   public get availableCategories(): string[] {
     const cats = new Set<string>();
-    this.torrents.forEach(t => {
+    this.torrents.forEach((t) => {
       if (t.category) cats.add(t.category);
     });
     return Array.from(cats).sort();
   }
 
-  public get availableStatuses(): { label: string, value: string }[] {
+  public get availableStatuses(): { label: string; value: string }[] {
     return [
       { label: 'Queued', value: '0' },
       { label: 'Processing', value: '1' },
@@ -157,16 +177,25 @@ export class TorrentTableComponent implements OnInit, OnDestroy {
       { label: 'Downloading', value: '3' },
       { label: 'Finished', value: '4' },
       { label: 'Uploading', value: '5' },
-      { label: 'Error', value: '99' }
+      { label: 'Error', value: '99' },
     ];
+  }
+
+  public get hasFailedDownloads(): boolean {
+    const selected = this.torrents.filter((m) => this.selectedTorrents.indexOf(m.torrentId) > -1);
+    return selected.some((m) => m.downloads.some((d) => d.error));
   }
 
   public getStatusClass(torrent: Torrent): string {
     switch (torrent.rdStatus) {
-      case 3: return 'status-downloading';
-      case 4: return 'status-finished';
-      case 99: return 'status-error';
-      default: return 'status-queued';
+      case 3:
+        return 'status-downloading';
+      case 4:
+        return 'status-finished';
+      case 99:
+        return 'status-error';
+      default:
+        return 'status-queued';
     }
   }
 
@@ -275,6 +304,27 @@ export class TorrentTableComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.retryError = err.error;
+        this.retrying = false;
+      },
+    });
+  }
+
+  public retryFailedOk(): void {
+    this.retrying = true;
+
+    const calls: Observable<void>[] = [];
+
+    this.selectedTorrents.forEach((torrentId) => {
+      calls.push(this.torrentService.retryFailed(torrentId));
+    });
+
+    forkJoin(calls).subscribe({
+      complete: () => {
+        this.retrying = false;
+        this.selectedTorrents = [];
+      },
+      error: (err) => {
+        this.error = err.error;
         this.retrying = false;
       },
     });

@@ -56,7 +56,7 @@ export class AddNewTorrentComponent implements OnInit {
   public excludeRegexError: string;
   public regexSelected: TorrentFileAvailability[];
 
-  private selectedFile: File;
+  private selectedFiles: File[] = [];
 
   ngOnInit(): void {
     this.activatedRoute.queryParams.subscribe((params) => {
@@ -138,7 +138,7 @@ export class AddNewTorrentComponent implements OnInit {
   public changeType(type: 'torrent' | 'nzb'): void {
     this.type = type;
     this.fileName = null;
-    this.selectedFile = null;
+    this.selectedFiles = [];
   }
 
   public pickFile(evt: Event): void {
@@ -148,11 +148,13 @@ export class AddNewTorrentComponent implements OnInit {
       return;
     }
 
-    const file = files[0];
+    this.selectedFiles = Array.from(files);
 
-    this.fileName = file.name;
-
-    this.selectedFile = file;
+    if (this.selectedFiles.length > 1) {
+      this.fileName = `${this.selectedFiles.length} files selected`;
+    } else {
+      this.fileName = this.selectedFiles[0].name;
+    }
 
     this.checkFiles();
   }
@@ -206,8 +208,8 @@ export class AddNewTorrentComponent implements OnInit {
             this.saving = false;
           },
         });
-      } else if (this.selectedFile) {
-        this.torrentService.uploadFile(this.selectedFile, torrent).subscribe({
+      } else if (this.selectedFiles.length > 0) {
+        this.torrentService.uploadFile(this.selectedFiles, torrent).subscribe({
           next: () => this.router.navigate(['/']),
           error: (err) => {
             this.error = err.error;
@@ -227,8 +229,8 @@ export class AddNewTorrentComponent implements OnInit {
             this.saving = false;
           },
         });
-      } else if (this.selectedFile) {
-        this.torrentService.uploadNzbFile(this.selectedFile, torrent).subscribe({
+      } else if (this.selectedFiles.length > 0) {
+        this.torrentService.uploadNzbFile(this.selectedFiles, torrent).subscribe({
           next: () => this.router.navigate(['/']),
           error: (err) => {
             this.error = err.error;
@@ -277,8 +279,8 @@ export class AddNewTorrentComponent implements OnInit {
           this.saving = false;
         },
       });
-    } else if (this.selectedFile) {
-      this.torrentService.checkFiles(this.selectedFile).subscribe({
+    } else if (this.selectedFiles.length === 1) {
+      this.torrentService.checkFiles(this.selectedFiles[0]).subscribe({
         next: (result) => {
           this.saving = false;
           this.availableFiles = result;

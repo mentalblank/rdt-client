@@ -235,11 +235,11 @@ public class Sabnzbd(ILogger<Sabnzbd> logger, Torrents torrents, AppSettings app
         var categoryList = GetCategories();
 
         var categories = categoryList.Select((c, i) => new SabnzbdCategory
-                                     {
-                                         Name = c,
-                                         Order = i,
-                                         Dir = c == "*" ? "" : Path.Combine(savePath, c)
-                                     })
+        {
+            Name = c,
+            Order = i,
+            Dir = c == "*" ? "" : Path.Combine(savePath, c)
+        })
                                      .ToList();
 
         var config = new SabnzbdConfig

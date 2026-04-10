@@ -6,101 +6,126 @@ namespace RdtClient.Service.Services;
 
 public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache, ILogger<TrackerListGrabber> logger) : ITrackerListGrabber
 {
-    private const String CacheKey = "TrackerList";
+    private const String EnrichmentCacheKey = "TrackerList_Enrichment";
+    private const String BannedCacheKey = "TrackerList_Banned";
 
     private static readonly SemaphoreSlim Semaphore = new(1, 1);
 
-    private Int32? _lastExpirationMinutes;
+    private Int32? _lastEnrichmentExpirationMinutes;
 
-    public async Task<String[]> GetTrackers()
+    public async Task<String[]> GetEnrichmentTrackers()
     {
-        var trackerUrlList = Settings.Get.General.TrackerEnrichmentList;
+        var trackerList = Settings.Get.General.TrackerEnrichmentList;
+        var expiration = Settings.Get.General.TrackerEnrichmentCacheExpiration;
 
-        if (String.IsNullOrWhiteSpace(trackerUrlList))
+        return await GetTrackers(trackerList, EnrichmentCacheKey, expiration, true).ConfigureAwait(false);
+    }
+
+    public async Task<String[]> GetBannedTrackers()
+    {
+        var trackerList = Settings.Get.General.BannedTrackers;
+        var expiration = Settings.Get.General.TrackerEnrichmentCacheExpiration;
+
+        return await GetTrackers(trackerList, BannedCacheKey, expiration, false).ConfigureAwait(false);
+    }
+
+    private async Task<String[]> GetTrackers(String? trackerList, String cacheKey, Int32 expiration, Boolean isEnrichment)
+    {
+        if (String.IsNullOrWhiteSpace(trackerList))
         {
             return [];
         }
 
-        if (!Uri.TryCreate(trackerUrlList, UriKind.Absolute, out var trackerUri) ||
-            (trackerUri.Scheme != Uri.UriSchemeHttp && trackerUri.Scheme != Uri.UriSchemeHttps))
+        // Check if it's a URL
+        if (Uri.TryCreate(trackerList, UriKind.Absolute, out var trackerUri) &&
+            (trackerUri.Scheme == Uri.UriSchemeHttp || trackerUri.Scheme == Uri.UriSchemeHttps))
         {
-            logger.LogWarning("Invalid tracker list URL format: {Url}", trackerUrlList);
+            var useCache = expiration > 0;
 
-            return [];
-        }
-
-        var currentExpiration = Settings.Get.General.TrackerEnrichmentCacheExpiration;
-        var useCache = currentExpiration > 0;
-
-        if (!useCache)
-        {
-            memoryCache.Remove(CacheKey);
-            _lastExpirationMinutes = null;
-        }
-        else
-        {
-            if (_lastExpirationMinutes is not null && currentExpiration != _lastExpirationMinutes)
+            if (!useCache)
             {
-                logger.LogDebug("Tracker list cache timeout changed, invalidating cache.");
-                memoryCache.Remove(CacheKey);
-            }
-
-            _lastExpirationMinutes = currentExpiration;
-
-            if (memoryCache.TryGetValue(CacheKey, out String[]? cachedTrackers) && cachedTrackers is { Length: > 0 })
-            {
-                logger.LogDebug("Using cached tracker list.");
-
-                return cachedTrackers;
-            }
-        }
-
-        await Semaphore.WaitAsync().ConfigureAwait(false);
-
-        try
-        {
-            if (useCache)
-            {
-                if (memoryCache.TryGetValue(CacheKey, out String[]? cachedTrackers) && cachedTrackers is { Length: > 0 })
+                memoryCache.Remove(cacheKey);
+                if (isEnrichment)
                 {
-                    logger.LogDebug("Using cached tracker list (after lock).");
+                    _lastEnrichmentExpirationMinutes = null;
+                }
+            }
+            else
+            {
+                if (isEnrichment)
+                {
+                    if (_lastEnrichmentExpirationMinutes is not null && expiration != _lastEnrichmentExpirationMinutes)
+                    {
+                        logger.LogDebug("Tracker list cache timeout changed, invalidating cache.");
+                        memoryCache.Remove(cacheKey);
+                    }
+
+                    _lastEnrichmentExpirationMinutes = expiration;
+                }
+
+                if (memoryCache.TryGetValue(cacheKey, out String[]? cachedTrackers) && cachedTrackers is { Length: > 0 })
+                {
+                    logger.LogDebug("Using cached tracker list for {CacheKey}.", cacheKey);
 
                     return cachedTrackers;
                 }
             }
 
-            logger.LogDebug("Tracker cache miss or cache disabled. Fetching tracker list.");
+            await Semaphore.WaitAsync().ConfigureAwait(false);
 
-            var trackers = await FetchAndParseTrackersAsync(trackerUri).ConfigureAwait(false);
-
-            if (useCache)
+            try
             {
-                memoryCache.Set(CacheKey,
-                                trackers,
-                                new MemoryCacheEntryOptions
-                                {
-                                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(currentExpiration)
-                                });
+                if (useCache)
+                {
+                    if (memoryCache.TryGetValue(cacheKey, out String[]? cachedTrackers) && cachedTrackers is { Length: > 0 })
+                    {
+                        logger.LogDebug("Using cached tracker list (after lock) for {CacheKey}.", cacheKey);
+
+                        return cachedTrackers;
+                    }
+                }
+
+                logger.LogDebug("Tracker cache miss or cache disabled for {CacheKey}. Fetching tracker list.", cacheKey);
+
+                var trackers = await FetchAndParseTrackersAsync(trackerUri).ConfigureAwait(false);
+
+                if (useCache)
+                {
+                    memoryCache.Set(cacheKey,
+                                    trackers,
+                                    new MemoryCacheEntryOptions
+                                    {
+                                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(expiration)
+                                    });
+                }
+
+                return trackers;
             }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Unable to fetch tracker list from {Url}.", trackerList);
 
-            return trackers;
-        }
-        catch (TaskCanceledException ex)
-        {
-            logger.LogError(ex, "Fetching tracker list was canceled (timeout or cancellation).");
+                if (isEnrichment)
+                {
+                    throw new("Unable to fetch tracker list for enrichment.", ex);
+                }
 
-            throw new TaskCanceledException("Fetching tracker list was canceled due to timeout or cancellation.", ex);
+                return [];
+            }
+            finally
+            {
+                Semaphore.Release();
+            }
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Unable to fetch tracker list.");
 
-            throw new("Unable to fetch tracker list for enrichment.", ex);
-        }
-        finally
-        {
-            Semaphore.Release();
-        }
+        // Not a URL, treat as comma-separated list
+        return trackerList.Split([
+                                     ',', '\r', '\n', ';'
+                                 ],
+                                 StringSplitOptions.RemoveEmptyEntries)
+                          .Select(t => t.Trim())
+                          .Where(t => !String.IsNullOrWhiteSpace(t))
+                          .ToArray();
     }
 
     private async Task<String[]> FetchAndParseTrackersAsync(Uri trackerUri)
@@ -136,7 +161,7 @@ public class TrackerListGrabber(IHttpClientFactory httpClientFactory, IMemoryCac
 
                 trackers = result
                            .Split([
-                                      "\r\n", "\n"
+                                      "\r\n", "\n", ","
                                   ],
                                   StringSplitOptions.RemoveEmptyEntries)
                            .Where(line => !String.IsNullOrWhiteSpace(line) && !line.TrimStart().StartsWith('#'))

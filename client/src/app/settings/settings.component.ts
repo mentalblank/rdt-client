@@ -65,17 +65,17 @@ export class SettingsComponent implements OnInit {
 
   public get hasChanges(): boolean {
     if (!this.originalSettingsJson) return false;
-    const currentJson = JSON.stringify(this.allSettings.map(s => ({ key: s.key, value: s.value })));
+    const currentJson = JSON.stringify(this.allSettings.map((s) => ({ key: s.key, value: s.value })));
     return currentJson !== this.originalSettingsJson;
   }
 
   public reset(): void {
     this.settingsService.get().subscribe((settings) => {
       this.allSettings = settings;
-      this.originalSettingsJson = JSON.stringify(settings.map(s => ({ key: s.key, value: s.value })));
+      this.originalSettingsJson = JSON.stringify(settings.map((s) => ({ key: s.key, value: s.value })));
 
-      const findSetting = (key: string) => settings.find(s => s.key === key);
-      const filterSettings = (keys: string[]) => keys.map(k => findSetting(k)).filter(s => !!s);
+      const findSetting = (key: string) => settings.find((s) => s.key === key);
+      const filterSettings = (keys: string[]) => keys.map((k) => findSetting(k)).filter((s) => !!s);
 
       this.sections = [
         {
@@ -85,13 +85,42 @@ export class SettingsComponent implements OnInit {
           subMenus: [
             {
               title: 'General',
-              settings: filterSettings(['General:LogLevel', 'General:DownloadLimit', 'General:UnpackLimit', 'General:AuthenticationType', 'General:DisableUpdateNotifications', 'General:Categories', 'General:TrackerEnrichmentList', 'General:TrackerEnrichmentCacheExpiration', 'General:BannedTrackers', 'General:CopyAddedTorrents', 'General:RcloneRefreshCommand'])
+              settings: filterSettings([
+                'General:LogLevel',
+                'General:DownloadLimit',
+                'General:UnpackLimit',
+                'General:AuthenticationType',
+                'General:DisableUpdateNotifications',
+                'General:Categories',
+                'General:TrackerEnrichmentList',
+                'General:BannedTrackers',
+                'General:TrackerEnrichmentCacheExpiration',
+                'General:CopyAddedTorrents',
+                'General:RcloneRefreshCommand',
+                'General:FairUseLimitCooldown',
+              ]),
             },
             {
               title: 'Download Client',
-              settings: filterSettings(['DownloadClient:Client', 'DownloadClient:MaxSpeed', 'DownloadClient:ParallelCount', 'DownloadClient:ChunkCount', 'DownloadClient:BufferSize', 'DownloadClient:Timeout', 'DownloadClient:ProxyServer', 'DownloadClient:Aria2cUrl', 'DownloadClient:Aria2cSecret', 'DownloadClient:Aria2cDownloadPath', 'DownloadClient:DownloadStationUrl', 'DownloadClient:DownloadStationUsername', 'DownloadClient:DownloadStationPassword', 'DownloadClient:DownloadStationDownloadPath', 'DownloadClient:LogLevel'])
-            }
-          ]
+              settings: filterSettings([
+                'DownloadClient:Client',
+                'DownloadClient:MaxSpeed',
+                'DownloadClient:ParallelCount',
+                'DownloadClient:ChunkCount',
+                'DownloadClient:BufferSize',
+                'DownloadClient:Timeout',
+                'DownloadClient:ProxyServer',
+                'DownloadClient:Aria2cUrl',
+                'DownloadClient:Aria2cSecret',
+                'DownloadClient:Aria2cDownloadPath',
+                'DownloadClient:DownloadStationUrl',
+                'DownloadClient:DownloadStationUsername',
+                'DownloadClient:DownloadStationPassword',
+                'DownloadClient:DownloadStationDownloadPath',
+                'DownloadClient:LogLevel',
+              ]),
+            },
+          ],
         },
         {
           key: 'torrents',
@@ -100,17 +129,35 @@ export class SettingsComponent implements OnInit {
           subMenus: [
             {
               title: 'Providers',
-              settings: [] // Special UI
+              settings: [], // Special UI
             },
             {
               title: 'Behavior',
-              settings: filterSettings(['Provider:AutoImport', 'Provider:AutoDelete', 'Provider:Timeout', 'Provider:CheckInterval', 'Provider:MaxParallelDownloads'])
+              settings: filterSettings([
+                'Provider:AutoImport',
+                'Provider:AutoDelete',
+                'Provider:Timeout',
+                'Provider:CheckInterval',
+                'Provider:MaxParallelDownloads',
+                'Provider:StalledAction',
+                'Provider:StalledTimeout',
+                'Provider:StalledDeleteData',
+                'Provider:StalledDeleteRdTorrent',
+                'Provider:StalledDeleteLocalFiles',
+                'Provider:InfringingAction',
+                'Provider:InfringingDeleteData',
+                'Provider:InfringingDeleteRdTorrent',
+                'Provider:InfringingDeleteLocalFiles',
+              ]),
             },
             {
               title: 'External Scripts',
-              settings: filterSettings(['General:RunOnTorrentCompleteFileName', 'General:RunOnTorrentCompleteArguments'])
-            }
-          ]
+              settings: filterSettings([
+                'General:RunOnTorrentCompleteFileName',
+                'General:RunOnTorrentCompleteArguments',
+              ]),
+            },
+          ],
         },
         {
           key: 'storage',
@@ -119,13 +166,20 @@ export class SettingsComponent implements OnInit {
           subMenus: [
             {
               title: 'Global Paths',
-              settings: filterSettings(['DownloadClient:DownloadPath', 'DownloadClient:MappedPath', 'DownloadClient:RcloneMountPath'])
+              settings: filterSettings([
+                'DownloadClient:DownloadPath',
+                'DownloadClient:MappedPath',
+                'DownloadClient:RcloneMountPath',
+              ]),
             },
             {
               title: 'Disk Management',
-              settings: filterSettings(['DownloadClient:MinimumFreeSpaceGB', 'DownloadClient:DiskSpaceCheckIntervalMinutes'])
-            }
-          ]
+              settings: filterSettings([
+                'DownloadClient:MinimumFreeSpaceGB',
+                'DownloadClient:DiskSpaceCheckIntervalMinutes',
+              ]),
+            },
+          ],
         },
         {
           key: 'workflow',
@@ -134,9 +188,9 @@ export class SettingsComponent implements OnInit {
           subMenus: [
             {
               title: 'Defaults Matrix',
-              settings: [] // Matrix UI
-            }
-          ]
+              settings: [], // Matrix UI
+            },
+          ],
         },
         {
           key: 'watch',
@@ -145,10 +199,10 @@ export class SettingsComponent implements OnInit {
           subMenus: [
             {
               title: 'Configuration',
-              settings: filterSettings(['Watch:Path', 'Watch:ErrorPath', 'Watch:ProcessedPath', 'Watch:Interval'])
-            }
-          ]
-        }
+              settings: filterSettings(['Watch:Path', 'Watch:ErrorPath', 'Watch:ProcessedPath', 'Watch:Interval']),
+            },
+          ],
+        },
       ];
     });
   }
@@ -172,16 +226,19 @@ export class SettingsComponent implements OnInit {
   }
 
   public getSetting(key: string): Setting | undefined {
-    return this.allSettings.find(s => s.key === key);
+    return this.allSettings.find((s) => s.key === key);
   }
 
-  public getProviderGroup(providerName: string): { enabled: boolean, apiKey: Setting, extras: Setting[] } {
+  public getProviderGroup(providerName: string): { enabled: boolean; apiKey: Setting; extras: Setting[] } {
     const providerEnumSetting = this.getSetting('Provider:Provider');
-    const enabled = providerEnumSetting?.value == providerName || this.getProviderEnumLabel(providerEnumSetting?.value) === providerName;
+    const enabled =
+      providerEnumSetting?.value == providerName ||
+      this.getProviderEnumLabel(providerEnumSetting?.value) === providerName;
     const apiKey = this.getSetting('Provider:ApiKey');
-    const extras = this.allSettings.filter(s => 
+    const extras = this.allSettings.filter(
+      (s) =>
         (s.key === 'Provider:ApiHostname' && providerName === 'RealDebrid') ||
-        (s.key === 'Provider:PreferZippedDownloads' && providerName === 'TorBox')
+        (s.key === 'Provider:PreferZippedDownloads' && providerName === 'TorBox'),
     );
     return { enabled, apiKey, extras };
   }
@@ -195,7 +252,7 @@ export class SettingsComponent implements OnInit {
   public setProvider(providerName: string): void {
     const setting = this.getSetting('Provider:Provider');
     if (!setting || !setting.enumValues) return;
-    
+
     // Find the key for the providerName
     for (const key in setting.enumValues) {
       if (setting.enumValues[key] === providerName || key === providerName) {
@@ -205,28 +262,28 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  public getWorkflowMatrix(): { label: string, keySuffix: string, type: string }[] {
+  public getWorkflowMatrix(): { label: string; keySuffix: string; type: string }[] {
     return [
-        { label: 'Category', keySuffix: 'Category', type: 'String' },
-        { label: 'Host Download Action', keySuffix: 'HostDownloadAction', type: 'Enum' },
-        { label: 'Download Action', keySuffix: 'OnlyDownloadAvailableFiles', type: 'Boolean' },
-        { label: 'Allow Compressed (Symlink)', keySuffix: 'DownloadCompressedSymlink', type: 'Boolean' },
-        { label: 'Finished Action', keySuffix: 'FinishedAction', type: 'Enum' },
-        { label: 'Finished Action Delay', keySuffix: 'FinishedActionDelay', type: 'Int32' },
-        { label: 'Min File Size (MB)', keySuffix: 'MinFileSize', type: 'Int32' },
-        { label: 'Priority', keySuffix: 'Priority', type: 'Int32' },
-        { label: 'Torrent Retries', keySuffix: 'TorrentRetryAttempts', type: 'Int32' },
-        { label: 'Download Retries', keySuffix: 'DownloadRetryAttempts', type: 'Int32' },
-        { label: 'Delete On Error (min)', keySuffix: 'DeleteOnError', type: 'Int32' },
-        { label: 'Lifetime (min)', keySuffix: 'TorrentLifetime', type: 'Int32' },
-        { label: 'Include Regex', keySuffix: 'IncludeRegex', type: 'String' },
-        { label: 'Exclude Regex', keySuffix: 'ExcludeRegex', type: 'String' },
-        { label: 'Trim Folder Extensions', keySuffix: 'TrimRegex', type: 'String' }
+      { label: 'Category', keySuffix: 'Category', type: 'String' },
+      { label: 'Host Download Action', keySuffix: 'HostDownloadAction', type: 'Enum' },
+      { label: 'Download Action', keySuffix: 'OnlyDownloadAvailableFiles', type: 'Boolean' },
+      { label: 'Allow Compressed (Symlink)', keySuffix: 'DownloadCompressedSymlink', type: 'Boolean' },
+      { label: 'Finished Action', keySuffix: 'FinishedAction', type: 'Enum' },
+      { label: 'Finished Action Delay', keySuffix: 'FinishedActionDelay', type: 'Int32' },
+      { label: 'Min File Size (MB)', keySuffix: 'MinFileSize', type: 'Int32' },
+      { label: 'Priority', keySuffix: 'Priority', type: 'Int32' },
+      { label: 'Torrent Retries', keySuffix: 'TorrentRetryAttempts', type: 'Int32' },
+      { label: 'Download Retries', keySuffix: 'DownloadRetryAttempts', type: 'Int32' },
+      { label: 'Delete On Error (min)', keySuffix: 'DeleteOnError', type: 'Int32' },
+      { label: 'Lifetime (min)', keySuffix: 'TorrentLifetime', type: 'Int32' },
+      { label: 'Include Regex', keySuffix: 'IncludeRegex', type: 'String' },
+      { label: 'Exclude Regex', keySuffix: 'ExcludeRegex', type: 'String' },
+      { label: 'Trim Folder Extensions', keySuffix: 'TrimRegex', type: 'String' },
     ];
   }
 
   public getMatrixSetting(source: string, suffix: string): Setting | undefined {
-    return this.allSettings.find(s => s.key === `${source}:Default:${suffix}`);
+    return this.allSettings.find((s) => s.key === `${source}:Default:${suffix}`);
   }
 
   public testDownloadPath(): void {
@@ -317,41 +374,70 @@ export class SettingsComponent implements OnInit {
     const activeClient = this.getSetting('DownloadClient:Client')?.value;
     const providerEnumSetting = this.getSetting('Provider:Provider');
     const activeProviderValue = providerEnumSetting?.value;
-    const activeProviderName = providerEnumSetting?.enumValues ? providerEnumSetting.enumValues[activeProviderValue as any] : '';
-    
+    const activeProviderName = providerEnumSetting?.enumValues
+      ? providerEnumSetting.enumValues[activeProviderValue as any]
+      : '';
+
     // Mapping keys to their required clients
     // 0: Bezzad, 1: Aria2c, 2: Symlink, 3: DownloadStation
     const clientSpecific: { [key: string]: number[] } = {
-        'DownloadClient:MaxSpeed': [0],
-        'DownloadClient:ParallelCount': [0],
-        'DownloadClient:ChunkCount': [0],
-        'DownloadClient:BufferSize': [0],
-        'DownloadClient:Timeout': [0],
-        'DownloadClient:ProxyServer': [0],
-        'DownloadClient:Aria2cUrl': [1],
-        'DownloadClient:Aria2cSecret': [1],
-        'DownloadClient:Aria2cDownloadPath': [1],
-        'DownloadClient:DownloadStationUrl': [3],
-        'DownloadClient:DownloadStationUsername': [3],
-        'DownloadClient:DownloadStationPassword': [3],
-        'DownloadClient:DownloadStationDownloadPath': [3],
-        'DownloadClient:MinimumFreeSpaceGB': [0],
-        'DownloadClient:RcloneMountPath': [2],
-        'DownloadCompressedSymlink': [2]
+      'DownloadClient:MaxSpeed': [0],
+      'DownloadClient:ParallelCount': [0],
+      'DownloadClient:ChunkCount': [0],
+      'DownloadClient:BufferSize': [0],
+      'DownloadClient:Timeout': [0],
+      'DownloadClient:ProxyServer': [0],
+      'DownloadClient:Aria2cUrl': [1],
+      'DownloadClient:Aria2cSecret': [1],
+      'DownloadClient:Aria2cDownloadPath': [1],
+      'DownloadClient:DownloadStationUrl': [3],
+      'DownloadClient:DownloadStationUsername': [3],
+      'DownloadClient:DownloadStationPassword': [3],
+      'DownloadClient:DownloadStationDownloadPath': [3],
+      'DownloadClient:MinimumFreeSpaceGB': [0],
+      'DownloadClient:RcloneMountPath': [2],
+      DownloadCompressedSymlink: [2],
     };
 
     for (const key in clientSpecific) {
-        if (setting.key === key || setting.key.endsWith(':Default:' + key)) {
-            if (!clientSpecific[key].includes(Number(activeClient))) return false;
-        }
+      if (setting.key === key || setting.key.endsWith(':Default:' + key)) {
+        if (!clientSpecific[key].includes(Number(activeClient))) return false;
+      }
     }
 
     // Provider specific settings
     if (setting.key === 'Provider:PreferZippedDownloads' && activeProviderName !== 'TorBox') {
-        return false;
+      return false;
     }
     if (setting.key === 'Provider:ApiHostname' && activeProviderName !== 'RealDebrid') {
+      return false;
+    }
+
+    if (setting.key.startsWith('Provider:Stalled') && setting.key !== 'Provider:StalledAction') {
+      const stalledAction = this.getSetting('Provider:StalledAction')?.value;
+      if (stalledAction == 0) {
+        // 0 is None
         return false;
+      }
+    }
+
+    if (setting.key.startsWith('Provider:Infringing') && setting.key !== 'Provider:InfringingAction') {
+      const infringingAction = this.getSetting('Provider:InfringingAction')?.value;
+      if (infringingAction == 0) {
+        // 0 is None
+        return false;
+      }
+    }
+
+    if (setting.key === 'General:TrackerEnrichmentCacheExpiration') {
+      const enrichmentList = this.getSetting('General:TrackerEnrichmentList')?.value as string;
+      const bannedTrackers = this.getSetting('General:BannedTrackers')?.value as string;
+
+      const isUrl = (val: string) => val && (val.startsWith('http://') || val.startsWith('https://'));
+
+      if (!isUrl(enrichmentList) && !isUrl(bannedTrackers)) {
+        return false;
+      }
     }
 
     return true;

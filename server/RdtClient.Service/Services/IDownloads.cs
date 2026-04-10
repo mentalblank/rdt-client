@@ -11,6 +11,7 @@ public interface IDownloads
     Task UpdateUnrestrictedLink(Guid downloadId, String unrestrictedLink);
     Task UpdateFileName(Guid downloadId, String fileName);
     Task UpdateDownloadStarted(Guid downloadId, DateTimeOffset? dateTime);
+    Task UpdateDownloadQueued(Guid downloadId, DateTimeOffset? dateTime);
     Task UpdateDownloadFinished(Guid downloadId, DateTimeOffset? dateTime);
     Task UpdateUnpackingQueued(Guid downloadId, DateTimeOffset? dateTime);
     Task UpdateUnpackingStarted(Guid downloadId, DateTimeOffset? dateTime);

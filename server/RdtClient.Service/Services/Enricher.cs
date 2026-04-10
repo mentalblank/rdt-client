@@ -23,7 +23,7 @@ public sealed class Enricher(ILogger<Enricher> logger, ITrackerListGrabber track
     /// <returns>Magnet link with additional trackers</returns>
     public async Task<String> EnrichMagnetLink(String magnetLink)
     {
-        var newTrackers = await trackerListGrabber.GetTrackers().ConfigureAwait(false);
+        var newTrackers = await trackerListGrabber.GetEnrichmentTrackers().ConfigureAwait(false);
 
         if (newTrackers.Length == 0)
         {
@@ -151,7 +151,7 @@ public sealed class Enricher(ILogger<Enricher> logger, ITrackerListGrabber track
             throw new InvalidOperationException("Invalid torrent file format.", ex);
         }
 
-        var newTrackers = await trackerListGrabber.GetTrackers().ConfigureAwait(false);
+        var newTrackers = await trackerListGrabber.GetEnrichmentTrackers().ConfigureAwait(false);
 
         if (newTrackers.Length == 0)
         {

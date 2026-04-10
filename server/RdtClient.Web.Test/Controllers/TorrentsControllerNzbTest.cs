@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Collections.Generic;
+using RdtClient.Data.Models.Data;
 using RdtClient.Service.Helpers;
 using RdtClient.Service.Services;
 using RdtClient.Web.Controllers;
@@ -17,7 +19,7 @@ public class TorrentsControllerNzbTest
 
     public TorrentsControllerNzbTest()
     {
-        _torrentsMock = new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
+        _torrentsMock = new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
         _loggerMock = new();
         _coordinatorMock = new();
         _controller = new(_loggerMock.Object, _torrentsMock.Object, null!, _coordinatorMock.Object);
@@ -92,12 +94,11 @@ public class TorrentsControllerNzbTest
         };
 
         // Act
-        var result = await _controller.UploadNzbFile(fileMock.Object, formData);
+        var result = await _controller.UploadNzbFile(new List<IFormFile> { fileMock.Object }, formData);
 
         // Assert
         Assert.IsType<OkResult>(result);
-        _torrentsMock.Verify(t => t.AddNzbFileToDebridQueue(It.IsAny<Byte[]>(), fileName, formData.Torrent), Times.Once);
-        Assert.Equal(fileName, formData.Torrent.RdName);
+        _torrentsMock.Verify(t => t.AddNzbFileToDebridQueue(It.IsAny<Byte[]>(), fileName, It.IsAny<Torrent>()), Times.Once);
     }
 
     [Fact]
@@ -108,6 +109,6 @@ public class TorrentsControllerNzbTest
 
         // Assert
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Invalid nzb file", badRequest.Value);
+        Assert.Equal("Invalid nzb files", badRequest.Value);
     }
 }

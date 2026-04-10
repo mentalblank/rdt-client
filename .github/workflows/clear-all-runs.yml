@@ -1,14 +1,14 @@
-name: Clear Old Workflow Runs
+name: Clear All Workflow Runs
 
 on:
   workflow_dispatch:
 
 jobs:
-  delete-old-actions:
+  delete-all-actions:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: yanovation/delete-old-actions@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          days-ago: 1
+          days-ago: 0

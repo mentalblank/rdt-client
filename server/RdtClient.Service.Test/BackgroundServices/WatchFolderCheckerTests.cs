@@ -25,7 +25,7 @@ public class WatchFolderCheckerTests : IDisposable
         _serviceProviderMock = new();
         _serviceScopeMock = new();
         _scopeServiceProviderMock = new();
-        _torrentsServiceMock = new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
+        _torrentsServiceMock = new(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
 
         _serviceProviderMock
             .Setup(x => x.GetService(typeof(IServiceScopeFactory)))

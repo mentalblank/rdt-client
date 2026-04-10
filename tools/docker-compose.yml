@@ -13,33 +13,33 @@ services:
       - PGID=1000
       - TZ=Australia/Sydney
     logging:
-        driver: json-file
-        options:
-            max-size: 10m
+      driver: json-file
+      options:
+        max-size: 10m
     ports:
       - 6500/tcp
     healthcheck:
-        test: curl --fail http://localhost:6500 || exit 1
-        interval: 30s
-        retries: 3
-        start_period: 30s
-        timeout: 30s
+      test: curl --fail http://localhost:6500 || exit 1
+      interval: 30s
+      retries: 3
+      start_period: 30s
+      timeout: 30s
     networks:
       - saltbox
     labels:
-      com.github.saltbox.saltbox_managed: true 
-      traefik.enable: true 
-      traefik.http.routers.rdtclient-http.entrypoints: web 
-      traefik.http.routers.rdtclient-http.middlewares: globalHeaders@file,redirect-to-https@docker,cloudflarewarp@docker 
-      traefik.http.routers.rdtclient-http.rule: Host(`rdtclient.yourdomain.com`) 
-      traefik.http.routers.rdtclient-http.service: rdtclient 
-      traefik.http.routers.rdtclient.entrypoints: websecure 
-      traefik.http.routers.rdtclient.middlewares: globalHeaders@file,secureHeaders@file,cloudflarewarp@docker 
-      traefik.http.routers.rdtclient.rule: Host(`rdtclient.yourdomain.com`) 
-      traefik.http.routers.rdtclient.service: rdtclient 
-      traefik.http.routers.rdtclient.tls.certresolver: cfdns 
-      traefik.http.routers.rdtclient.tls.options: securetls@file 
-      traefik.http.services.rdtclient.loadbalancer.server.port: 6500 
+      com.github.saltbox.saltbox_managed: true
+      traefik.enable: true
+      traefik.http.routers.rdtclient-http.entrypoints: web
+      traefik.http.routers.rdtclient-http.middlewares: globalHeaders@file,redirect-to-https@docker,cloudflarewarp@docker
+      traefik.http.routers.rdtclient-http.rule: Host(`rdtclient.yourdomain.com`)
+      traefik.http.routers.rdtclient-http.service: rdtclient
+      traefik.http.routers.rdtclient.entrypoints: websecure
+      traefik.http.routers.rdtclient.middlewares: globalHeaders@file,secureHeaders@file,cloudflarewarp@docker
+      traefik.http.routers.rdtclient.rule: Host(`rdtclient.yourdomain.com`)
+      traefik.http.routers.rdtclient.service: rdtclient
+      traefik.http.routers.rdtclient.tls.certresolver: cfdns
+      traefik.http.routers.rdtclient.tls.options: securetls@file
+      traefik.http.services.rdtclient.loadbalancer.server.port: 6500
     volumes:
       - /opt/rdtclient:/CONFIG
       - /etc/localtime:/etc/localtime:ro

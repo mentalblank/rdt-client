@@ -54,6 +54,12 @@ export class TorrentStatusPipe implements PipeTransform {
         return `Queued for unpacking`;
       }
 
+      const cooldown = torrent.downloads.filter((m) => m.downloadQueued && new Date(m.downloadQueued) > new Date());
+
+      if (cooldown.length > 0) {
+        return `Fair-use cooldown (${cooldown.length}/${torrent.downloads.length} files)`;
+      }
+
       const queuedForDownload = torrent.downloads.filter((m) => !m.downloadStarted && !m.downloadFinished);
 
       if (queuedForDownload.length > 0) {
