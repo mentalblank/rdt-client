@@ -1,11 +1,12 @@
 ﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 using RdtClient.Data.Enums;
 using RdtClient.Service.Helpers;
 using Serilog;
 
 namespace RdtClient.Service.Services.Downloaders;
 
-public class SymlinkDownloader(String uri, String destinationPath, String path, Provider? clientKind) : IDownloader
+public class SymlinkDownloader(String uri, String destinationPath, String path, Provider? clientKind, String? rdName) : IDownloader
 {
     private const Int32 MaxRetries = 30;
 
@@ -17,7 +18,7 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
 
     public async Task<String> Download()
     {
-        _logger.Debug($"Starting symlink resolving of {path} (uri = {uri}), writing to path: {destinationPath}");
+        _logger.Debug("Starting symlink resolving of {Path} (uri = {Uri}), writing to path: {DestinationPath}", path, uri, destinationPath);
 
         try
         {
@@ -35,8 +36,6 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
             var fileName = filePath.Name;
             var fileExtension = filePath.Extension;
             var fileNameWithoutExtension = fileName.Replace(fileExtension, "");
-            var pathWithoutFileName = path.Replace(fileName, "").TrimEnd('\\', '/');
-            var searchPath = Path.Combine(rcloneMountPath, pathWithoutFileName);
 
             List<String> unWantedExtensions =
             [
@@ -70,49 +69,39 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
                 // If this somehow fails, fallback to the search below.
                 if (File.Exists(potentialFilePath))
                 {
-                    _logger.Debug($"Found file {path} at {potentialFilePath} using direct search");
+                    _logger.Debug("Found file {Path} at {PotentialFilePath} using direct search", path, potentialFilePath);
                     file = potentialFilePath;
                     shouldSearch = false;
                 }
                 else
                 {
                     // Log if the file wasn't found and continue searching.
-                    _logger.Warning($"Expected file {path} to be at {potentialFilePath} but it wasn't found. Continuing search (this will probably fail).");
+                    _logger.Warning("Expected file {Path} to be at {PotentialFilePath} but it wasn't found. Continuing search (this will probably fail).", path, potentialFilePath);
                 }
             }
 
             if (shouldSearch)
             {
-                var potentialFilePaths = new List<String>();
+                var pathWithoutFileName = path.Replace(fileName, "").TrimEnd('\\', '/');
+
+                var potentialFilePaths = new List<String>
+                {
+                    fileName,
+                    fileNameWithoutExtension,
+                    ""
+                };
+
+                if (!String.IsNullOrWhiteSpace(rdName))
+                {
+                    potentialFilePaths.Add(rdName);
+                }
 
                 if (!String.IsNullOrWhiteSpace(pathWithoutFileName))
                 {
                     potentialFilePaths.Add(pathWithoutFileName);
                 }
 
-                var directoryInfo = new DirectoryInfo(searchPath);
-
-                while (directoryInfo.Parent != null && directoryInfo.FullName.TrimEnd('\\', '/') != rcloneMountPath)
-                {
-                    potentialFilePaths.Add(directoryInfo.Name);
-                    directoryInfo = directoryInfo.Parent;
-                }
-
-                potentialFilePaths.Add(fileName);
-                potentialFilePaths.Add(fileNameWithoutExtension);
-
-                // add an empty path so we can check for the new file in the base directory
-                potentialFilePaths.Add("");
-
                 potentialFilePaths = potentialFilePaths.Distinct().ToList();
-
-                var keywords = (pathWithoutFileName + " " + fileNameWithoutExtension)
-                               .Split([' ', '.', '_', '-', '(', ')', '[', ']', '{', '}'], StringSplitOptions.RemoveEmptyEntries)
-                               .Where(k => k.Length >= 3) // Skip short words
-                               .Where(k => !Int32.TryParse(k, out _)) // Skip numbers
-                               .Where(k => !new[] { "the", "and", "remux", "bluray", "h264", "x264", "x265", "hevc" }.Contains(k.ToLower())) // Skip common tags
-                               .Distinct()
-                               .ToList();
 
                 for (var retryCount = 0; retryCount < MaxRetries; retryCount++)
                 {
@@ -124,9 +113,9 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
                                                  Speed = 1
                                              });
 
-                    _logger.Debug($"Searching {rcloneMountPath} for {fileName} (attempt #{retryCount})...");
+                    _logger.Debug("Searching {MountPath} for {FileName} (attempt #{RetryCount})...", rcloneMountPath, fileName, retryCount);
 
-                    // First try the root mount path with all potential sub-paths
+                    // First try the root mount path with the allowed nested sub-paths
                     file = FindFile(rcloneMountPath, potentialFilePaths, fileName);
 
                     if (file == null && (retryCount == 1 || retryCount == 5) && !String.IsNullOrWhiteSpace(Settings.Get.General.RcloneRefreshCommand))
@@ -142,26 +131,46 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
 
                     if (file == null && searchSubDirectories && retryCount >= 5)
                     {
-                        var subDirectories = Directory.GetDirectories(rcloneMountPath, "*", SearchOption.TopDirectoryOnly);
+                        var trimRegex = Settings.Get.Integrations.Default.TrimRegex ?? "";
 
-                        // When searching subdirectories, we only want to use relative potential paths.
-                        var relativePotentialPaths = potentialFilePaths.Where(p => !Path.IsPathRooted(p)).ToList();
-
-                        foreach (var subDirectory in subDirectories)
+                        // Targeted search: only look inside subdirectories that match the torrent or file name
+                        // Or match the name when the trim regex is applied
+                        foreach (var p in potentialFilePaths.Where(p => !String.IsNullOrWhiteSpace(p)))
                         {
-                            var subDirectoryName = Path.GetFileName(subDirectory);
-
-                            // Only check "relevant" subdirectories: those matching keywords or expected paths
-                            var isRelevant = keywords.Count == 0 || 
-                                             keywords.Any(k => subDirectoryName.Contains(k, StringComparison.OrdinalIgnoreCase)) ||
-                                             potentialFilePaths.Any(p => p.TrimEnd('\\', '/').Equals(subDirectoryName, StringComparison.OrdinalIgnoreCase));
-
-                            if (!isRelevant)
+                            try
                             {
-                                continue;
-                            }
+                                // Optimization: use a wildcard search to only get folders that START with our name
+                                var matchingSubDirectories = Directory.GetDirectories(rcloneMountPath, p + "*");
 
-                            file = FindFile(subDirectory, relativePotentialPaths, fileName);
+                                foreach (var subDirectory in matchingSubDirectories)
+                                {
+                                    var subDirectoryName = Path.GetFileName(subDirectory);
+
+                                    // Verify that the folder name matches our target either exactly or after applying the Trim Regex
+                                    var isMatch = subDirectoryName.Equals(p, StringComparison.OrdinalIgnoreCase);
+
+                                    if (!isMatch && !String.IsNullOrWhiteSpace(trimRegex))
+                                    {
+                                        var trimmedName = Regex.Replace(subDirectoryName, trimRegex, "");
+                                        isMatch = trimmedName.Equals(p, StringComparison.OrdinalIgnoreCase);
+                                    }
+
+                                    if (isMatch)
+                                    {
+                                        _logger.Debug("Searching targeted subdirectory {SubDirectory}...", subDirectory);
+                                        file = FindFile(subDirectory, potentialFilePaths, fileName);
+
+                                        if (file != null)
+                                        {
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.Warning("Error searching subdirectories for {Path}: {Message}", p, ex.Message);
+                            }
 
                             if (file != null)
                             {
@@ -183,23 +192,23 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
 
             if (file == null)
             {
-                _logger.Debug($"Unable to find file in rclone mount. Folders available in {rcloneMountPath}: ");
+                _logger.Debug("Unable to find file in rclone mount. Folders available in {RcloneMountPath}: ", rcloneMountPath);
 
                 try
                 {
                     var allFolders = FileHelper.GetDirectoryContents(rcloneMountPath);
 
-                    _logger.Debug(allFolders);
+                    _logger.Debug("{AllFolders}", allFolders);
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(ex.Message);
+                    _logger.Error(ex, "Error getting directory contents");
                 }
 
                 throw new("Could not find file from rclone mount!");
             }
 
-            _logger.Debug($"Creating symbolic link from {file} to {destinationPath}");
+            _logger.Debug("Creating symbolic link from {File} to {DestinationPath}", file, destinationPath);
 
             var result = TryCreateSymbolicLink(file, destinationPath);
 
@@ -253,7 +262,7 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
 
             var potentialFilePathWithFileName = Path.Combine(rootPath, potentialFilePath, fileName);
 
-            _logger.Debug($"Searching {potentialFilePathWithFileName}...");
+            _logger.Debug("Searching {PotentialPath}...", potentialFilePathWithFileName);
 
             if (File.Exists(potentialFilePathWithFileName))
             {
@@ -272,18 +281,18 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
 
             if (File.Exists(symlinkPath)) // Double-check that the link was created
             {
-                _logger.Information($"Created symbolic link from {sourcePath} to {symlinkPath}");
+                _logger.Information("Created symbolic link from {SourcePath} to {SymlinkPath}", sourcePath, symlinkPath);
 
                 return true;
             }
 
-            _logger.Error($"Failed to create symbolic link from {sourcePath} to {symlinkPath}");
+            _logger.Error("Failed to create symbolic link from {SourcePath} to {SymlinkPath}", sourcePath, symlinkPath);
 
             return false;
         }
         catch (Exception ex)
         {
-            _logger.Error($"Error creating symbolic link from {sourcePath} to {symlinkPath}: {ex.Message}");
+            _logger.Error(ex, "Error creating symbolic link from {SourcePath} to {SymlinkPath}", sourcePath, symlinkPath);
 
             return false;
         }
@@ -327,7 +336,7 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
                 CreateNoWindow = true
             };
 
-            _logger.Debug($"Executing rclone refresh: {rclonePath} {Settings.Get.General.RcloneRefreshCommand}");
+            _logger.Debug("Executing rclone refresh: {RclonePath} {RcloneRefreshCommand}", rclonePath, Settings.Get.General.RcloneRefreshCommand);
             
             using var process = Process.Start(processInfo);
             if (process != null)
@@ -337,17 +346,17 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
                 var error = process.StandardError.ReadToEnd();
                 
                 if (!String.IsNullOrWhiteSpace(output))
-                    _logger.Debug($"rclone refresh output: {output}");
+                    _logger.Debug("rclone refresh output: {Output}", output);
                 
                 if (!String.IsNullOrWhiteSpace(error))
-                    _logger.Warning($"rclone refresh error output: {error}");
+                    _logger.Warning("rclone refresh error output: {Error}", error);
             }
 
             _lastRefresh = DateTimeOffset.UtcNow;
         }
         catch (Exception ex)
         {
-            _logger.Error($"Failed to execute rclone refresh command: {ex.Message}");
+            _logger.Error(ex, "Failed to execute rclone refresh command");
         }
         finally
         {
