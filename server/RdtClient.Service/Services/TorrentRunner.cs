@@ -624,8 +624,6 @@ public class TorrentRunner(
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Cannot unrestrict link: {ex.Message}", ex.Message);
-
                         if (ex.Message.Contains("Fair Usage Limit", StringComparison.OrdinalIgnoreCase) ||
                             ex.Message.Contains("Fair Use", StringComparison.OrdinalIgnoreCase) ||
                             ex.Message.Contains("Limit reached", StringComparison.OrdinalIgnoreCase))
@@ -635,8 +633,26 @@ public class TorrentRunner(
                             await downloads.Reset(download.DownloadId);
                             await downloads.UpdateDownloadQueued(download.DownloadId, DateTimeOffset.UtcNow.AddMinutes(cooldown));
                         }
+                        else if (Settings.Get.Provider.InfringingAction != StalledAction.None && ex.Message.Contains("infringing file", StringComparison.OrdinalIgnoreCase))
+                        {
+                            Log($"Torrent has been marked as infringing by debrid provider, taking action: {Settings.Get.Provider.InfringingAction}", torrent);
+
+                            if (Settings.Get.Provider.InfringingAction == StalledAction.Remove)
+                            {
+                                await torrents.Delete(torrent.TorrentId, Settings.Get.Provider.InfringingDeleteData, Settings.Get.Provider.InfringingDeleteRdTorrent, Settings.Get.Provider.InfringingDeleteLocalFiles);
+                            }
+                            else if (Settings.Get.Provider.InfringingAction == StalledAction.Error)
+                            {
+                                await torrents.Delete(torrent.TorrentId, false, Settings.Get.Provider.InfringingDeleteRdTorrent, Settings.Get.Provider.InfringingDeleteLocalFiles);
+
+                                await torrents.UpdateRetry(torrent.TorrentId, null, torrent.TorrentRetryAttempts);
+                                await torrents.UpdateComplete(torrent.TorrentId, $"Torrent contains infringing files", DateTimeOffset.UtcNow, false);
+                            }
+                        }
                         else
                         {
+                            logger.LogError(ex, "Cannot unrestrict link: {ex.Message}", ex.Message);
+
                             await downloads.UpdateError(download.DownloadId, ex.Message);
                             await downloads.UpdateCompleted(download.DownloadId, DateTimeOffset.UtcNow);
                             download.Error = ex.Message;
@@ -869,8 +885,27 @@ public class TorrentRunner(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex.Message, "Torrent processing result in an unexpected exception: {Message}", ex.Message);
-                await torrents.UpdateComplete(torrent.TorrentId, $"Runner error: {ex.Message}", DateTimeOffset.UtcNow, true);
+                if (Settings.Get.Provider.InfringingAction != StalledAction.None && ex.Message.Contains("infringing file", StringComparison.OrdinalIgnoreCase))
+                {
+                    Log($"Torrent has been marked as infringing by debrid provider, taking action: {Settings.Get.Provider.InfringingAction}", torrent);
+
+                    if (Settings.Get.Provider.InfringingAction == StalledAction.Remove)
+                    {
+                        await torrents.Delete(torrent.TorrentId, Settings.Get.Provider.InfringingDeleteData, Settings.Get.Provider.InfringingDeleteRdTorrent, Settings.Get.Provider.InfringingDeleteLocalFiles);
+                    }
+                    else if (Settings.Get.Provider.InfringingAction == StalledAction.Error)
+                    {
+                        await torrents.Delete(torrent.TorrentId, false, Settings.Get.Provider.InfringingDeleteRdTorrent, Settings.Get.Provider.InfringingDeleteLocalFiles);
+
+                        await torrents.UpdateRetry(torrent.TorrentId, null, torrent.TorrentRetryAttempts);
+                        await torrents.UpdateComplete(torrent.TorrentId, $"Torrent contains infringing files", DateTimeOffset.UtcNow, false);
+                    }
+                }
+                else
+                {
+                    logger.LogError(ex, "Torrent processing resulted in an unexpected exception: {Message}", ex.Message);
+                    await torrents.UpdateComplete(torrent.TorrentId, $"Runner error: {ex.Message}", DateTimeOffset.UtcNow, true);
+                }
             }
         }
 
