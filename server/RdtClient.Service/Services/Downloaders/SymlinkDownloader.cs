@@ -7,7 +7,7 @@ namespace RdtClient.Service.Services.Downloaders;
 
 public class SymlinkDownloader(String uri, String destinationPath, String path, Provider? clientKind) : IDownloader
 {
-    private const Int32 MaxRetries = 10;
+    private const Int32 MaxRetries = 30;
 
     private readonly CancellationTokenSource _cancellationToken = new();
 
@@ -83,22 +83,19 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
 
             if (shouldSearch)
             {
-                var potentialFilePaths = new List<String>
+                var potentialFilePaths = new List<String>();
+
+                if (!String.IsNullOrWhiteSpace(pathWithoutFileName))
                 {
-                    searchPath
-                };
+                    potentialFilePaths.Add(pathWithoutFileName);
+                }
 
                 var directoryInfo = new DirectoryInfo(searchPath);
 
-                while (directoryInfo.Parent != null)
+                while (directoryInfo.Parent != null && directoryInfo.FullName.TrimEnd('\\', '/') != rcloneMountPath)
                 {
                     potentialFilePaths.Add(directoryInfo.Name);
                     directoryInfo = directoryInfo.Parent;
-
-                    if (directoryInfo.FullName.TrimEnd('\\', '/') == rcloneMountPath)
-                    {
-                        break;
-                    }
                 }
 
                 potentialFilePaths.Add(fileName);
@@ -109,32 +106,62 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
 
                 potentialFilePaths = potentialFilePaths.Distinct().ToList();
 
+                var keywords = (pathWithoutFileName + " " + fileNameWithoutExtension)
+                               .Split([' ', '.', '_', '-', '(', ')', '[', ']', '{', '}'], StringSplitOptions.RemoveEmptyEntries)
+                               .Where(k => k.Length >= 3) // Skip short words
+                               .Where(k => !Int32.TryParse(k, out _)) // Skip numbers
+                               .Where(k => !new[] { "the", "and", "remux", "bluray", "h264", "x264", "x265", "hevc" }.Contains(k.ToLower())) // Skip common tags
+                               .Distinct()
+                               .ToList();
+
                 for (var retryCount = 0; retryCount < MaxRetries; retryCount++)
                 {
                     DownloadProgress?.Invoke(this,
                                              new()
                                              {
                                                  BytesDone = retryCount,
-                                                 BytesTotal = 10,
+                                                 BytesTotal = MaxRetries,
                                                  Speed = 1
                                              });
 
                     _logger.Debug($"Searching {rcloneMountPath} for {fileName} (attempt #{retryCount})...");
 
+                    // First try the root mount path with all potential sub-paths
                     file = FindFile(rcloneMountPath, potentialFilePaths, fileName);
 
-                    if (!String.IsNullOrWhiteSpace(Settings.Get.General.RcloneRefreshCommand))
+                    if (file == null && (retryCount == 1 || retryCount == 5) && !String.IsNullOrWhiteSpace(Settings.Get.General.RcloneRefreshCommand))
                     {
                         RefreshRclone();
+
+                        // Wait a second for the mount to settle after refresh
+                        await Task.Delay(1000);
+
+                        // Re-check root after refresh before potentially going exhaustive
+                        file = FindFile(rcloneMountPath, potentialFilePaths, fileName);
                     }
 
-                    if (file == null && searchSubDirectories)
+                    if (file == null && searchSubDirectories && retryCount >= 5)
                     {
-                        var subDirectories = Directory.GetDirectories(rcloneMountPath, "*.*", SearchOption.TopDirectoryOnly);
+                        var subDirectories = Directory.GetDirectories(rcloneMountPath, "*", SearchOption.TopDirectoryOnly);
+
+                        // When searching subdirectories, we only want to use relative potential paths.
+                        var relativePotentialPaths = potentialFilePaths.Where(p => !Path.IsPathRooted(p)).ToList();
 
                         foreach (var subDirectory in subDirectories)
                         {
-                            file = FindFile(Path.Combine(rcloneMountPath, subDirectory), potentialFilePaths, fileName);
+                            var subDirectoryName = Path.GetFileName(subDirectory);
+
+                            // Only check "relevant" subdirectories: those matching keywords or expected paths
+                            var isRelevant = keywords.Count == 0 || 
+                                             keywords.Any(k => subDirectoryName.Contains(k, StringComparison.OrdinalIgnoreCase)) ||
+                                             potentialFilePaths.Any(p => p.TrimEnd('\\', '/').Equals(subDirectoryName, StringComparison.OrdinalIgnoreCase));
+
+                            if (!isRelevant)
+                            {
+                                continue;
+                            }
+
+                            file = FindFile(subDirectory, relativePotentialPaths, fileName);
 
                             if (file != null)
                             {
@@ -145,7 +172,7 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
 
                     if (file == null)
                     {
-                        await Task.Delay(1000 * retryCount);
+                        await Task.Delay(1000 * Math.Min(retryCount, 10)); // Cap the backoff at 10s
                     }
                     else
                     {
@@ -218,6 +245,12 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
     {
         foreach (var potentialFilePath in filePaths)
         {
+            // Avoid redundant path construction (e.g., /TorrentName/TorrentName/File.mkv)
+            if (!String.IsNullOrEmpty(potentialFilePath) && rootPath.TrimEnd('\\', '/').EndsWith(potentialFilePath.TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             var potentialFilePathWithFileName = Path.Combine(rootPath, potentialFilePath, fileName);
 
             _logger.Debug($"Searching {potentialFilePathWithFileName}...");
@@ -256,25 +289,69 @@ public class SymlinkDownloader(String uri, String destinationPath, String path, 
         }
     }
 
+    private static readonly SemaphoreSlim RefreshLock = new(1, 1);
+    private static DateTimeOffset _lastRefresh = DateTimeOffset.MinValue;
+
     private void RefreshRclone()
     {
-        var processInfo = new ProcessStartInfo
+        if (String.IsNullOrWhiteSpace(Settings.Get.General.RcloneRefreshCommand))
         {
-            FileName = "/usr/bin/rclone",
-            Arguments = Settings.Get.General.RcloneRefreshCommand,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
+            return;
+        }
 
-        using (var process = Process.Start(processInfo))
+        // Use a non-blocking check to see if a refresh is already in progress
+        if (!RefreshLock.Wait(0))
         {
+            _logger.Debug("An rclone refresh is already in progress, skipping redundant refresh.");
+            return;
+        }
+
+        try
+        {
+            // Only refresh if the last one was more than 30 seconds ago
+            if (DateTimeOffset.UtcNow - _lastRefresh < TimeSpan.FromSeconds(30))
+            {
+                _logger.Debug("An rclone refresh was performed recently, skipping to avoid rate limits.");
+                return;
+            }
+
+            var rclonePath = "rclone"; // Let the OS find it in the PATH
+            
+            var processInfo = new ProcessStartInfo
+            {
+                FileName = rclonePath,
+                Arguments = Settings.Get.General.RcloneRefreshCommand,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            _logger.Debug($"Executing rclone refresh: {rclonePath} {Settings.Get.General.RcloneRefreshCommand}");
+            
+            using var process = Process.Start(processInfo);
             if (process != null)
             {
                 process.WaitForExit();
                 var output = process.StandardOutput.ReadToEnd();
-                _logger.Debug($"rclone refresh output: {output}");
+                var error = process.StandardError.ReadToEnd();
+                
+                if (!String.IsNullOrWhiteSpace(output))
+                    _logger.Debug($"rclone refresh output: {output}");
+                
+                if (!String.IsNullOrWhiteSpace(error))
+                    _logger.Warning($"rclone refresh error output: {error}");
             }
+
+            _lastRefresh = DateTimeOffset.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Failed to execute rclone refresh command: {ex.Message}");
+        }
+        finally
+        {
+            RefreshLock.Release();
         }
     }
 }

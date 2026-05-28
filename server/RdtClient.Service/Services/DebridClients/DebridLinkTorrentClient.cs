@@ -131,7 +131,7 @@ public class DebridLinkClient(ILogger<DebridLinkClient> logger, IHttpClientFacto
                 return torrent;
             }
 
-            var rdTorrent = await GetInfo(torrent.RdId) ?? throw new($"Resource not found");
+            var rdTorrent = torrentClientTorrent ?? await GetInfo(torrent.RdId) ?? throw new($"Resource not found");
 
             if (!String.IsNullOrWhiteSpace(rdTorrent.Filename))
             {

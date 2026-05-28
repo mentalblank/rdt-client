@@ -177,7 +177,7 @@ public class RealDebridDebridClient(ILogger<RealDebridDebridClient> logger, IHtt
                 return torrent;
             }
 
-            if (torrentClientTorrent == null || torrentClientTorrent.Ended == null || String.IsNullOrEmpty(torrentClientTorrent.Filename))
+            if (torrentClientTorrent == null || String.IsNullOrEmpty(torrentClientTorrent.Filename) || String.IsNullOrWhiteSpace(torrent.RdFiles))
             {
                 torrentClientTorrent = await GetInfo(torrent.RdId) ?? throw new($"Resource not found");
             }

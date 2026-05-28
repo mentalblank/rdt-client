@@ -9,10 +9,13 @@ using RdtClient.Data.Models.Internal;
 using RdtClient.Service.Helpers;
 using RdtClient.Service.Services.Downloaders;
 
+using Microsoft.Extensions.DependencyInjection;
+
 namespace RdtClient.Service.Services;
 
 public class TorrentRunner(
     ILogger<TorrentRunner> logger,
+    IServiceScopeFactory scopeFactory,
     Torrents torrents,
     Downloads downloads,
     RemoteService remoteService,
@@ -664,36 +667,44 @@ public class TorrentRunner(
                     {
                         Log($"Starting download", download, torrent);
 
-                        try
+                        _ = Task.Run(async () =>
                         {
-                            var remoteId = await downloadClient.Start();
-
-                            if (String.IsNullOrWhiteSpace(remoteId))
+                            try
                             {
-                                throw new($"No remote ID received from download client");
+                                var remoteId = await downloadClient.Start();
+
+                                if (String.IsNullOrWhiteSpace(remoteId))
+                                {
+                                    throw new($"No remote ID received from download client");
+                                }
+
+                                Log($"Received ID {remoteId}", download, torrent);
+
+                                if (download.RemoteId != remoteId)
+                                {
+                                    using var scope = scopeFactory.CreateScope();
+                                    var scopedDownloads = scope.ServiceProvider.GetRequiredService<Downloads>();
+                                    await scopedDownloads.UpdateRemoteId(download.DownloadId, remoteId);
+                                }
+
+                                if (IsPausedForLowDiskSpace && downloadClient.Type == Data.Enums.DownloadClient.Bezzad)
+                                {
+                                    logger.LogInformation($"Pausing new Bezzad download due to low disk space {download.ToLog()} {torrent.ToLog()}");
+                                    await downloadClient.Pause();
+                                }
+
+                                Log($"Started download", download, torrent);
                             }
-
-                            Log($"Received ID {remoteId}", download, torrent);
-
-                            if (download.RemoteId != remoteId)
+                            catch (Exception ex)
                             {
-                                await downloads.UpdateRemoteId(download.DownloadId, remoteId);
+                                LogError($"Unable to start download: {ex.Message}", download, torrent);
+
+                                using var scope = scopeFactory.CreateScope();
+                                var scopedDownloads = scope.ServiceProvider.GetRequiredService<Downloads>();
+                                await scopedDownloads.UpdateError(download.DownloadId, ex.Message);
+                                await scopedDownloads.UpdateCompleted(download.DownloadId, DateTimeOffset.UtcNow);
                             }
-
-                            if (IsPausedForLowDiskSpace && downloadClient.Type == Data.Enums.DownloadClient.Bezzad)
-                            {
-                                logger.LogInformation($"Pausing new Bezzad download due to low disk space {download.ToLog()} {torrent.ToLog()}");
-                                await downloadClient.Pause();
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            LogError($"Unable to start download: {ex.Message}", download, torrent);
-
-                            continue;
-                        }
-
-                        Log($"Started download", download, torrent);
+                        });
                     }
                 }
 
